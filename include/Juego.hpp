@@ -3,7 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "Mundo.hpp"
-#include "Jugador.hpp" // <-- Incluimos el plano del jugador
+#include "Jugador.hpp"
 #include <memory>
 
 class Juego {
@@ -12,11 +12,15 @@ private:
     bool estaCorriendo;
 
     std::unique_ptr<Mundo> mapaSuperficie;
-    std::unique_ptr<Jugador> jugador; // <-- Objeto jugador encapsulado
-
-    // LA CÁMARA: Controla qué parte del mundo gigante se está viendo
-    sf::View camara;
+    std::unique_ptr<Jugador> jugador;
     
+    sf::View camara;
+
+    sf::Font fuente;
+    // En SFML 3 usamos un puntero inteligente para inicializarlo en cuanto cargue la fuente
+    std::unique_ptr<sf::Text> textoCoordenadas; 
+    bool fuenteCargada;
+
 public:
     Juego();
     ~Juego();

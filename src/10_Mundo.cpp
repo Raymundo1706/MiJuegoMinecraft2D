@@ -1,17 +1,17 @@
 #include "Mundo.hpp"
 #include <iostream>
+#include <cmath>
+#include <random>
+#include <algorithm>
 
-// Constructor: Reservamos el tamaño de la matriz de bloques
+// Constructor del Mundo
 Mundo::Mundo(int ancho, int alto) : ancho(ancho), alto(alto) {
-    // Redimensionamos la matriz exterior (filas)
     cuadricula.resize(alto);
-    
-    // Redimensionamos cada fila para tener las columnas correspondientes
     for (int i = 0; i < alto; ++i) {
         cuadricula[i].resize(ancho);
     }
     
-    // ¡CONEXIÓN POO!: Forzamos al objeto a rellenar su propia matriz con Pasto al nacer
+    // Proporciones iniciales: Cámbialo a 'true' para probar el subterráneo
     generarMundo(false);
     
     std::cout << "¡Matriz del mundo de " << ancho << "x" << alto << " creada con exito!" << std::endl;
@@ -20,73 +20,192 @@ Mundo::Mundo(int ancho, int alto) : ancho(ancho), alto(alto) {
 // Destructor
 Mundo::~Mundo() {}
 
-// Rellenamos el mundo con bloques por defecto por ahora
+// Lógica de Generación del Mundo por Capas/Sprints
 void Mundo::generarMundo(bool esSubterraneo) {
-    // Definimos el grosor del océano en los bordes (ej. 15 bloques de ancho)
     const int MARGEN_OCEANO = 15;
 
+    // 1. Inicialización base del Terreno
     for (int y = 0; y < alto; ++y) {
         for (int x = 0; x < ancho; ++x) {
             if (esSubterraneo) {
-                // Si es el subterráneo, todo empieza lleno de Piedra
+                // Todo lleno de piedra sólida por defecto bajo tierra
                 cuadricula[y][x] = { TipoBloque::Piedra, true, 5, false };
             } else {
-                // REGLA DE LA ISLA: Si está en los bordes del mapa, es Agua Profunda
                 if (x < MARGEN_OCEANO || x >= (ancho - MARGEN_OCEANO) ||
                     y < MARGEN_OCEANO || y >= (alto - MARGEN_OCEANO)) {
-                    
                     cuadricula[y][x] = { TipoBloque::AguaProfunda, true, 999, false };
                 } else {
-                    // El interior de la isla inicia con Pasto base
                     cuadricula[y][x] = { TipoBloque::Pasto, false, 3, false };
                 }
             }
         }
     }
-    std::cout << "¡Bordes de la isla generados correctamente!" << std::endl;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    // --- CAPA SUBTERRÁNEA: VENAS DE MINERALES ---
+    if (esSubterraneo) {
+        std::uniform_int_distribution<> disX(10, ancho - 10);
+        
+        // Venas de Hierro
+        int cantidadVenasHierro = 800;
+        for (int i = 0; i < cantidadVenasHierro; ++i) {
+            int centroX = disX(gen);
+            std::uniform_int_distribution<> disY(10, alto - 10);
+            int centroY = disY(gen);
+            
+            for (int dy = 0; dy <= 1; ++dy) {
+                for (int dx = 0; dx <= 1; ++dx) {
+                    int nx = centroX + dx;
+                    int ny = centroY + dy;
+                    if (nx >= 0 && nx < ancho && ny >= 0 && ny < alto) {
+                        cuadricula[ny][nx] = { TipoBloque::MineralHierro, true, 4, false };
+                    }
+                }
+            }
+        }
+
+        // Venas de Diamante (Profundas)
+        int cantidadVenasDiamante = 250;
+        for (int i = 0; i < cantidadVenasDiamante; ++i) {
+            int centroX = disX(gen);
+            std::uniform_int_distribution<> disYProfundo(alto / 2, alto - 10);
+            int centroY = disYProfundo(gen);
+
+            if (centroX >= 0 && centroX < ancho && centroY >= 0 && centroY < alto) {
+                cuadricula[centroY][centroX] = { TipoBloque::MineralDiamante, true, 6, false };
+                if (centroX + 1 < ancho && (gen() % 2 == 0)) {
+                    cuadricula[centroY][centroX + 1] = { TipoBloque::MineralDiamante, true, 6, false };
+                }
+            }
+        }
+        std::cout << "¡Subterraneo generado con exito!" << std::endl;
+        return;
+    }
+
+    // --- CAPA SUPERFICIE: LAGOS Y ÁRBOLES ---
+    std::uniform_int_distribution<> disX(MARGEN_OCEANO + 40, ancho - MARGEN_OCEANO - 40);
+    std::uniform_int_distribution<> disY(MARGEN_OCEANO + 40, alto - MARGEN_OCEANO - 40);
+    std::uniform_int_distribution<> disRadioBase(7, 12);
+
+    int cantidadLagos = 150;
+    for (int i = 0; i < cantidadLagos; ++i) {
+        int centroX = disX(gen);
+        int centroY = disY(gen);
+        int radioBase = disRadioBase(gen);
+        float estiramientoX = 1.0f + static_cast<float>(gen() % 100) / 200.0f;
+        float estiramientoY = 1.0f + static_cast<float>(gen() % 100) / 200.0f;
+
+        for (int y = centroY - radioBase - 5; y <= centroY + radioBase + 5; ++y) {
+            for (int x = centroX - radioBase - 5; x <= centroX + radioBase + 5; ++x) {
+                if (x >= 0 && x < ancho && y >= 0 && y < alto) {
+                    float dx = (x - centroX) / estiramientoX;
+                    float dy = (y - centroY) / estiramientoY;
+                    if (std::sqrt(dx * dx + dy * dy) <= radioBase) {
+                        if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
+                            cuadricula[y][x] = { TipoBloque::Agua, false, 1, false };
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    int cantidadArboles = 600; 
+    for (int i = 0; i < cantidadArboles; ++i) {
+        int tx = disX(gen);
+        int ty = disY(gen);
+
+        if (cuadricula[ty][tx].tipo == TipoBloque::Pasto) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    int nx = tx + dx;
+                    int ny = ty + dy;
+                    if (std::abs(dx) + std::abs(dy) <= 1) {
+                        if (nx >= 0 && nx < ancho && ny >= 0 && ny < alto) {
+                            if (cuadricula[ny][nx].tipo == TipoBloque::Pasto) {
+                                cuadricula[ny][nx] = { TipoBloque::Madera, true, 4, false };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::cout << "¡Superficie generada completamente!" << std::endl;
 }
 
-// Metodo para dibujar los bloques en la ventana
+// Método Dibujar con tu renderizado adaptado
 void Mundo::dibujar(sf::RenderWindow& ventana) {
-    // Definimos el tamaño visual en pixeles de cada bloque (ej. 32x32 pixeles)
     const float TAMANIO_BLOQUE = 32.0f;
-    
-    // Usamos una figura simple de SFML para representar el bloque en pantalla
     sf::RectangleShape formaBlq({TAMANIO_BLOQUE, TAMANIO_BLOQUE});
 
-    // Por ahora, para probar el rendimiento, solo dibujaremos lo que quepa en una zona pequeña (ej. 25x20 bloques)
-    // Mas adelante usaremos una "Camara" (sf::View) para que solo se dibuje lo que el jugador ve
-    int bloquesVisiblesX = 25;
-    int bloquesVisiblesY = 20;
+    sf::View vistaActual = ventana.getView();
+    sf::Vector2f centro = vistaActual.getCenter();
+    sf::Vector2f tamanio = vistaActual.getSize();
 
-    for (int y = 0; y < bloquesVisiblesY && y < alto; ++y) {
-        for (int x = 0; x < bloquesVisiblesX && x < ancho; ++x) {
+    float izq = centro.x - (tamanio.x / 2.0f);
+    float der = centro.x + (tamanio.x / 2.0f);
+    float arriba = centro.y - (tamanio.y / 2.0f);
+    float abajo = centro.y + (tamanio.y / 2.0f);
+
+    int inicioX = std::max(0, static_cast<int>(izq / TAMANIO_BLOQUE) - 1);
+    int finX = std::min(ancho, static_cast<int>(der / TAMANIO_BLOQUE) + 2);
+    int inicioY = std::max(0, static_cast<int>(arriba / TAMANIO_BLOQUE) - 1);
+    int finY = std::min(alto, static_cast<int>(abajo / TAMANIO_BLOQUE) + 2);
+
+    for (int y = inicioY; y < finY; ++y) {
+        for (int x = inicioX; x < finX; ++x) {
             
-            // Elegimos el color dependiendo del tipo de bloque
-            // Catálogo de colores según el tipo de bloque
             if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
-                formaBlq.setFillColor(sf::Color(34, 139, 34)); // Verde bosque
+                // TRUCO VISUAL: Intercalamos colores para notar el movimiento por el mapa
+                if ((x + y) % 2 == 0) {
+                    formaBlq.setFillColor(sf::Color(34, 139, 34));  // Verde Bosque
+                } else {
+                    formaBlq.setFillColor(sf::Color(46, 139, 87));  // Verde Mar Oscuro
+                }
             } else if (cuadricula[y][x].tipo == TipoBloque::Agua) {
-                formaBlq.setFillColor(sf::Color(30, 144, 255)); // Azul brillante (Lagos)
+                formaBlq.setFillColor(sf::Color(30, 144, 255));
             } else if (cuadricula[y][x].tipo == TipoBloque::AguaProfunda) {
-                formaBlq.setFillColor(sf::Color(0, 0, 139)); // Azul oscuro (Bordes del mapa)
+                formaBlq.setFillColor(sf::Color(0, 0, 139));
             } else if (cuadricula[y][x].tipo == TipoBloque::Madera) {
-                formaBlq.setFillColor(sf::Color(139, 69, 19)); // Marrón (Árboles)
+                formaBlq.setFillColor(sf::Color(139, 69, 19));
             } else if (cuadricula[y][x].tipo == TipoBloque::Piedra) {
-                formaBlq.setFillColor(sf::Color(128, 128, 128)); // Gris oscuro
+                formaBlq.setFillColor(sf::Color(128, 128, 128));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
-                formaBlq.setFillColor(sf::Color(210, 180, 140)); // Beige/Café claro
+                formaBlq.setFillColor(sf::Color(210, 180, 140));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralDiamante) {
-                formaBlq.setFillColor(sf::Color(0, 255, 255)); // Cyan brillante
+                formaBlq.setFillColor(sf::Color(0, 255, 255));
             } else {
-                formaBlq.setFillColor(sf::Color(0, 100, 0)); // Verde oscuro por defecto
+                formaBlq.setFillColor(sf::Color(0, 100, 0));
             }
 
-            // Posicionamos el bloque en la cuadricula de la pantalla
             formaBlq.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
-            
-            // Dibujamos el bloque en la ventana de SFML
             ventana.draw(formaBlq);
         }
+    }
+}
+
+// ============================================================================
+// LOGICA DE COLISIONES FÍSICAS (CONEXIÓN CON JUGADOR)
+// ============================================================================
+
+bool Mundo::esBloqueSolido(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) {
+        return true; // Límites del mapa bloquean al jugador
+    }
+    return cuadricula[y][x].esSolido;
+}
+
+TipoBloque Mundo::getTipoBloque(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) return TipoBloque::Piedra;
+    return cuadricula[y][x].tipo;
+}
+
+void Mundo::romperBloque(int x, int y) {
+    if (x >= 0 && x < ancho && y >= 0 && y < alto) {
+        // Al romperse, el bloque sólido pasa a ser Aire transitable
+        cuadricula[y][x] = { TipoBloque::Aire, false, 0, false };
     }
 }

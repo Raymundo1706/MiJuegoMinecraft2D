@@ -3,27 +3,25 @@
 
 #include <SFML/Graphics.hpp>
 
+// FORWARD DECLARATION: Le avisamos al compilador que la clase Mundo existe
+// sin necesidad de meter el include completo aquí, evitando bucles.
+class Mundo; 
+
 class Jugador {
 private:
-    // Propiedades del jugador encapsuladas
     sf::Vector2f posicion;
     float velocidad;
     sf::RectangleShape forma;
 
 public:
-    // Constructor: Define posicion inicial y apariencia
     Jugador(float x, float y);
-    
-    // Destructor
     ~Jugador();
 
-    // Metodo para leer el teclado y mover al personaje
-    void controlar(float dt);
-
-    // Metodo para dibujar al jugador en la ventana
+    // Ahora el compilador ya acepta la referencia de Mundo perfectamente
+    void controlar(float dt, const Mundo& mundo);
     void dibujar(sf::RenderWindow& ventana);
 
-    // Getters por si el Mundo o el Juego necesitan saber donde esta el jugador
+    // Getters necesarios para la cámara y la interfaz
     sf::Vector2f getPosicion() const { return posicion; }
 };
 

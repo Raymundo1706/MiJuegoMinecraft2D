@@ -24,8 +24,8 @@ enum class TipoBloque {
 // Estructura que representa las propiedades individuales de un solo bloque
 struct Bloque {
     TipoBloque tipo;
-    bool esSolido;       // Si el jugador choca con el (Piedra, Madera, AguaProfunda)
-    int vida;            // Cuantos golpes le quedan antes de romperse
+    bool esSolido;       // Si el jugador choca con él (Piedra, Madera, AguaProfunda)
+    int vida;            // Cuántos golpes le quedan antes de romperse
     bool estaHidratado;  // Para agricultura: si tiene agua cerca
 };
 
@@ -35,7 +35,6 @@ private:
     int alto;
 
     // Matriz bidimensional de bloques para la capa actual
-    // std::vector de std::vectores es la forma mas segura y dinamica en C++
     std::vector<std::vector<Bloque>> cuadricula;
 
 public:
@@ -45,13 +44,20 @@ public:
     // Destructor
     ~Mundo();
 
-    // Metodo para rellenar el mapa de forma aleatoria segun el bioma y reglas
+    // Método para rellenar el mapa de forma aleatoria según el bioma y reglas
     void generarMundo(bool esSubterraneo);
 
-    // Metodo para dibujar los bloques visibles en la pantalla
+    // Método para dibujar los bloques visibles en la pantalla
     void dibujar(sf::RenderWindow& ventana);
 
-    // Getters basicos
+    // ============================================================
+    // NUEVAS MEJORAS: FUNCIONES PARA EL SPRINT DE COLISIONES Y MINADO
+    // ============================================================
+    bool esBloqueSolido(int x, int y) const;
+    void romperBloque(int x, int y);
+    TipoBloque getTipoBloque(int x, int y) const;
+
+    // Getters básicos
     int getAncho() const { return ancho; }
     int getAlto() const { return alto; }
 };
