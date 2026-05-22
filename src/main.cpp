@@ -1,11 +1,13 @@
-#include "Juego.hpp"
+#include "core/Juego.hpp"
+#include <iostream>
 
 int main() {
-    // Instanciamos (creamos) el objeto principal de nuestro juego
-    Juego miJuego;
-
-    // Le ordenamos al objeto que ejecute su ciclo de vida encapsulado
-    miJuego.ejecutar();
-
+    std::cout << "========================================" << std::endl;
+    std::cout << "        INICIANDO DETECTOR DE CAMBIOS   " << std::endl;
+    std::cout << "========================================" << std::endl;
+    
+    Juego juego;
+    juego.ejecutar();
+    
     return 0;
 }

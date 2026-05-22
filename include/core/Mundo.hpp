@@ -25,7 +25,7 @@ enum class TipoBloque {
 struct Bloque {
     TipoBloque tipo;
     bool esSolido;       // Si el jugador choca con él (Piedra, Madera, AguaProfunda)
-    int vida;            // Cuántos golpes le quedan antes de romperse
+    float vida;          // <-- CAMBIADO A FLOAT: Para soportar daño decimal por fotograma
     bool estaHidratado;  // Para agricultura: si tiene agua cerca
 };
 
@@ -38,7 +38,7 @@ private:
     std::vector<std::vector<Bloque>> cuadricula;
 
 public:
-    // Constructor: Define las dimensiones del mundo (ej. 1000x1000)
+    // Constructor: Define las dimensions del mundo (ej. 1000x1000)
     Mundo(int ancho, int alto);
     
     // Destructor
@@ -51,11 +51,13 @@ public:
     void dibujar(sf::RenderWindow& ventana);
 
     // ============================================================
-    // NUEVAS MEJORAS: FUNCIONES PARA EL SPRINT DE COLISIONES Y MINADO
+    // METODOS DEL SPRINT DE COLISIONES, RESISTENCIA Y MINADO
     // ============================================================
     bool esBloqueSolido(int x, int y) const;
     void romperBloque(int x, int y);
     TipoBloque getTipoBloque(int x, int y) const;
+    int getVidaMaximaBloque(TipoBloque tipo) const;
+    bool daniarBloque(int x, int y, float cantidadDanio); // <-- CORREGIDO A FLOAT AQUÍ
 
     // Getters básicos
     int getAncho() const { return ancho; }

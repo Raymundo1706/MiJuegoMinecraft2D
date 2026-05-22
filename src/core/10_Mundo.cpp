@@ -11,7 +11,7 @@ Mundo::Mundo(int ancho, int alto) : ancho(ancho), alto(alto) {
         cuadricula[i].resize(ancho);
     }
     
-    // Proporciones iniciales: Cámbialo a 'true' para probar el subterráneo
+    // Proporciones iniciales
     generarMundo(false);
     
     std::cout << "¡Matriz del mundo de " << ancho << "x" << alto << " creada con exito!" << std::endl;
@@ -24,18 +24,17 @@ Mundo::~Mundo() {}
 void Mundo::generarMundo(bool esSubterraneo) {
     const int MARGEN_OCEANO = 15;
 
-    // 1. Inicialización base del Terreno
+    // 1. Inicialización base del Terreno con vidas máximas reales desde el inicio
     for (int y = 0; y < alto; ++y) {
         for (int x = 0; x < ancho; ++x) {
             if (esSubterraneo) {
-                // Todo lleno de piedra sólida por defecto bajo tierra
-                cuadricula[y][x] = { TipoBloque::Piedra, true, 5, false };
+                cuadricula[y][x] = { TipoBloque::Piedra, true, 300.0f, false };
             } else {
                 if (x < MARGEN_OCEANO || x >= (ancho - MARGEN_OCEANO) ||
                     y < MARGEN_OCEANO || y >= (alto - MARGEN_OCEANO)) {
-                    cuadricula[y][x] = { TipoBloque::AguaProfunda, true, 999, false };
+                    cuadricula[y][x] = { TipoBloque::AguaProfunda, true, 9999.0f, false };
                 } else {
-                    cuadricula[y][x] = { TipoBloque::Pasto, false, 3, false };
+                    cuadricula[y][x] = { TipoBloque::Pasto, false, 30.0f, false };
                 }
             }
         }
@@ -48,7 +47,7 @@ void Mundo::generarMundo(bool esSubterraneo) {
     if (esSubterraneo) {
         std::uniform_int_distribution<> disX(10, ancho - 10);
         
-        // Venas de Hierro
+        // Venas de Hierro Subterráneo
         int cantidadVenasHierro = 800;
         for (int i = 0; i < cantidadVenasHierro; ++i) {
             int centroX = disX(gen);
@@ -60,13 +59,13 @@ void Mundo::generarMundo(bool esSubterraneo) {
                     int nx = centroX + dx;
                     int ny = centroY + dy;
                     if (nx >= 0 && nx < ancho && ny >= 0 && ny < alto) {
-                        cuadricula[ny][nx] = { TipoBloque::MineralHierro, true, 4, false };
+                        cuadricula[ny][nx] = { TipoBloque::MineralHierro, true, 450.0f, false };
                     }
                 }
             }
         }
 
-        // Venas de Diamante (Profundas)
+        // Venas de Diamante Subterráneo
         int cantidadVenasDiamante = 250;
         for (int i = 0; i < cantidadVenasDiamante; ++i) {
             int centroX = disX(gen);
@@ -74,9 +73,9 @@ void Mundo::generarMundo(bool esSubterraneo) {
             int centroY = disYProfundo(gen);
 
             if (centroX >= 0 && centroX < ancho && centroY >= 0 && centroY < alto) {
-                cuadricula[centroY][centroX] = { TipoBloque::MineralDiamante, true, 6, false };
+                cuadricula[centroY][centroX] = { TipoBloque::MineralDiamante, true, 600.0f, false };
                 if (centroX + 1 < ancho && (gen() % 2 == 0)) {
-                    cuadricula[centroY][centroX + 1] = { TipoBloque::MineralDiamante, true, 6, false };
+                    cuadricula[centroY][centroX + 1] = { TipoBloque::MineralDiamante, true, 600.0f, false };
                 }
             }
         }
@@ -84,11 +83,12 @@ void Mundo::generarMundo(bool esSubterraneo) {
         return;
     }
 
-    // --- CAPA SUPERFICIE: LAGOS Y ÁRBOLES ---
+    // --- CAPA SUPERFICIE: LAGOS, CANTERAS DE PIEDRA Y ÁRBOLES ---
     std::uniform_int_distribution<> disX(MARGEN_OCEANO + 40, ancho - MARGEN_OCEANO - 40);
     std::uniform_int_distribution<> disY(MARGEN_OCEANO + 40, alto - MARGEN_OCEANO - 40);
     std::uniform_int_distribution<> disRadioBase(7, 12);
 
+    // Generar Lagos de Agua
     int cantidadLagos = 150;
     for (int i = 0; i < cantidadLagos; ++i) {
         int centroX = disX(gen);
@@ -104,7 +104,7 @@ void Mundo::generarMundo(bool esSubterraneo) {
                     float dy = (y - centroY) / estiramientoY;
                     if (std::sqrt(dx * dx + dy * dy) <= radioBase) {
                         if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
-                            cuadricula[y][x] = { TipoBloque::Agua, false, 1, false };
+                            cuadricula[y][x] = { TipoBloque::Agua, false, 50.0f, false };
                         }
                     }
                 }
@@ -112,6 +112,38 @@ void Mundo::generarMundo(bool esSubterraneo) {
         }
     }
 
+    // NUEVO: Generar Canteras de Piedra en la Superficie
+    int canterasPiedra = 80;
+    std::uniform_int_distribution<> disRadioPiedra(5, 9);
+    for (int i = 0; i < canterasPiedra; ++i) {
+        int centroX = disX(gen);
+        int centroY = disY(gen);
+        int radio = disRadioPiedra(gen);
+
+        for (int y = centroY - radio; y <= centroY + radio; ++y) {
+            for (int x = centroX - radio; x <= centroX + radio; ++x) {
+                if (x >= 0 && x < ancho && y >= 0 && y < alto) {
+                    float dx = x - centroX;
+                    float dy = y - centroY;
+                    if (std::sqrt(dx * dx + dy * dy) <= radio) {
+                        if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
+                            // De manera aleatoria, ponemos piedra común o algún mineral expuesto
+                            int suerte = gen() % 100;
+                            if (suerte < 5) {
+                                cuadricula[y][x] = { TipoBloque::MineralHierro, true, 450.0f, false };
+                            } else if (suerte == 99) {
+                                cuadricula[y][x] = { TipoBloque::MineralDiamante, true, 600.0f, false };
+                            } else {
+                                cuadricula[y][x] = { TipoBloque::Piedra, true, 300.0f, false };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Generar Árboles de Madera
     int cantidadArboles = 600; 
     for (int i = 0; i < cantidadArboles; ++i) {
         int tx = disX(gen);
@@ -125,7 +157,8 @@ void Mundo::generarMundo(bool esSubterraneo) {
                     if (std::abs(dx) + std::abs(dy) <= 1) {
                         if (nx >= 0 && nx < ancho && ny >= 0 && ny < alto) {
                             if (cuadricula[ny][nx].tipo == TipoBloque::Pasto) {
-                                cuadricula[ny][nx] = { TipoBloque::Madera, true, 4, false };
+                                // Nace directamente con los 90.0f de vida reglamentarios
+                                cuadricula[ny][nx] = { TipoBloque::Madera, true, 90.0f, false };
                             }
                         }
                     }
@@ -136,7 +169,7 @@ void Mundo::generarMundo(bool esSubterraneo) {
     std::cout << "¡Superficie generada completamente!" << std::endl;
 }
 
-// Método Dibujar con tu renderizado adaptado
+// Método Dibujar
 void Mundo::dibujar(sf::RenderWindow& ventana) {
     const float TAMANIO_BLOQUE = 32.0f;
     sf::RectangleShape formaBlq({TAMANIO_BLOQUE, TAMANIO_BLOQUE});
@@ -159,7 +192,6 @@ void Mundo::dibujar(sf::RenderWindow& ventana) {
         for (int x = inicioX; x < finX; ++x) {
             
             if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
-                // TRUCO VISUAL: Intercalamos colores para notar el movimiento por el mapa
                 if ((x + y) % 2 == 0) {
                     formaBlq.setFillColor(sf::Color(34, 139, 34));  // Verde Bosque
                 } else {
@@ -187,13 +219,20 @@ void Mundo::dibujar(sf::RenderWindow& ventana) {
     }
 }
 
-// ============================================================================
-// LOGICA DE COLISIONES FÍSICAS (CONEXIÓN CON JUGADOR)
-// ============================================================================
+int Mundo::getVidaMaximaBloque(TipoBloque tipo) const {
+    switch (tipo) {
+        case TipoBloque::Pasto:           return 30;   
+        case TipoBloque::Madera:          return 90;   
+        case TipoBloque::Piedra:          return 300;  
+        case TipoBloque::MineralHierro:   return 450;  
+        case TipoBloque::MineralDiamante: return 600;  
+        default: return 50;
+    }
+}
 
 bool Mundo::esBloqueSolido(int x, int y) const {
     if (x < 0 || x >= ancho || y < 0 || y >= alto) {
-        return true; // Límites del mapa bloquean al jugador
+        return true; 
     }
     return cuadricula[y][x].esSolido;
 }
@@ -205,7 +244,20 @@ TipoBloque Mundo::getTipoBloque(int x, int y) const {
 
 void Mundo::romperBloque(int x, int y) {
     if (x >= 0 && x < ancho && y >= 0 && y < alto) {
-        // Al romperse, el bloque sólido pasa a ser Aire transitable
-        cuadricula[y][x] = { TipoBloque::Aire, false, 0, false };
+        cuadricula[y][x] = { TipoBloque::Aire, false, 0.0f, false };
     }
+}
+
+bool Mundo::daniarBloque(int x, int y, float cantidadDanio) {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) return false;
+    if (cuadricula[y][x].tipo == TipoBloque::Aire) return false;
+
+    // Quitamos el reinicio forzado molesto; ahora confiamos plenamente en la vida que el bloque trae
+    cuadricula[y][x].vida -= cantidadDanio;
+
+    if (cuadricula[y][x].vida <= 0.0f) {
+        cuadricula[y][x] = { TipoBloque::Aire, false, 0.0f, false };
+        return true; // ¡Bloque destruido!
+    }
+    return false; 
 }
