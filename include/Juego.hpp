@@ -3,6 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "Mundo.hpp"
+#include "Jugador.hpp" // <-- Incluimos el plano del jugador
 #include <memory>
 
 class Juego {
@@ -10,8 +11,8 @@ private:
     sf::RenderWindow ventana;
     bool estaCorriendo;
 
-    // Aquí declaramos la variable que el compilador no encontraba
     std::unique_ptr<Mundo> mapaSuperficie;
+    std::unique_ptr<Jugador> jugador; // <-- Objeto jugador encapsulado
 
 public:
     Juego();
