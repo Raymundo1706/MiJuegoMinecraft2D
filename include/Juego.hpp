@@ -14,6 +14,9 @@ private:
     std::unique_ptr<Mundo> mapaSuperficie;
     std::unique_ptr<Jugador> jugador; // <-- Objeto jugador encapsulado
 
+    // LA CÁMARA: Controla qué parte del mundo gigante se está viendo
+    sf::View camara;
+    
 public:
     Juego();
     ~Juego();
