@@ -1,2 +1,2 @@
 juego:
-	g++ src/main.cpp src/core/09_Juego.cpp src/core/10_Mundo.cpp src/core/11_Jugador.cpp src/core/SistemaHerramientas.cpp src/entidades/Animal.cpp -o bin/juego.exe -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -lbox2d -Iinclude -Iinclude/core -Iinclude/entidades
+	g++ src/main.cpp src/core/09_Juego.cpp src/core/10_Mundo.cpp src/core/11_Jugador.cpp src/core/SistemaHerramientas.cpp src/core/InventarioGrid.cpp src/entidades/Animal.cpp -o bin/juego.exe -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -lbox2d -Iinclude -Iinclude/core -Iinclude/entidades
