@@ -4,7 +4,8 @@
 #include <sstream>
 #include <cmath>
 #include "SistemaHerramientas.hpp"
-#include "InventarioGrid.hpp" // <-- CORREGIDO: Inclusión necesaria para la rejilla
+#include "InventarioGrid.hpp"
+#include "SistemaCrafteo.hpp" // <-- Incluido de forma segura arriba
 
 Juego::Juego() 
     : ventana(sf::VideoMode({800, 600}), "TEST DE CAMBIOS REALES"),
@@ -66,13 +67,14 @@ void Juego::ejecutar() {
 
     // === SISTEMA DE INVENTARIO Y HERRAMIENTAS MODULAR ===
     SistemaHerramientas herramientas;
-    InventarioGrid inventarioGrid; // <-- Instanciado correctamente
+    InventarioGrid inventarioGrid;
+    SistemaCrafteo sistemaCrafteo; // <-- Declarado correctamente aquí
 
     bool estaMinando = false;
     sf::Vector2i bloqueSiendoMinado = {-1, -1};
     
     while (ventana.isOpen() && estaCorriendo) {
-        float dt = reloj.restart().asSeconds(); // <-- 'dt' inicializado al principio del bucle
+        float dt = reloj.restart().asSeconds();
 
         // --- MANEJO DE EVENTOS ---
         while (const std::optional<sf::Event> evento = ventana.pollEvent()) {
@@ -82,16 +84,19 @@ void Juego::ejecutar() {
 
             // Cambiar de herramienta usando el nuevo sistema modular
             if (const auto* botonTeclado = evento->getIf<sf::Event::KeyPressed>()) {
-                if (botonTeclado->code == sf::Keyboard::Key::Num1) herramientas.cambiarHerramienta(0); // Mano
-                if (botonTeclado->code == sf::Keyboard::Key::Num2) herramientas.cambiarHerramienta(1); // Pico
-                if (botonTeclado->code == sf::Keyboard::Key::Num3) herramientas.cambiarHerramienta(2); // Pala
-                if (botonTeclado->code == sf::Keyboard::Key::Num4) herramientas.cambiarHerramienta(3); // Hacha
-                if (botonTeclado->code == sf::Keyboard::Key::Num5) herramientas.cambiarHerramienta(4); // Slot vacio
+                if (botonTeclado->code == sf::Keyboard::Key::Num1) herramientas.cambiarHerramienta(0); 
+                if (botonTeclado->code == sf::Keyboard::Key::Num2) herramientas.cambiarHerramienta(1); 
+                if (botonTeclado->code == sf::Keyboard::Key::Num3) herramientas.cambiarHerramienta(2); 
+                if (botonTeclado->code == sf::Keyboard::Key::Num4) herramientas.cambiarHerramienta(3); 
+                if (botonTeclado->code == sf::Keyboard::Key::Num5) herramientas.cambiarHerramienta(4); 
 
-                // Alternar el menú con la tecla Q
+                // Alternar el menú del Inventario con la tecla Q
                 if (botonTeclado->code == sf::Keyboard::Key::Q) {
                     inventarioGrid.alternarMenu();
+                    sistemaCrafteo.alternarMenu();
                 }
+
+                
             }
         }
 
@@ -99,12 +104,20 @@ void Juego::ejecutar() {
         if (inventarioGrid.esMenuAbierto()) {
             sf::Vector2i mousePos = sf::Mouse::getPosition(ventana);
             bool clickPresionado = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
+            
+            // El inventario procesa los clicks
             inventarioGrid.manejarClicks(mousePos, clickPresionado);
+
+            // Si la mesa de crafteo también está abierta, interactúa con el ítem en mano
+            if (sistemaCrafteo.esMenuAbierto()) {
+                TipoBloque itemEnMano = inventarioGrid.tieneItemEnMano() ? inventarioGrid.getSlotArrastrando().tipo : TipoBloque::Aire;
+                sistemaCrafteo.manejarClicks(mousePos, clickPresionado, itemEnMano);
+            }
         }
 
         // --- ACTUALIZACIÓN DE LÓGICA (MOVIMIENTO Y FÍSICAS) ---
         if (jugador) {
-            jugador->controlar(dt, *mapaSuperficie); // Usando 'controlar' con 'dt' visible
+            jugador->controlar(dt, *mapaSuperficie); 
             camara.setCenter(jugador->getPosicion());
         }
 
@@ -140,7 +153,6 @@ void Juego::ejecutar() {
                         
                         if (destruido) {
                             herramientas.agregarAlInventario(tipoActual, herramientas.getHerramientaActiva());
-                            // Almacenamos el bloque recolectado en las celdas estilo Minecraft
                             inventarioGrid.agregarItem(tipoActual, 1);
                         }
                     }
@@ -149,7 +161,7 @@ void Juego::ejecutar() {
         }
 
         // --- RENDERIZADO DEL MUNDO ---
-        ventana.clear(sf::Color(135, 206, 235)); // Cielo Azul
+        ventana.clear(sf::Color(135, 206, 235)); 
 
         ventana.setView(camara);
         if (mapaSuperficie) mapaSuperficie->dibujar(ventana);
@@ -183,22 +195,10 @@ void Juego::ejecutar() {
             textoCoordenadas->setPosition({10.0f, 10.0f});
             ventana.draw(*textoCoordenadas);
 
-            std::stringstream ssInv;
-            ssInv << "PASTO: " << herramientas.getCantidad(TipoBloque::Pasto)
-                  << " | MADERA: " << herramientas.getCantidad(TipoBloque::Madera)
-                  << " | PIEDRA: " << herramientas.getCantidad(TipoBloque::Piedra)
-                  << " | HIERRO: " << herramientas.getCantidad(TipoBloque::MineralHierro)
-                  << " | DIAMANTE: " << herramientas.getCantidad(TipoBloque::MineralDiamante);
-
-            sf::Text textoInventario(fuente, ssInv.str(), 16);
-            textoInventario.setFillColor(sf::Color::Yellow);
-            textoInventario.setOutlineColor(sf::Color::Black);
-            textoInventario.setOutlineThickness(2.0f);
-            textoInventario.setPosition({10.0f, 570.0f});
-            ventana.draw(textoInventario);
+            
         }
 
-        // Dibujar ranuras de la Hotbar de herramientas
+        // Dibujar ranuras de la Hotbar vieja
         for (int i = 0; i < 5; ++i) {
             sf::RectangleShape cuadroHotbar({40.0f, 40.0f});
             cuadroHotbar.setPosition({250.0f + (i * 50.0f), 10.0f});
@@ -213,9 +213,12 @@ void Juego::ejecutar() {
             ventana.draw(cuadroHotbar);
         }
 
-        // Dibujar el sistema de rejilla por slots (Mochila completa + Hotbar inferior)
+        // Dibujar el sistema de rejilla por slots (Inventario)
         if (fuenteCargada) {
             inventarioGrid.dibujar(ventana, fuente);
+            
+            // Dibujar la mesa de crafteo 3x3 si está abierta
+            sistemaCrafteo.dibujar(ventana, fuente);
         }
 
         ventana.display();

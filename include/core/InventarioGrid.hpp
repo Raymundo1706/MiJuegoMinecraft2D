@@ -33,10 +33,10 @@ public:
     void alternarMenu();
     bool esMenuAbierto() const;
 
-    // Lógica de recolección libre (Busca el primer slot libre o un stack existente)
+    // Lógica de recolección libre
     void agregarItem(TipoBloque tipo, int cantidad = 1);
 
-    // Interacción del Mouse (Mover stacks de lugar con clic)
+    // Interacción del Mouse
     void manejarClicks(sf::Vector2i posicionMouse, bool clicPresionado);
 
     // Dibujado del Inventario Completo y de la Hotbar
@@ -45,6 +45,12 @@ public:
     // Utilidades para el juego
     TipoBloque getTipoEnHotbar() const;
     void seleccionarSlotHotbar(int slot);
+
+    // === MÉTODOS PÚBLICOS DE INTERCONEXIÓN PARA LA MESA DE CRAFTEO ===
+    bool tieneItemEnMano() const { return manteniendoItem; }
+    SlotInventario& getSlotArrastrando() { return slots[slotArrastrando]; }
+    void soltarItemEnMano() { manteniendoItem = false; slotArrastrando = -1; }
+    std::vector<SlotInventario>& getSlots() { return slots; }
 };
 
 #endif // INVENTARIO_GRID_HPP
