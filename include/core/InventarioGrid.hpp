@@ -2,10 +2,10 @@
 
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include "Mundo.hpp"
+#include "Item.hpp"
 
 struct SlotInventario {
-    TipoBloque tipo = TipoBloque::Aire;
+    ItemId item = ItemId::Ninguno;
     int cantidad = 0;
 };
 
@@ -33,10 +33,10 @@ private:
     const float ESPACIADO = 48.0f;
 
     int obtenerSlotEnPosicion(sf::Vector2i posicionMouse) const;
-    int maxStack(TipoBloque tipo) const;
+    int maxStack(ItemId item) const;
     bool esSlotResultado(int indice) const;
     bool esSlotPersistente(int indice) const;
-    bool puedeColocarEnSlot(int indice, TipoBloque tipo) const;
+    bool puedeColocarEnSlot(int indice, ItemId item) const;
     void limpiarSlotSiVacio(SlotInventario& slot);
     void manejarClickIzquierdo(int indice);
     void manejarClickDerecho(int indice);
@@ -51,11 +51,13 @@ public:
     void alternarMenu();
     bool esMenuAbierto() const;
 
-    void agregarItem(TipoBloque tipo, int cantidad = 1);
+    void agregarItem(ItemId item, int cantidad = 1);
+    void agregarItem(TipoBloque bloque, int cantidad = 1);
 
     void manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho);
     void dibujar(sf::RenderWindow& ventana, sf::Font& fuente);
 
+    ItemId getItemEnHotbar() const;
     TipoBloque getTipoEnHotbar() const;
     void seleccionarSlotHotbar(int slot);
 

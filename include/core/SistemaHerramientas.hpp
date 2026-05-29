@@ -1,7 +1,7 @@
 #pragma once
 
 #include <map>
-#include "Mundo.hpp" // Para que conozca el TipoBloque
+#include "Item.hpp"
 
 class SistemaHerramientas {
 private:
@@ -18,6 +18,8 @@ public:
 
     // Calcula el daño que hace la herramienta actual al bloque seleccionado
     float calcularDanio(TipoBloque tipo) const;
+    float calcularDanio(TipoBloque tipo, ItemId itemEnMano) const;
+    bool puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const;
 
     // Gestión del Inventario
     void agregarAlInventario(TipoBloque tipo, int herramientaUsada);

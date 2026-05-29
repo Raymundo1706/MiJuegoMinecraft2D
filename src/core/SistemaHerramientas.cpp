@@ -1,7 +1,6 @@
 #include "SistemaHerramientas.hpp"
 
 SistemaHerramientas::SistemaHerramientas() : herramientaActiva(0) {
-    // Inicializamos todos los materiales recolectables en 0
     inventario[TipoBloque::Pasto] = 0;
     inventario[TipoBloque::Tierra] = 0;
     inventario[TipoBloque::Madera] = 0;
@@ -23,51 +22,75 @@ int SistemaHerramientas::getHerramientaActiva() const {
 }
 
 float SistemaHerramientas::calcularDanio(TipoBloque tipo) const {
-    // DAÑO POR DEFECTO: Mano desnuda u otra herramienta no apta
+    ItemId itemLegacy = ItemId::Ninguno;
+    if (herramientaActiva == 1) itemLegacy = ItemId::PicoMadera;
+    if (herramientaActiva == 2) itemLegacy = ItemId::PalaMadera;
+    if (herramientaActiva == 3) itemLegacy = ItemId::HachaMadera;
+    return calcularDanio(tipo, itemLegacy);
+}
+
+float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMano) const {
     float danio = 0.5f;
 
     if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra) {
-        danio = 0.16f; // Tarda ~3 segundos con la mano
-    }
-    else if (tipo == TipoBloque::Madera) {
-        danio = 0.5f;  // Tarda ~3 segundos con la mano
-    }
-    else if (tipo == TipoBloque::Piedra || 
-             tipo == TipoBloque::MineralHierro || 
-             tipo == TipoBloque::MineralDiamante) {
-        danio = 0.33f; // Tarda ~15 segundos con la mano o herramienta incorrecta
+        danio = 0.16f;
+    } else if (tipo == TipoBloque::Madera) {
+        danio = 0.5f;
+    } else if (tipo == TipoBloque::Piedra ||
+               tipo == TipoBloque::MineralHierro ||
+               tipo == TipoBloque::MineralOro ||
+               tipo == TipoBloque::MineralDiamante ||
+               tipo == TipoBloque::Redstone) {
+        danio = 0.33f;
     }
 
-    // MEJORAS SI USA LA HERRAMIENTA CORRECTA
-    if (herramientaActiva == 1) { // === PICO ===
-        if (tipo == TipoBloque::Piedra || tipo == TipoBloque::MineralHierro || tipo == TipoBloque::MineralDiamante) {
-            danio = 2.5f; 
+    TipoHerramienta herramienta = tipoHerramienta(itemEnMano);
+
+    if (herramienta == TipoHerramienta::Pico) {
+        if (tipo == TipoBloque::Piedra ||
+            tipo == TipoBloque::MineralHierro ||
+            tipo == TipoBloque::MineralOro ||
+            tipo == TipoBloque::MineralDiamante ||
+            tipo == TipoBloque::Redstone) {
+            danio = 2.5f;
+            if (itemEnMano == ItemId::PicoPiedra) danio = 3.25f;
+            if (itemEnMano == ItemId::PicoDiamante) danio = 5.0f;
         } else if (tipo == TipoBloque::Madera) {
-            danio = 0.38f; // Tarda 4 segundos con pico
+            danio = 0.38f;
         }
-    } 
-    else if (herramientaActiva == 2) { // === PALA ===
+    } else if (herramienta == TipoHerramienta::Pala) {
         if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra) {
-            danio = 0.25f; // 2 segundos
+            danio = 0.25f;
         }
-    }
-    else if (herramientaActiva == 3) { // === HACHA ===
+    } else if (herramienta == TipoHerramienta::Hacha) {
         if (tipo == TipoBloque::Madera) {
-            danio = 0.75f; // 2 segundos
+            danio = 0.75f;
         }
     }
 
     return danio;
 }
 
+bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const {
+    bool requierePico = (tipo == TipoBloque::Piedra ||
+                         tipo == TipoBloque::MineralHierro ||
+                         tipo == TipoBloque::MineralOro ||
+                         tipo == TipoBloque::MineralDiamante ||
+                         tipo == TipoBloque::Redstone);
+
+    if (!requierePico) {
+        return itemDesdeBloque(tipo) != ItemId::Ninguno;
+    }
+
+    return tipoHerramienta(itemEnMano) == TipoHerramienta::Pico;
+}
+
 void SistemaHerramientas::agregarAlInventario(TipoBloque tipo, int herramientaUsada) {
-    // REGLA: Piedra y minerales requieren obligatoriamente el Pico (1)
-    bool esMineral = (tipo == TipoBloque::Piedra || 
-                      tipo == TipoBloque::MineralHierro || 
+    bool esMineral = (tipo == TipoBloque::Piedra ||
+                      tipo == TipoBloque::MineralHierro ||
                       tipo == TipoBloque::MineralDiamante);
 
     if (!esMineral || (esMineral && herramientaUsada == 1)) {
-        // Corrección menor: Si es pasto o tierra, ambos acumulan en "Pasto" (o el que uses en tu UI)
         if (tipo == TipoBloque::Tierra) {
             inventario[TipoBloque::Pasto]++;
         } else {

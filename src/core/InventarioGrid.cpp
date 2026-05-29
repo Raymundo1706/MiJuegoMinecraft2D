@@ -41,30 +41,45 @@ sf::Vector2f posicionSlot(int indice) {
     return {640.0f, 140.0f};
 }
 
-sf::Color colorDeItem(TipoBloque tipo) {
-    switch (tipo) {
-        case TipoBloque::Pasto: return sf::Color(55, 150, 65);
-        case TipoBloque::Tierra: return sf::Color(120, 78, 45);
-        case TipoBloque::Madera: return sf::Color(145, 92, 42);
-        case TipoBloque::Piedra: return sf::Color(120, 120, 120);
-        case TipoBloque::MineralHierro: return sf::Color(202, 172, 120);
-        case TipoBloque::MineralOro: return sf::Color(245, 204, 75);
-        case TipoBloque::MineralDiamante: return sf::Color(70, 220, 235);
-        case TipoBloque::Redstone: return sf::Color(190, 30, 30);
+sf::Color colorDeItem(ItemId item) {
+    switch (item) {
+        case ItemId::BloquePasto: return sf::Color(55, 150, 65);
+        case ItemId::BloqueTierra: return sf::Color(120, 78, 45);
+        case ItemId::BloqueMadera: return sf::Color(145, 92, 42);
+        case ItemId::BloquePiedra: return sf::Color(120, 120, 120);
+        case ItemId::MineralHierro: return sf::Color(202, 172, 120);
+        case ItemId::MineralOro: return sf::Color(245, 204, 75);
+        case ItemId::MineralDiamante: return sf::Color(70, 220, 235);
+        case ItemId::Redstone: return sf::Color(190, 30, 30);
+        case ItemId::Cristal: return sf::Color(180, 235, 255, 210);
+        case ItemId::BloqueTecho: return sf::Color(85, 85, 105);
+        case ItemId::PicoMadera:
+        case ItemId::PicoPiedra:
+        case ItemId::PicoDiamante:
+        case ItemId::PalaMadera:
+        case ItemId::HachaMadera:
+            return sf::Color(210, 170, 90);
         default: return sf::Color(90, 150, 90);
     }
 }
 
-std::string inicialItem(TipoBloque tipo) {
-    switch (tipo) {
-        case TipoBloque::Pasto: return "Pa";
-        case TipoBloque::Tierra: return "Ti";
-        case TipoBloque::Madera: return "Ma";
-        case TipoBloque::Piedra: return "Pi";
-        case TipoBloque::MineralHierro: return "Fe";
-        case TipoBloque::MineralOro: return "Au";
-        case TipoBloque::MineralDiamante: return "Di";
-        case TipoBloque::Redstone: return "Rs";
+std::string inicialItem(ItemId item) {
+    switch (item) {
+        case ItemId::BloquePasto: return "Pa";
+        case ItemId::BloqueTierra: return "Ti";
+        case ItemId::BloqueMadera: return "Ma";
+        case ItemId::BloquePiedra: return "Pi";
+        case ItemId::MineralHierro: return "Fe";
+        case ItemId::MineralOro: return "Au";
+        case ItemId::MineralDiamante: return "Di";
+        case ItemId::Redstone: return "Rs";
+        case ItemId::Cristal: return "Cr";
+        case ItemId::BloqueTecho: return "Te";
+        case ItemId::PicoMadera: return "Pk";
+        case ItemId::PicoPiedra: return "Pp";
+        case ItemId::PicoDiamante: return "Pd";
+        case ItemId::PalaMadera: return "Pa";
+        case ItemId::HachaMadera: return "Ha";
         default: return "?";
     }
 }
@@ -105,13 +120,16 @@ void InventarioGrid::seleccionarSlotHotbar(int slot) {
     }
 }
 
-TipoBloque InventarioGrid::getTipoEnHotbar() const {
-    return slots[INDICE_HOTBAR + slotSeleccionadoHotbar].tipo;
+ItemId InventarioGrid::getItemEnHotbar() const {
+    return slots[INDICE_HOTBAR + slotSeleccionadoHotbar].item;
 }
 
-int InventarioGrid::maxStack(TipoBloque tipo) const {
-    if (tipo == TipoBloque::Aire) return 0;
-    return 64;
+TipoBloque InventarioGrid::getTipoEnHotbar() const {
+    return bloqueDesdeItem(getItemEnHotbar());
+}
+
+int InventarioGrid::maxStack(ItemId item) const {
+    return maxStackItem(item);
 }
 
 bool InventarioGrid::esSlotResultado(int indice) const {
@@ -122,26 +140,26 @@ bool InventarioGrid::esSlotPersistente(int indice) const {
     return indice >= 0 && indice < INDICE_CRAFTEO;
 }
 
-bool InventarioGrid::puedeColocarEnSlot(int indice, TipoBloque tipo) const {
+bool InventarioGrid::puedeColocarEnSlot(int indice, ItemId item) const {
     if (indice < 0 || indice >= TOTAL_SLOTS || esSlotResultado(indice)) return false;
-    if (tipo == TipoBloque::Aire) return false;
+    if (esItemVacio(item)) return false;
     return true;
 }
 
 void InventarioGrid::limpiarSlotSiVacio(SlotInventario& slot) {
     if (slot.cantidad <= 0) {
-        slot.tipo = TipoBloque::Aire;
+        slot.item = ItemId::Ninguno;
         slot.cantidad = 0;
     }
 }
 
-void InventarioGrid::agregarItem(TipoBloque tipo, int cantidad) {
-    if (tipo == TipoBloque::Aire || tipo == TipoBloque::Agua || cantidad <= 0) return;
+void InventarioGrid::agregarItem(ItemId item, int cantidad) {
+    if (esItemVacio(item) || cantidad <= 0) return;
 
     int restante = cantidad;
     for (int i = 0; i < INDICE_CRAFTEO && restante > 0; ++i) {
-        if (slots[i].tipo == tipo && slots[i].cantidad < maxStack(tipo)) {
-            int espacio = maxStack(tipo) - slots[i].cantidad;
+        if (slots[i].item == item && slots[i].cantidad < maxStack(item)) {
+            int espacio = maxStack(item) - slots[i].cantidad;
             int mover = std::min(espacio, restante);
             slots[i].cantidad += mover;
             restante -= mover;
@@ -149,13 +167,17 @@ void InventarioGrid::agregarItem(TipoBloque tipo, int cantidad) {
     }
 
     for (int i = 0; i < INDICE_CRAFTEO && restante > 0; ++i) {
-        if (slots[i].tipo == TipoBloque::Aire) {
-            int mover = std::min(maxStack(tipo), restante);
-            slots[i].tipo = tipo;
+        if (esItemVacio(slots[i].item)) {
+            int mover = std::min(maxStack(item), restante);
+            slots[i].item = item;
             slots[i].cantidad = mover;
             restante -= mover;
         }
     }
+}
+
+void InventarioGrid::agregarItem(TipoBloque bloque, int cantidad) {
+    agregarItem(itemDesdeBloque(bloque), cantidad);
 }
 
 int InventarioGrid::obtenerSlotEnPosicion(sf::Vector2i posicionMouse) const {
@@ -175,22 +197,22 @@ void InventarioGrid::actualizarResultadoCrafteo() {
     int cantidadMadera = 0;
     int materiales = 0;
     for (int i = INDICE_CRAFTEO; i < INDICE_RESULTADO; ++i) {
-        if (slots[i].tipo != TipoBloque::Aire) {
+        if (!esItemVacio(slots[i].item)) {
             ++materiales;
-            if (slots[i].tipo == TipoBloque::Madera) {
+            if (slots[i].item == ItemId::BloqueMadera) {
                 ++cantidadMadera;
             }
         }
     }
 
     if (materiales == 1 && cantidadMadera == 1) {
-        slots[INDICE_RESULTADO] = {TipoBloque::Madera, 4};
+        slots[INDICE_RESULTADO] = {ItemId::BloqueMadera, 4};
     }
 }
 
 void InventarioGrid::consumirIngredientesCrafteo() {
     for (int i = INDICE_CRAFTEO; i < INDICE_RESULTADO; ++i) {
-        if (slots[i].tipo != TipoBloque::Aire) {
+        if (!esItemVacio(slots[i].item)) {
             slots[i].cantidad -= 1;
             limpiarSlotSiVacio(slots[i]);
         }
@@ -200,8 +222,8 @@ void InventarioGrid::consumirIngredientesCrafteo() {
 
 void InventarioGrid::devolverCrafteoAlInventario() {
     for (int i = INDICE_CRAFTEO; i < INDICE_RESULTADO; ++i) {
-        if (slots[i].tipo != TipoBloque::Aire) {
-            agregarItem(slots[i].tipo, slots[i].cantidad);
+        if (!esItemVacio(slots[i].item)) {
+            agregarItem(slots[i].item, slots[i].cantidad);
             slots[i] = {};
         }
     }
@@ -213,14 +235,14 @@ void InventarioGrid::manejarClickIzquierdo(int indice) {
 
     if (esSlotResultado(indice)) {
         actualizarResultadoCrafteo();
-        if (slots[indice].tipo == TipoBloque::Aire) return;
+        if (esItemVacio(slots[indice].item)) return;
 
         if (!manteniendoItem) {
             itemCursor = slots[indice];
             manteniendoItem = true;
             consumirIngredientesCrafteo();
-        } else if (itemCursor.tipo == slots[indice].tipo && itemCursor.cantidad < maxStack(itemCursor.tipo)) {
-            int espacio = maxStack(itemCursor.tipo) - itemCursor.cantidad;
+        } else if (itemCursor.item == slots[indice].item && itemCursor.cantidad < maxStack(itemCursor.item)) {
+            int espacio = maxStack(itemCursor.item) - itemCursor.cantidad;
             int mover = std::min(espacio, slots[indice].cantidad);
             itemCursor.cantidad += mover;
             if (mover > 0) consumirIngredientesCrafteo();
@@ -231,7 +253,7 @@ void InventarioGrid::manejarClickIzquierdo(int indice) {
     SlotInventario& slot = slots[indice];
 
     if (!manteniendoItem) {
-        if (slot.tipo != TipoBloque::Aire) {
+        if (!esItemVacio(slot.item)) {
             itemCursor = slot;
             slot = {};
             manteniendoItem = true;
@@ -240,19 +262,19 @@ void InventarioGrid::manejarClickIzquierdo(int indice) {
         return;
     }
 
-    if (!puedeColocarEnSlot(indice, itemCursor.tipo)) return;
+    if (!puedeColocarEnSlot(indice, itemCursor.item)) return;
 
-    if (slot.tipo == TipoBloque::Aire) {
+    if (esItemVacio(slot.item)) {
         slot = itemCursor;
         itemCursor = {};
         manteniendoItem = false;
-    } else if (slot.tipo == itemCursor.tipo) {
-        int espacio = maxStack(slot.tipo) - slot.cantidad;
+    } else if (slot.item == itemCursor.item) {
+        int espacio = maxStack(slot.item) - slot.cantidad;
         int mover = std::min(espacio, itemCursor.cantidad);
         slot.cantidad += mover;
         itemCursor.cantidad -= mover;
         limpiarSlotSiVacio(itemCursor);
-        manteniendoItem = itemCursor.tipo != TipoBloque::Aire;
+        manteniendoItem = !esItemVacio(itemCursor.item);
     } else {
         std::swap(slot, itemCursor);
     }
@@ -266,9 +288,9 @@ void InventarioGrid::manejarClickDerecho(int indice) {
     SlotInventario& slot = slots[indice];
 
     if (!manteniendoItem) {
-        if (slot.tipo != TipoBloque::Aire) {
+        if (!esItemVacio(slot.item)) {
             int levantar = (slot.cantidad + 1) / 2;
-            itemCursor = {slot.tipo, levantar};
+            itemCursor = {slot.item, levantar};
             slot.cantidad -= levantar;
             limpiarSlotSiVacio(slot);
             manteniendoItem = true;
@@ -277,18 +299,18 @@ void InventarioGrid::manejarClickDerecho(int indice) {
         return;
     }
 
-    if (!puedeColocarEnSlot(indice, itemCursor.tipo)) return;
+    if (!puedeColocarEnSlot(indice, itemCursor.item)) return;
 
-    if (slot.tipo == TipoBloque::Aire) {
-        slot = {itemCursor.tipo, 1};
+    if (esItemVacio(slot.item)) {
+        slot = {itemCursor.item, 1};
         itemCursor.cantidad -= 1;
-    } else if (slot.tipo == itemCursor.tipo && slot.cantidad < maxStack(slot.tipo)) {
+    } else if (slot.item == itemCursor.item && slot.cantidad < maxStack(slot.item)) {
         slot.cantidad += 1;
         itemCursor.cantidad -= 1;
     }
 
     limpiarSlotSiVacio(itemCursor);
-    manteniendoItem = itemCursor.tipo != TipoBloque::Aire;
+    manteniendoItem = !esItemVacio(itemCursor.item);
     actualizarResultadoCrafteo();
 }
 
@@ -364,13 +386,13 @@ void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
             ventana.draw(luz);
         }
 
-        if (slots[indice].tipo != TipoBloque::Aire) {
+        if (!esItemVacio(slots[indice].item)) {
             sf::RectangleShape icono({26.0f, 26.0f});
             icono.setPosition({pos.x + 7.0f, pos.y + 6.0f});
-            icono.setFillColor(colorDeItem(slots[indice].tipo));
+            icono.setFillColor(colorDeItem(slots[indice].item));
             ventana.draw(icono);
 
-            sf::Text inicial(fuente, inicialItem(slots[indice].tipo), 10);
+            sf::Text inicial(fuente, inicialItem(slots[indice].item), 10);
             inicial.setPosition({pos.x + 9.0f, pos.y + 9.0f});
             inicial.setFillColor(sf::Color::White);
             ventana.draw(inicial);
@@ -399,10 +421,10 @@ void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
         }
     }
 
-    if (manteniendoItem && itemCursor.tipo != TipoBloque::Aire) {
+    if (manteniendoItem && !esItemVacio(itemCursor.item)) {
         sf::RectangleShape icono({28.0f, 28.0f});
         icono.setPosition({static_cast<float>(mouse.x - 14), static_cast<float>(mouse.y - 14)});
-        icono.setFillColor(colorDeItem(itemCursor.tipo));
+        icono.setFillColor(colorDeItem(itemCursor.item));
         icono.setOutlineColor(sf::Color::White);
         icono.setOutlineThickness(1.0f);
         ventana.draw(icono);

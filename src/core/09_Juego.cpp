@@ -71,19 +71,15 @@ void Juego::ejecutar() {
 
             if (const auto* botonTeclado = evento->getIf<sf::Event::KeyPressed>()) {
                 if (botonTeclado->code == sf::Keyboard::Key::Num1) {
-                    herramientas.cambiarHerramienta(0);
                     inventarioGrid.seleccionarSlotHotbar(0);
                 }
                 if (botonTeclado->code == sf::Keyboard::Key::Num2) {
-                    herramientas.cambiarHerramienta(1);
                     inventarioGrid.seleccionarSlotHotbar(1);
                 }
                 if (botonTeclado->code == sf::Keyboard::Key::Num3) {
-                    herramientas.cambiarHerramienta(2);
                     inventarioGrid.seleccionarSlotHotbar(2);
                 }
                 if (botonTeclado->code == sf::Keyboard::Key::Num4) {
-                    herramientas.cambiarHerramienta(3);
                     inventarioGrid.seleccionarSlotHotbar(3);
                 }
                 if (botonTeclado->code == sf::Keyboard::Key::Num5) inventarioGrid.seleccionarSlotHotbar(4);
@@ -132,12 +128,14 @@ void Juego::ejecutar() {
                     TipoBloque tipoActual = mapaSuperficie->getTipoBloque(bloqueX, bloqueY);
 
                     if (tipoActual != TipoBloque::Aire && tipoActual != TipoBloque::Agua) {
-                        float danioAplicado = herramientas.calcularDanio(tipoActual);
+                        ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
+                        float danioAplicado = herramientas.calcularDanio(tipoActual, itemEnMano);
                         bool destruido = mapaSuperficie->daniarBloque(bloqueX, bloqueY, danioAplicado);
 
                         if (destruido) {
-                            herramientas.agregarAlInventario(tipoActual, herramientas.getHerramientaActiva());
-                            inventarioGrid.agregarItem(tipoActual, 1);
+                            if (herramientas.puedeRecolectar(tipoActual, itemEnMano)) {
+                                inventarioGrid.agregarItem(itemDesdeBloque(tipoActual), 1);
+                            }
                         }
                     }
                 }
@@ -161,16 +159,12 @@ void Juego::ejecutar() {
             std::stringstream ss;
             sf::Vector2f pos = jugador->getPosicion();
 
-            std::string nombreItem = "Mano";
-            int activa = herramientas.getHerramientaActiva();
-            if (activa == 1) nombreItem = "Pico";
-            if (activa == 2) nombreItem = "Pala";
-            if (activa == 3) nombreItem = "Hacha";
+            std::string nombreEnMano = nombreItem(inventarioGrid.getItemEnHotbar());
 
             ss << "FPS: " << static_cast<int>(1.0f / dt) << "\n"
                << "Bloque Coords -> X: " << static_cast<int>(pos.x / 32.0f)
                << " Y: " << static_cast<int>(pos.y / 32.0f) << "\n"
-               << "Item en Mano: " << nombreItem;
+               << "Item en Mano: " << nombreEnMano;
 
             textoCoordenadas->setString(ss.str());
             textoCoordenadas->setPosition({10.0f, 10.0f});
