@@ -1,5 +1,4 @@
-#ifndef ANIMAL_HPP
-#define ANIMAL_HPP
+#pragma once
 
 #include <SFML/Graphics.hpp>
 
@@ -38,4 +37,3 @@ public:
     sf::Vector2f getPosicion() const { return posicion; }
 };
 
-#endif // ANIMAL_HPP

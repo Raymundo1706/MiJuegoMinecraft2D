@@ -1,5 +1,4 @@
-#ifndef JUGADOR_HPP
-#define JUGADOR_HPP
+#pragma once
 
 #include <SFML/Graphics.hpp>
 
@@ -25,4 +24,3 @@ public:
     sf::Vector2f getPosicion() const { return posicion; }
 };
 
-#endif // JUGADOR_HPP

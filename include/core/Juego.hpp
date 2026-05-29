@@ -1,5 +1,4 @@
-#ifndef JUEGO_HPP
-#define JUEGO_HPP
+#pragma once
 
 #include <SFML/Graphics.hpp>
 #include <memory>
@@ -31,4 +30,3 @@ public:
     void ejecutar();
 };
 
-#endif // JUEGO_HPP

@@ -1,13 +1,11 @@
-#ifndef INVENTARIO_GRID_HPP
-#define INVENTARIO_GRID_HPP
+#pragma once
 
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include "Mundo.hpp" // Para heredar TipoBloque
+#include "Mundo.hpp"
 
-// Estructura para cada uno de los cuadritos (Slots)
 struct SlotInventario {
-    TipoBloque tipo = TipoBloque::Aire; // Aire significa ranura vacía
+    TipoBloque tipo = TipoBloque::Aire;
     int cantidad = 0;
 };
 
@@ -15,42 +13,54 @@ class InventarioGrid {
 private:
     std::vector<SlotInventario> slots;
     bool menuAbierto;
-    int slotSeleccionadoHotbar; // Del 0 al 7 (los 8 espacios de acción)
+    int slotSeleccionadoHotbar;
 
-    // Variables para el arrastre de ítems con el mouse (Mover de lugar)
-    int slotArrastrando; // Índice del slot que estamos moviendo (-1 si ninguno)
+    SlotInventario itemCursor;
     bool manteniendoItem;
+    bool clicIzquierdoAnterior;
+    bool clicDerechoAnterior;
 
-    // Dimensiones visuales
+    static constexpr int SLOTS_INVENTARIO_PRINCIPAL = 27;
+    static constexpr int SLOTS_HOTBAR = 9;
+    static constexpr int INDICE_HOTBAR = 27;
+    static constexpr int INDICE_ARMADURA = 36;
+    static constexpr int INDICE_SEGUNDA_MANO = 40;
+    static constexpr int INDICE_CRAFTEO = 41;
+    static constexpr int INDICE_RESULTADO = 45;
+    static constexpr int TOTAL_SLOTS = 46;
+
     const float TAMANIO_CUADRO = 40.0f;
-    const float MARGEN = 8.0f;
+    const float ESPACIADO = 48.0f;
+
+    int obtenerSlotEnPosicion(sf::Vector2i posicionMouse) const;
+    int maxStack(TipoBloque tipo) const;
+    bool esSlotResultado(int indice) const;
+    bool esSlotPersistente(int indice) const;
+    bool puedeColocarEnSlot(int indice, TipoBloque tipo) const;
+    void limpiarSlotSiVacio(SlotInventario& slot);
+    void manejarClickIzquierdo(int indice);
+    void manejarClickDerecho(int indice);
+    void actualizarResultadoCrafteo();
+    void consumirIngredientesCrafteo();
+    void devolverCrafteoAlInventario();
 
 public:
     InventarioGrid();
     ~InventarioGrid();
 
-    // Controles del Menú
     void alternarMenu();
     bool esMenuAbierto() const;
 
-    // Lógica de recolección libre
     void agregarItem(TipoBloque tipo, int cantidad = 1);
 
-    // Interacción del Mouse
-    void manejarClicks(sf::Vector2i posicionMouse, bool clicPresionado);
-
-    // Dibujado del Inventario Completo y de la Hotbar
+    void manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho);
     void dibujar(sf::RenderWindow& ventana, sf::Font& fuente);
 
-    // Utilidades para el juego
     TipoBloque getTipoEnHotbar() const;
     void seleccionarSlotHotbar(int slot);
 
-    // === MÉTODOS PÚBLICOS DE INTERCONEXIÓN PARA LA MESA DE CRAFTEO ===
     bool tieneItemEnMano() const { return manteniendoItem; }
-    SlotInventario& getSlotArrastrando() { return slots[slotArrastrando]; }
-    void soltarItemEnMano() { manteniendoItem = false; slotArrastrando = -1; }
+    SlotInventario& getSlotArrastrando() { return itemCursor; }
+    void soltarItemEnMano() { itemCursor = {}; manteniendoItem = false; }
     std::vector<SlotInventario>& getSlots() { return slots; }
 };
-
-#endif // INVENTARIO_GRID_HPP

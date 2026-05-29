@@ -1,5 +1,4 @@
-#ifndef SISTEMA_HERRAMIENTAS_HPP
-#define SISTEMA_HERRAMIENTAS_HPP
+#pragma once
 
 #include <map>
 #include "Mundo.hpp" // Para que conozca el TipoBloque
@@ -25,4 +24,3 @@ public:
     int getCantidad(TipoBloque tipo) const;
 };
 
-#endif // SISTEMA_HERRAMIENTAS_HPP

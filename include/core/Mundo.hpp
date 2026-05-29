@@ -1,5 +1,4 @@
-#ifndef MUNDO_HPP
-#define MUNDO_HPP
+#pragma once
 
 #include <vector>
 #include <SFML/Graphics.hpp>
@@ -64,4 +63,3 @@ public:
     int getAlto() const { return alto; }
 };
 
-#endif // MUNDO_HPP

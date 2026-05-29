@@ -1,5 +1,4 @@
-#ifndef SISTEMA_CRAFTEO_HPP
-#define SISTEMA_CRAFTEO_HPP
+#pragma once
 
 #include <SFML/Graphics.hpp>
 #include <vector>
@@ -67,4 +66,3 @@ public:
     void dibujar(sf::RenderWindow& ventana, sf::Font& fuente);
 };
 
-#endif // SISTEMA_CRAFTEO_HPP

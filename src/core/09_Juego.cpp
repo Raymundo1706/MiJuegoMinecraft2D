@@ -5,42 +5,35 @@
 #include <cmath>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
-#include "SistemaCrafteo.hpp" // <-- Incluido de forma segura arriba
 
-Juego::Juego() 
+Juego::Juego()
     : ventana(sf::VideoMode({800, 600}), "TEST DE CAMBIOS REALES"),
       estaCorriendo(true),
-      fuenteCargada(false) 
-{
+      fuenteCargada(false) {
     mapaSuperficie = std::make_unique<Mundo>(1000, 1000);
-    
+
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> spawnX(100 * 32, 800 * 32); 
+    std::uniform_int_distribution<> spawnX(100 * 32, 800 * 32);
     std::uniform_int_distribution<> spawnY(100 * 32, 800 * 32);
 
     float posX = static_cast<float>(spawnX(gen));
     float posY = static_cast<float>(spawnY(gen));
-    
+
     jugador = std::make_unique<Jugador>(posX, posY);
     camara.setSize({800.0f, 600.0f});
 
-    // ===================================================================
-    // FAUNA ESPARCIDA POR TODO EL MEGA MAPA DE 1000x1000
-    // ===================================================================
     std::uniform_real_distribution<float> disX(1600.0f, 30400.0f);
     std::uniform_real_distribution<float> disY(1600.0f, 30400.0f);
 
     for (int i = 0; i < 150; ++i) {
         float animalX = disX(gen);
         float animalY = disY(gen);
-        
         TipoAnimal tipo = (i % 2 == 0) ? TipoAnimal::Cerdo : TipoAnimal::Oveja;
         animales.push_back(new Animal(animalX, animalY, tipo));
     }
-    std::cout << "¡Fauna esparcida con exito por los 32,000 pixeles del mapa!" << std::endl;
+    std::cout << "Fauna esparcida con exito por los 32,000 pixeles del mapa." << std::endl;
 
-    // CARGA DE FUENTE Y TEXTO
     if (fuente.openFromFile("assets/fonts/Minecraft.ttf")) {
         fuenteCargada = true;
         textoCoordenadas.emplace(fuente);
@@ -52,7 +45,8 @@ Juego::Juego()
         std::cout << "[Error] No se pudo cargar assets/fonts/Minecraft.ttf" << std::endl;
     }
 
-    std::cout << "¡Spawn aleatorio fijado en X: " << (posX/32) << " Y: " << (posY/32) << "!" << std::endl;
+    std::cout << "Spawn aleatorio fijado en X: " << (posX / 32)
+              << " Y: " << (posY / 32) << "." << std::endl;
 }
 
 Juego::~Juego() {
@@ -63,61 +57,54 @@ Juego::~Juego() {
 }
 
 void Juego::ejecutar() {
-    sf::Clock reloj; 
-
-    // === SISTEMA DE INVENTARIO Y HERRAMIENTAS MODULAR ===
+    sf::Clock reloj;
     SistemaHerramientas herramientas;
     InventarioGrid inventarioGrid;
-    SistemaCrafteo sistemaCrafteo; // <-- Declarado correctamente aquí
 
-    bool estaMinando = false;
-    sf::Vector2i bloqueSiendoMinado = {-1, -1};
-    
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
 
-        // --- MANEJO DE EVENTOS ---
         while (const std::optional<sf::Event> evento = ventana.pollEvent()) {
             if (evento->is<sf::Event::Closed>()) {
                 ventana.close();
             }
 
-            // Cambiar de herramienta usando el nuevo sistema modular
             if (const auto* botonTeclado = evento->getIf<sf::Event::KeyPressed>()) {
-                if (botonTeclado->code == sf::Keyboard::Key::Num1) herramientas.cambiarHerramienta(0); 
-                if (botonTeclado->code == sf::Keyboard::Key::Num2) herramientas.cambiarHerramienta(1); 
-                if (botonTeclado->code == sf::Keyboard::Key::Num3) herramientas.cambiarHerramienta(2); 
-                if (botonTeclado->code == sf::Keyboard::Key::Num4) herramientas.cambiarHerramienta(3); 
-                if (botonTeclado->code == sf::Keyboard::Key::Num5) herramientas.cambiarHerramienta(4); 
+                if (botonTeclado->code == sf::Keyboard::Key::Num1) {
+                    herramientas.cambiarHerramienta(0);
+                    inventarioGrid.seleccionarSlotHotbar(0);
+                }
+                if (botonTeclado->code == sf::Keyboard::Key::Num2) {
+                    herramientas.cambiarHerramienta(1);
+                    inventarioGrid.seleccionarSlotHotbar(1);
+                }
+                if (botonTeclado->code == sf::Keyboard::Key::Num3) {
+                    herramientas.cambiarHerramienta(2);
+                    inventarioGrid.seleccionarSlotHotbar(2);
+                }
+                if (botonTeclado->code == sf::Keyboard::Key::Num4) {
+                    herramientas.cambiarHerramienta(3);
+                    inventarioGrid.seleccionarSlotHotbar(3);
+                }
+                if (botonTeclado->code == sf::Keyboard::Key::Num5) inventarioGrid.seleccionarSlotHotbar(4);
+                if (botonTeclado->code == sf::Keyboard::Key::Num6) inventarioGrid.seleccionarSlotHotbar(5);
+                if (botonTeclado->code == sf::Keyboard::Key::Num7) inventarioGrid.seleccionarSlotHotbar(6);
+                if (botonTeclado->code == sf::Keyboard::Key::Num8) inventarioGrid.seleccionarSlotHotbar(7);
+                if (botonTeclado->code == sf::Keyboard::Key::Num9) inventarioGrid.seleccionarSlotHotbar(8);
 
-                // Alternar el menú del Inventario con la tecla Q
                 if (botonTeclado->code == sf::Keyboard::Key::Q) {
                     inventarioGrid.alternarMenu();
-                    sistemaCrafteo.alternarMenu();
                 }
-
-                
             }
         }
 
-        // Actualizar arrastre de ítems si el menú interactivo está abierto
-        if (inventarioGrid.esMenuAbierto()) {
-            sf::Vector2i mousePos = sf::Mouse::getPosition(ventana);
-            bool clickPresionado = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
-            
-            // El inventario procesa los clicks
-            inventarioGrid.manejarClicks(mousePos, clickPresionado);
+        sf::Vector2i mousePos = sf::Mouse::getPosition(ventana);
+        bool clickIzquierdo = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
+        bool clickDerecho = sf::Mouse::isButtonPressed(sf::Mouse::Button::Right);
+        inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
 
-            // Si la mesa de crafteo también está abierta, interactúa con el ítem en mano
-            if (sistemaCrafteo.esMenuAbierto()) {
-                TipoBloque itemEnMano = inventarioGrid.tieneItemEnMano() ? inventarioGrid.getSlotArrastrando().tipo : TipoBloque::Aire;
-                sistemaCrafteo.manejarClicks(mousePos, clickPresionado, itemEnMano);
-            }
-        }
-
-        // --- ACTUALIZACIÓN DE LÓGICA (MOVIMIENTO Y FÍSICAS) ---
         if (jugador) {
-            jugador->controlar(dt, *mapaSuperficie); 
+            jugador->controlar(dt, *mapaSuperficie);
             camara.setCenter(jugador->getPosicion());
         }
 
@@ -125,12 +112,9 @@ void Juego::ejecutar() {
             if (animal) animal->actualizar(dt, *mapaSuperficie);
         }
 
-        // --- DETECCIÓN CONTINUA DE MINADO ---
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-            sf::Vector2i posicionMousePantalla = sf::Mouse::getPosition(ventana);
-            
-            ventana.setView(camara); 
-            sf::Vector2f posicionMundo = ventana.mapPixelToCoords(posicionMousePantalla);
+        if (!inventarioGrid.esMenuAbierto() && clickIzquierdo) {
+            ventana.setView(camara);
+            sf::Vector2f posicionMundo = ventana.mapPixelToCoords(mousePos);
 
             int bloqueX = static_cast<int>(std::floor(posicionMundo.x / 32.0f));
             int bloqueY = static_cast<int>(std::floor(posicionMundo.y / 32.0f));
@@ -139,18 +123,18 @@ void Juego::ejecutar() {
                 sf::Vector2f posJugador = jugador->getPosicion();
                 sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
                 sf::Vector2f centroBloque((bloqueX * 32.0f) + 16.0f, (bloqueY * 32.0f) + 16.0f);
-                
+
                 float dx = centroBloque.x - centroJugador.x;
                 float dy = centroBloque.y - centroJugador.y;
                 float distancia = std::sqrt(dx * dx + dy * dy);
 
                 if (distancia <= 115.0f) {
                     TipoBloque tipoActual = mapaSuperficie->getTipoBloque(bloqueX, bloqueY);
-                    
+
                     if (tipoActual != TipoBloque::Aire && tipoActual != TipoBloque::Agua) {
                         float danioAplicado = herramientas.calcularDanio(tipoActual);
                         bool destruido = mapaSuperficie->daniarBloque(bloqueX, bloqueY, danioAplicado);
-                        
+
                         if (destruido) {
                             herramientas.agregarAlInventario(tipoActual, herramientas.getHerramientaActiva());
                             inventarioGrid.agregarItem(tipoActual, 1);
@@ -160,8 +144,7 @@ void Juego::ejecutar() {
             }
         }
 
-        // --- RENDERIZADO DEL MUNDO ---
-        ventana.clear(sf::Color(135, 206, 235)); 
+        ventana.clear(sf::Color(135, 206, 235));
 
         ventana.setView(camara);
         if (mapaSuperficie) mapaSuperficie->dibujar(ventana);
@@ -172,53 +155,30 @@ void Juego::ejecutar() {
 
         if (jugador) jugador->dibujar(ventana);
 
-        // Capa de Interfaz de Usuario (UI Fija)
         ventana.setView(ventana.getDefaultView());
 
         if (fuenteCargada && textoCoordenadas && jugador) {
             std::stringstream ss;
             sf::Vector2f pos = jugador->getPosicion();
-            
+
             std::string nombreItem = "Mano";
             int activa = herramientas.getHerramientaActiva();
             if (activa == 1) nombreItem = "Pico";
             if (activa == 2) nombreItem = "Pala";
             if (activa == 3) nombreItem = "Hacha";
-            if (activa == 4) nombreItem = "Item Especial";
 
             ss << "FPS: " << static_cast<int>(1.0f / dt) << "\n"
-               << "Bloque Coords -> X: " << static_cast<int>(pos.x / 32.0f) 
+               << "Bloque Coords -> X: " << static_cast<int>(pos.x / 32.0f)
                << " Y: " << static_cast<int>(pos.y / 32.0f) << "\n"
                << "Item en Mano: " << nombreItem;
-            
+
             textoCoordenadas->setString(ss.str());
             textoCoordenadas->setPosition({10.0f, 10.0f});
             ventana.draw(*textoCoordenadas);
-
-            
         }
 
-        // Dibujar ranuras de la Hotbar vieja
-        for (int i = 0; i < 5; ++i) {
-            sf::RectangleShape cuadroHotbar({40.0f, 40.0f});
-            cuadroHotbar.setPosition({250.0f + (i * 50.0f), 10.0f});
-            cuadroHotbar.setFillColor(sf::Color(100, 100, 100, 200));
-            cuadroHotbar.setOutlineThickness(2.0f);
-
-            if (i == herramientas.getHerramientaActiva()) {
-                cuadroHotbar.setOutlineColor(sf::Color::Green);
-            } else {
-                cuadroHotbar.setOutlineColor(sf::Color::White);
-            }
-            ventana.draw(cuadroHotbar);
-        }
-
-        // Dibujar el sistema de rejilla por slots (Inventario)
         if (fuenteCargada) {
             inventarioGrid.dibujar(ventana, fuente);
-            
-            // Dibujar la mesa de crafteo 3x3 si está abierta
-            sistemaCrafteo.dibujar(ventana, fuente);
         }
 
         ventana.display();
