@@ -40,6 +40,30 @@ inline sf::Vector2f posicionSlot(int indice) {
     return {640.0f, 140.0f};
 }
 
+inline sf::Vector2f posicionSlotMesa(int indice) {
+    const float paso = 46.0f;
+
+    if (indice >= 0 && indice < 27) {
+        int fila = indice / 9;
+        int col = indice % 9;
+        return {184.0f + col * paso, 286.0f + fila * paso};
+    }
+
+    if (indice >= 27 && indice < 36) {
+        int col = indice - 27;
+        return {184.0f + col * paso, 430.0f};
+    }
+
+    if (indice >= 46 && indice < 55) {
+        int local = indice - 46;
+        int fila = local / 3;
+        int col = local % 3;
+        return {286.0f + col * paso, 86.0f + fila * paso};
+    }
+
+    return {500.0f, 132.0f};
+}
+
 inline sf::Color colorDeItem(ItemId item) {
     switch (item) {
         case ItemId::BloquePasto: return sf::Color(55, 150, 65);
@@ -111,6 +135,7 @@ inline bool contiene(sf::Vector2f pos, float tam, sf::Vector2i mouse) {
 
 inline InventarioGrid::InventarioGrid()
     : menuAbierto(false),
+      mesaCrafteoAbierta(false),
       slotSeleccionadoHotbar(0),
       manteniendoItem(false),
       clicIzquierdoAnterior(false),
@@ -124,6 +149,9 @@ inline void InventarioGrid::alternarMenu() {
     if (menuAbierto) {
         devolverCrafteoAlInventario();
     }
+    if (mesaCrafteoAbierta) {
+        cerrarMesaCrafteo();
+    }
     menuAbierto = !menuAbierto;
     clicIzquierdoAnterior = false;
     clicDerechoAnterior = false;
@@ -131,6 +159,30 @@ inline void InventarioGrid::alternarMenu() {
 
 inline bool InventarioGrid::esMenuAbierto() const {
     return menuAbierto;
+}
+
+inline void InventarioGrid::abrirMesaCrafteo() {
+    if (menuAbierto) {
+        devolverCrafteoAlInventario();
+    }
+    menuAbierto = false;
+    mesaCrafteoAbierta = true;
+    clicIzquierdoAnterior = false;
+    clicDerechoAnterior = false;
+    actualizarResultadoMesa();
+}
+
+inline void InventarioGrid::cerrarMesaCrafteo() {
+    if (mesaCrafteoAbierta) {
+        devolverMesaAlInventario();
+    }
+    mesaCrafteoAbierta = false;
+    clicIzquierdoAnterior = false;
+    clicDerechoAnterior = false;
+}
+
+inline bool InventarioGrid::esMesaCrafteoAbierta() const {
+    return mesaCrafteoAbierta;
 }
 
 inline void InventarioGrid::seleccionarSlotHotbar(int slot) {
@@ -163,7 +215,7 @@ inline int InventarioGrid::maxStack(ItemId item) const {
 }
 
 inline bool InventarioGrid::esSlotResultado(int indice) const {
-    return indice == INDICE_RESULTADO;
+    return indice == INDICE_RESULTADO || indice == INDICE_RESULTADO_MESA;
 }
 
 inline bool InventarioGrid::esSlotPersistente(int indice) const {
@@ -211,11 +263,21 @@ inline void InventarioGrid::agregarItem(TipoBloque bloque, int cantidad) {
 }
 
 inline int InventarioGrid::obtenerSlotEnPosicion(sf::Vector2i posicionMouse) const {
-    if (!menuAbierto) {
+    if (!menuAbierto && !mesaCrafteoAbierta) {
         return -1;
     }
 
-    for (int i = 0; i < TOTAL_SLOTS; ++i) {
+    if (mesaCrafteoAbierta) {
+        for (int i = 0; i < 36; ++i) {
+            if (contiene(posicionSlotMesa(i), TAMANIO_CUADRO, posicionMouse)) return i;
+        }
+        for (int i = INDICE_MESA_CRAFTEO; i <= INDICE_RESULTADO_MESA; ++i) {
+            if (contiene(posicionSlotMesa(i), TAMANIO_CUADRO, posicionMouse)) return i;
+        }
+        return -1;
+    }
+
+    for (int i = 0; i <= INDICE_RESULTADO; ++i) {
         if (contiene(posicionSlot(i), TAMANIO_CUADRO, posicionMouse)) return i;
     }
     return -1;
@@ -274,22 +336,169 @@ inline void InventarioGrid::devolverCrafteoAlInventario() {
     slots[INDICE_RESULTADO] = {};
 }
 
+inline void InventarioGrid::actualizarResultadoMesa() {
+    slots[INDICE_RESULTADO_MESA] = {};
+
+    auto itemEnMesa = [&](int fila, int col) {
+        return slots[INDICE_MESA_CRAFTEO + fila * 3 + col].item;
+    };
+
+    auto estaVacioExcepto = [&](std::vector<int> usados) {
+        for (int i = INDICE_MESA_CRAFTEO; i < INDICE_RESULTADO_MESA; ++i) {
+            bool usado = std::find(usados.begin(), usados.end(), i) != usados.end();
+            if (!usado && !esItemVacio(slots[i].item)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    for (int col = 0; col < 3; ++col) {
+        for (int fila = 0; fila < 2; ++fila) {
+            int a = INDICE_MESA_CRAFTEO + fila * 3 + col;
+            int b = INDICE_MESA_CRAFTEO + (fila + 1) * 3 + col;
+            if (slots[a].item == ItemId::TablonMadera &&
+                slots[b].item == ItemId::TablonMadera &&
+                estaVacioExcepto({a, b})) {
+                slots[INDICE_RESULTADO_MESA] = {ItemId::PaloMadera, 4};
+                return;
+            }
+        }
+    }
+
+    ItemId arriba = itemEnMesa(0, 1);
+    ItemId centro = itemEnMesa(1, 1);
+    ItemId abajo = itemEnMesa(2, 1);
+    if (centro == ItemId::PaloMadera && abajo == ItemId::PaloMadera) {
+        if (arriba == ItemId::TablonMadera && estaVacioExcepto({47, 50, 53})) {
+            slots[INDICE_RESULTADO_MESA] = {ItemId::PalaMadera, 1};
+            return;
+        }
+        if (arriba == ItemId::BloquePiedra && estaVacioExcepto({47, 50, 53})) {
+            slots[INDICE_RESULTADO_MESA] = {ItemId::PalaPiedra, 1};
+            return;
+        }
+    }
+
+    if (arriba == ItemId::TablonMadera && centro == ItemId::TablonMadera &&
+        abajo == ItemId::PaloMadera && estaVacioExcepto({47, 50, 53})) {
+        slots[INDICE_RESULTADO_MESA] = {ItemId::EspadaMadera, 1};
+        return;
+    }
+    if (arriba == ItemId::BloquePiedra && centro == ItemId::BloquePiedra &&
+        abajo == ItemId::PaloMadera && estaVacioExcepto({47, 50, 53})) {
+        slots[INDICE_RESULTADO_MESA] = {ItemId::EspadaPiedra, 1};
+        return;
+    }
+
+    auto recetaPico = [&](ItemId material, ItemId resultado) {
+        bool coincide = itemEnMesa(0, 0) == material &&
+                        itemEnMesa(0, 1) == material &&
+                        itemEnMesa(0, 2) == material &&
+                        itemEnMesa(1, 1) == ItemId::PaloMadera &&
+                        itemEnMesa(2, 1) == ItemId::PaloMadera &&
+                        estaVacioExcepto({46, 47, 48, 50, 53});
+        if (coincide) {
+            slots[INDICE_RESULTADO_MESA] = {resultado, 1};
+            return true;
+        }
+        return false;
+    };
+    if (recetaPico(ItemId::TablonMadera, ItemId::PicoMadera)) return;
+    if (recetaPico(ItemId::BloquePiedra, ItemId::PicoPiedra)) return;
+
+    auto recetaHacha = [&](ItemId material, ItemId resultado) {
+        bool coincide = itemEnMesa(0, 0) == material &&
+                        itemEnMesa(0, 1) == material &&
+                        itemEnMesa(1, 0) == material &&
+                        itemEnMesa(1, 1) == ItemId::PaloMadera &&
+                        itemEnMesa(2, 1) == ItemId::PaloMadera &&
+                        estaVacioExcepto({46, 47, 49, 50, 53});
+        if (coincide) {
+            slots[INDICE_RESULTADO_MESA] = {resultado, 1};
+            return true;
+        }
+        return false;
+    };
+    if (recetaHacha(ItemId::TablonMadera, ItemId::HachaMadera)) return;
+    if (recetaHacha(ItemId::BloquePiedra, ItemId::HachaPiedra)) return;
+
+    bool horno = true;
+    for (int fila = 0; fila < 3; ++fila) {
+        for (int col = 0; col < 3; ++col) {
+            ItemId esperado = (fila == 1 && col == 1) ? ItemId::Ninguno : ItemId::BloquePiedra;
+            if (itemEnMesa(fila, col) != esperado) {
+                horno = false;
+            }
+        }
+    }
+    if (horno) {
+        slots[INDICE_RESULTADO_MESA] = {ItemId::Horno, 1};
+        return;
+    }
+
+    bool cama = itemEnMesa(0, 0) == ItemId::Lana &&
+                itemEnMesa(0, 1) == ItemId::Lana &&
+                itemEnMesa(0, 2) == ItemId::Lana &&
+                itemEnMesa(1, 0) == ItemId::TablonMadera &&
+                itemEnMesa(1, 1) == ItemId::TablonMadera &&
+                itemEnMesa(1, 2) == ItemId::TablonMadera &&
+                estaVacioExcepto({46, 47, 48, 49, 50, 51});
+    if (cama) {
+        slots[INDICE_RESULTADO_MESA] = {ItemId::Cama, 1};
+    }
+}
+
+inline void InventarioGrid::consumirIngredientesMesa() {
+    for (int i = INDICE_MESA_CRAFTEO; i < INDICE_RESULTADO_MESA; ++i) {
+        if (!esItemVacio(slots[i].item)) {
+            slots[i].cantidad -= 1;
+            limpiarSlotSiVacio(slots[i]);
+        }
+    }
+    actualizarResultadoMesa();
+}
+
+inline void InventarioGrid::devolverMesaAlInventario() {
+    for (int i = INDICE_MESA_CRAFTEO; i < INDICE_RESULTADO_MESA; ++i) {
+        if (!esItemVacio(slots[i].item)) {
+            agregarItem(slots[i].item, slots[i].cantidad);
+            slots[i] = {};
+        }
+    }
+    slots[INDICE_RESULTADO_MESA] = {};
+}
+
 inline void InventarioGrid::manejarClickIzquierdo(int indice) {
     if (indice < 0 || indice >= TOTAL_SLOTS) return;
 
     if (esSlotResultado(indice)) {
-        actualizarResultadoCrafteo();
+        if (indice == INDICE_RESULTADO_MESA) {
+            actualizarResultadoMesa();
+        } else {
+            actualizarResultadoCrafteo();
+        }
         if (esItemVacio(slots[indice].item)) return;
 
         if (!manteniendoItem) {
             itemCursor = slots[indice];
             manteniendoItem = true;
-            consumirIngredientesCrafteo();
+            if (indice == INDICE_RESULTADO_MESA) {
+                consumirIngredientesMesa();
+            } else {
+                consumirIngredientesCrafteo();
+            }
         } else if (itemCursor.item == slots[indice].item && itemCursor.cantidad < maxStack(itemCursor.item)) {
             int espacio = maxStack(itemCursor.item) - itemCursor.cantidad;
             int mover = std::min(espacio, slots[indice].cantidad);
             itemCursor.cantidad += mover;
-            if (mover > 0) consumirIngredientesCrafteo();
+            if (mover > 0) {
+                if (indice == INDICE_RESULTADO_MESA) {
+                    consumirIngredientesMesa();
+                } else {
+                    consumirIngredientesCrafteo();
+                }
+            }
         }
         return;
     }
@@ -303,6 +512,7 @@ inline void InventarioGrid::manejarClickIzquierdo(int indice) {
             manteniendoItem = true;
         }
         actualizarResultadoCrafteo();
+        actualizarResultadoMesa();
         return;
     }
 
@@ -324,6 +534,7 @@ inline void InventarioGrid::manejarClickIzquierdo(int indice) {
     }
 
     actualizarResultadoCrafteo();
+    actualizarResultadoMesa();
 }
 
 inline void InventarioGrid::manejarClickDerecho(int indice) {
@@ -340,6 +551,7 @@ inline void InventarioGrid::manejarClickDerecho(int indice) {
             manteniendoItem = true;
         }
         actualizarResultadoCrafteo();
+        actualizarResultadoMesa();
         return;
     }
 
@@ -356,6 +568,7 @@ inline void InventarioGrid::manejarClickDerecho(int indice) {
     limpiarSlotSiVacio(itemCursor);
     manteniendoItem = !esItemVacio(itemCursor.item);
     actualizarResultadoCrafteo();
+    actualizarResultadoMesa();
 }
 
 inline void InventarioGrid::manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho) {
@@ -383,7 +596,34 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
     sf::Vector2i mouse = sf::Mouse::getPosition(ventana);
     int hover = obtenerSlotEnPosicion(mouse);
 
-    if (menuAbierto) {
+    if (mesaCrafteoAbierta) {
+        sf::RectangleShape fondo({500.0f, 430.0f});
+        fondo.setPosition({150.0f, 46.0f});
+        fondo.setFillColor(sf::Color(198, 198, 198, 248));
+        fondo.setOutlineColor(sf::Color(45, 45, 45));
+        fondo.setOutlineThickness(4.0f);
+        ventana.draw(fondo);
+
+        sf::Text titulo(fuente, "Crafting", 18);
+        titulo.setPosition({184.0f, 56.0f});
+        titulo.setFillColor(sf::Color(70, 70, 70));
+        ventana.draw(titulo);
+
+        sf::Text inventarioTxt(fuente, "Inventory", 16);
+        inventarioTxt.setPosition({184.0f, 258.0f});
+        inventarioTxt.setFillColor(sf::Color(70, 70, 70));
+        ventana.draw(inventarioTxt);
+
+        sf::Text libro(fuente, "?", 22);
+        libro.setPosition({228.0f, 138.0f});
+        libro.setFillColor(sf::Color(45, 120, 55));
+        ventana.draw(libro);
+
+        sf::Text flecha(fuente, "->", 34);
+        flecha.setPosition({438.0f, 136.0f});
+        flecha.setFillColor(sf::Color(110, 110, 110));
+        ventana.draw(flecha);
+    } else if (menuAbierto) {
         sf::RectangleShape fondo(PANEL_SIZE);
         fondo.setPosition(PANEL_POS);
         fondo.setFillColor(sf::Color(198, 198, 198, 245));
@@ -415,7 +655,7 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
     }
 
     auto dibujarSlot = [&](int indice) {
-        sf::Vector2f pos = posicionSlot(indice);
+        sf::Vector2f pos = mesaCrafteoAbierta ? posicionSlotMesa(indice) : posicionSlot(indice);
         sf::RectangleShape marco({TAMANIO_CUADRO, TAMANIO_CUADRO});
         marco.setPosition(pos);
         marco.setFillColor(sf::Color(138, 138, 138));
@@ -455,8 +695,16 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
         }
     };
 
-    if (menuAbierto) {
+    if (mesaCrafteoAbierta) {
+        for (int i = 0; i < 36; ++i) {
+            dibujarSlot(i);
+        }
+        for (int i = INDICE_MESA_CRAFTEO; i <= INDICE_RESULTADO_MESA; ++i) {
+            dibujarSlot(i);
+        }
+    } else if (menuAbierto) {
         for (int i = 0; i < TOTAL_SLOTS; ++i) {
+            if (i >= INDICE_MESA_CRAFTEO) continue;
             dibujarSlot(i);
         }
     } else {

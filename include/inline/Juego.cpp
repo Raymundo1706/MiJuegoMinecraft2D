@@ -4,7 +4,6 @@
 #include <cmath>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
-#include "SistemaCrafteo.hpp"
 
 inline Juego::Juego()
     : ventana(sf::VideoMode({800, 600}), "TEST DE CAMBIOS REALES"),
@@ -60,7 +59,6 @@ inline void Juego::ejecutar() {
     sf::Clock reloj;
     SistemaHerramientas herramientas;
     InventarioGrid inventarioGrid;
-    SistemaCrafteo sistemaCrafteo;
     bool clickIzquierdoAnterior = false;
     bool clickDerechoAnterior = false;
 
@@ -92,8 +90,8 @@ inline void Juego::ejecutar() {
                 if (botonTeclado->code == sf::Keyboard::Key::Num9) inventarioGrid.seleccionarSlotHotbar(8);
 
                 if (botonTeclado->code == sf::Keyboard::Key::Q) {
-                    if (sistemaCrafteo.esMenuAbierto()) {
-                        sistemaCrafteo.alternarMenu();
+                    if (inventarioGrid.esMesaCrafteoAbierta()) {
+                        inventarioGrid.cerrarMesaCrafteo();
                     } else {
                         inventarioGrid.alternarMenu();
                     }
@@ -105,11 +103,8 @@ inline void Juego::ejecutar() {
         bool clickIzquierdo = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         bool clickDerecho = sf::Mouse::isButtonPressed(sf::Mouse::Button::Right);
         inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
-        if (sistemaCrafteo.esMenuAbierto()) {
-            sistemaCrafteo.manejarClicks(mousePos, clickIzquierdo, inventarioGrid.getItemEnHotbar());
-        }
 
-        bool uiAbierta = inventarioGrid.esMenuAbierto() || sistemaCrafteo.esMenuAbierto();
+        bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta();
 
         if (jugador && !uiAbierta) {
             jugador->controlar(dt, *mapaSuperficie);
@@ -160,7 +155,7 @@ inline void Juego::ejecutar() {
         }
 
         if (clickSobreMesa) {
-            sistemaCrafteo.alternarMenu();
+            inventarioGrid.abrirMesaCrafteo();
         }
 
         if (!uiAbierta && clickIzquierdo && !clickSobreMesa) {
@@ -235,7 +230,6 @@ inline void Juego::ejecutar() {
             }
 
             inventarioGrid.dibujar(ventana, fuente);
-            sistemaCrafteo.dibujar(ventana, fuente);
         }
 
         ventana.display();

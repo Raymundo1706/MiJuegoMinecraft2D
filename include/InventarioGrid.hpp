@@ -13,6 +13,7 @@ class InventarioGrid {
 private:
     std::vector<SlotInventario> slots;
     bool menuAbierto;
+    bool mesaCrafteoAbierta;
     int slotSeleccionadoHotbar;
 
     SlotInventario itemCursor;
@@ -27,7 +28,9 @@ private:
     static constexpr int INDICE_SEGUNDA_MANO = 40;
     static constexpr int INDICE_CRAFTEO = 41;
     static constexpr int INDICE_RESULTADO = 45;
-    static constexpr int TOTAL_SLOTS = 46;
+    static constexpr int INDICE_MESA_CRAFTEO = 46;
+    static constexpr int INDICE_RESULTADO_MESA = 55;
+    static constexpr int TOTAL_SLOTS = 56;
 
     const float TAMANIO_CUADRO = 40.0f;
     const float ESPACIADO = 48.0f;
@@ -43,6 +46,9 @@ private:
     void actualizarResultadoCrafteo();
     void consumirIngredientesCrafteo();
     void devolverCrafteoAlInventario();
+    void actualizarResultadoMesa();
+    void consumirIngredientesMesa();
+    void devolverMesaAlInventario();
 
 public:
     InventarioGrid();
@@ -50,6 +56,9 @@ public:
 
     void alternarMenu();
     bool esMenuAbierto() const;
+    void abrirMesaCrafteo();
+    void cerrarMesaCrafteo();
+    bool esMesaCrafteoAbierta() const;
 
     void agregarItem(ItemId item, int cantidad = 1);
     void agregarItem(TipoBloque bloque, int cantidad = 1);
