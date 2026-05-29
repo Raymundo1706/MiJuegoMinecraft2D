@@ -170,6 +170,12 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 formaBlq.setFillColor(sf::Color(0, 0, 139));
             } else if (cuadricula[y][x].tipo == TipoBloque::Madera) {
                 formaBlq.setFillColor(sf::Color(139, 69, 19));
+            } else if (cuadricula[y][x].tipo == TipoBloque::MesaCrafteo) {
+                formaBlq.setFillColor(sf::Color(130, 85, 45));
+            } else if (cuadricula[y][x].tipo == TipoBloque::Horno) {
+                formaBlq.setFillColor(sf::Color(85, 85, 85));
+            } else if (cuadricula[y][x].tipo == TipoBloque::Cristal) {
+                formaBlq.setFillColor(sf::Color(180, 235, 255, 180));
             } else if (cuadricula[y][x].tipo == TipoBloque::Piedra) {
                 formaBlq.setFillColor(sf::Color(128, 128, 128));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
@@ -190,6 +196,9 @@ inline int Mundo::getVidaMaximaBloque(TipoBloque tipo) const {
     switch (tipo) {
         case TipoBloque::Pasto: return 30;
         case TipoBloque::Madera: return 90;
+        case TipoBloque::MesaCrafteo: return 90;
+        case TipoBloque::Horno: return 300;
+        case TipoBloque::Cristal: return 30;
         case TipoBloque::Piedra: return 300;
         case TipoBloque::MineralHierro: return 450;
         case TipoBloque::MineralDiamante: return 600;
@@ -202,6 +211,29 @@ inline bool Mundo::esBloqueSolido(int x, int y) const {
         return true;
     }
     return cuadricula[y][x].esSolido;
+}
+
+inline bool Mundo::puedeColocarBloque(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) {
+        return false;
+    }
+
+    TipoBloque tipo = cuadricula[y][x].tipo;
+    return tipo == TipoBloque::Aire ||
+           tipo == TipoBloque::Pasto ||
+           tipo == TipoBloque::Tierra ||
+           tipo == TipoBloque::TierraArada;
+}
+
+inline bool Mundo::colocarBloque(int x, int y, TipoBloque tipo) {
+    if (!puedeColocarBloque(x, y) || tipo == TipoBloque::Aire) {
+        return false;
+    }
+
+    bool solido = true;
+    float vida = static_cast<float>(getVidaMaximaBloque(tipo));
+    cuadricula[y][x] = {tipo, solido, vida, false};
+    return true;
 }
 
 inline TipoBloque Mundo::getTipoBloque(int x, int y) const {

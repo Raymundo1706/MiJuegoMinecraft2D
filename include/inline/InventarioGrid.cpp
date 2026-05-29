@@ -44,19 +44,29 @@ inline sf::Color colorDeItem(ItemId item) {
     switch (item) {
         case ItemId::BloquePasto: return sf::Color(55, 150, 65);
         case ItemId::BloqueTierra: return sf::Color(120, 78, 45);
-        case ItemId::BloqueMadera: return sf::Color(145, 92, 42);
+        case ItemId::BloqueTronco: return sf::Color(110, 70, 35);
+        case ItemId::TablonMadera: return sf::Color(185, 130, 65);
         case ItemId::BloquePiedra: return sf::Color(120, 120, 120);
         case ItemId::MineralHierro: return sf::Color(202, 172, 120);
         case ItemId::MineralOro: return sf::Color(245, 204, 75);
         case ItemId::MineralDiamante: return sf::Color(70, 220, 235);
         case ItemId::Redstone: return sf::Color(190, 30, 30);
         case ItemId::Cristal: return sf::Color(180, 235, 255, 210);
+        case ItemId::Lana: return sf::Color(235, 235, 235);
+        case ItemId::PaloMadera: return sf::Color(160, 100, 45);
+        case ItemId::MesaCrafteo: return sf::Color(130, 85, 45);
+        case ItemId::Horno: return sf::Color(85, 85, 85);
+        case ItemId::Cama: return sf::Color(200, 70, 70);
         case ItemId::BloqueTecho: return sf::Color(85, 85, 105);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
         case ItemId::PalaMadera:
+        case ItemId::PalaPiedra:
         case ItemId::HachaMadera:
+        case ItemId::HachaPiedra:
+        case ItemId::EspadaMadera:
+        case ItemId::EspadaPiedra:
             return sf::Color(210, 170, 90);
         default: return sf::Color(90, 150, 90);
     }
@@ -66,19 +76,29 @@ inline std::string inicialItem(ItemId item) {
     switch (item) {
         case ItemId::BloquePasto: return "Pa";
         case ItemId::BloqueTierra: return "Ti";
-        case ItemId::BloqueMadera: return "Ma";
+        case ItemId::BloqueTronco: return "Tr";
+        case ItemId::TablonMadera: return "Ta";
         case ItemId::BloquePiedra: return "Pi";
         case ItemId::MineralHierro: return "Fe";
         case ItemId::MineralOro: return "Au";
         case ItemId::MineralDiamante: return "Di";
         case ItemId::Redstone: return "Rs";
         case ItemId::Cristal: return "Cr";
+        case ItemId::Lana: return "La";
+        case ItemId::PaloMadera: return "Pl";
+        case ItemId::MesaCrafteo: return "MC";
+        case ItemId::Horno: return "Ho";
+        case ItemId::Cama: return "Ca";
         case ItemId::BloqueTecho: return "Te";
         case ItemId::PicoMadera: return "Pk";
         case ItemId::PicoPiedra: return "Pp";
         case ItemId::PicoDiamante: return "Pd";
         case ItemId::PalaMadera: return "Pa";
+        case ItemId::PalaPiedra: return "Pp";
         case ItemId::HachaMadera: return "Ha";
+        case ItemId::HachaPiedra: return "Hp";
+        case ItemId::EspadaMadera: return "Em";
+        case ItemId::EspadaPiedra: return "Ep";
         default: return "?";
     }
 }
@@ -125,6 +145,17 @@ inline ItemId InventarioGrid::getItemEnHotbar() const {
 
 inline TipoBloque InventarioGrid::getTipoEnHotbar() const {
     return bloqueDesdeItem(getItemEnHotbar());
+}
+
+inline bool InventarioGrid::consumirItemHotbar(int cantidad) {
+    int indice = INDICE_HOTBAR + slotSeleccionadoHotbar;
+    if (cantidad <= 0 || esItemVacio(slots[indice].item) || slots[indice].cantidad < cantidad) {
+        return false;
+    }
+
+    slots[indice].cantidad -= cantidad;
+    limpiarSlotSiVacio(slots[indice]);
+    return true;
 }
 
 inline int InventarioGrid::maxStack(ItemId item) const {
@@ -193,19 +224,33 @@ inline int InventarioGrid::obtenerSlotEnPosicion(sf::Vector2i posicionMouse) con
 inline void InventarioGrid::actualizarResultadoCrafteo() {
     slots[INDICE_RESULTADO] = {};
 
-    int cantidadMadera = 0;
+    int cantidadTroncos = 0;
+    int cantidadTablones = 0;
     int materiales = 0;
     for (int i = INDICE_CRAFTEO; i < INDICE_RESULTADO; ++i) {
         if (!esItemVacio(slots[i].item)) {
             ++materiales;
-            if (slots[i].item == ItemId::BloqueMadera) {
-                ++cantidadMadera;
-            }
+            if (slots[i].item == ItemId::BloqueTronco) ++cantidadTroncos;
+            if (slots[i].item == ItemId::TablonMadera) ++cantidadTablones;
         }
     }
 
-    if (materiales == 1 && cantidadMadera == 1) {
-        slots[INDICE_RESULTADO] = {ItemId::BloqueMadera, 4};
+    if (materiales == 1 && cantidadTroncos == 1) {
+        slots[INDICE_RESULTADO] = {ItemId::TablonMadera, 4};
+        return;
+    }
+
+    if (materiales == 4 && cantidadTablones == 4) {
+        slots[INDICE_RESULTADO] = {ItemId::MesaCrafteo, 1};
+        return;
+    }
+
+    bool palosColumnaIzquierda = slots[INDICE_CRAFTEO].item == ItemId::TablonMadera &&
+                                 slots[INDICE_CRAFTEO + 2].item == ItemId::TablonMadera;
+    bool palosColumnaDerecha = slots[INDICE_CRAFTEO + 1].item == ItemId::TablonMadera &&
+                               slots[INDICE_CRAFTEO + 3].item == ItemId::TablonMadera;
+    if (materiales == 2 && cantidadTablones == 2 && (palosColumnaIzquierda || palosColumnaDerecha)) {
+        slots[INDICE_RESULTADO] = {ItemId::PaloMadera, 4};
     }
 }
 

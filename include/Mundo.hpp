@@ -11,6 +11,9 @@ enum class TipoBloque {
     Agua,
     AguaProfunda,
     Madera,
+    MesaCrafteo,
+    Horno,
+    Cristal,
     MineralHierro,
     MineralOro,
     MineralDiamante,
@@ -40,6 +43,8 @@ public:
     void dibujar(sf::RenderWindow& ventana);
 
     bool esBloqueSolido(int x, int y) const;
+    bool puedeColocarBloque(int x, int y) const;
+    bool colocarBloque(int x, int y, TipoBloque tipo);
     void romperBloque(int x, int y);
     TipoBloque getTipoBloque(int x, int y) const;
     int getVidaMaximaBloque(TipoBloque tipo) const;

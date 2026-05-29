@@ -8,18 +8,28 @@ enum class ItemId {
     BloquePasto,
     BloqueTierra,
     BloquePiedra,
-    BloqueMadera,
+    BloqueTronco,
+    TablonMadera,
     MineralHierro,
     MineralOro,
     MineralDiamante,
     Redstone,
     Cristal,
+    Lana,
+    PaloMadera,
+    MesaCrafteo,
+    Horno,
+    Cama,
     BloqueTecho,
     PicoMadera,
     PicoPiedra,
     PicoDiamante,
     PalaMadera,
-    HachaMadera
+    PalaPiedra,
+    HachaMadera,
+    HachaPiedra,
+    EspadaMadera,
+    EspadaPiedra
 };
 
 enum class TipoHerramienta {

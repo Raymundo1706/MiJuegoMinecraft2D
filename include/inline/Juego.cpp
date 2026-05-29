@@ -4,6 +4,7 @@
 #include <cmath>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
+#include "SistemaCrafteo.hpp"
 
 inline Juego::Juego()
     : ventana(sf::VideoMode({800, 600}), "TEST DE CAMBIOS REALES"),
@@ -59,6 +60,9 @@ inline void Juego::ejecutar() {
     sf::Clock reloj;
     SistemaHerramientas herramientas;
     InventarioGrid inventarioGrid;
+    SistemaCrafteo sistemaCrafteo;
+    bool clickIzquierdoAnterior = false;
+    bool clickDerechoAnterior = false;
 
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
@@ -88,7 +92,11 @@ inline void Juego::ejecutar() {
                 if (botonTeclado->code == sf::Keyboard::Key::Num9) inventarioGrid.seleccionarSlotHotbar(8);
 
                 if (botonTeclado->code == sf::Keyboard::Key::Q) {
-                    inventarioGrid.alternarMenu();
+                    if (sistemaCrafteo.esMenuAbierto()) {
+                        sistemaCrafteo.alternarMenu();
+                    } else {
+                        inventarioGrid.alternarMenu();
+                    }
                 }
             }
         }
@@ -97,8 +105,13 @@ inline void Juego::ejecutar() {
         bool clickIzquierdo = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         bool clickDerecho = sf::Mouse::isButtonPressed(sf::Mouse::Button::Right);
         inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
+        if (sistemaCrafteo.esMenuAbierto()) {
+            sistemaCrafteo.manejarClicks(mousePos, clickIzquierdo, inventarioGrid.getItemEnHotbar());
+        }
 
-        if (jugador) {
+        bool uiAbierta = inventarioGrid.esMenuAbierto() || sistemaCrafteo.esMenuAbierto();
+
+        if (jugador && !uiAbierta) {
             jugador->controlar(dt, *mapaSuperficie);
             camara.setCenter(jugador->getPosicion());
         }
@@ -107,12 +120,53 @@ inline void Juego::ejecutar() {
             if (animal) animal->actualizar(dt, *mapaSuperficie);
         }
 
-        if (!inventarioGrid.esMenuAbierto() && clickIzquierdo) {
-            ventana.setView(camara);
-            sf::Vector2f posicionMundo = ventana.mapPixelToCoords(mousePos);
+        ventana.setView(camara);
+        sf::Vector2f posicionMundoMouse = ventana.mapPixelToCoords(mousePos);
+        int bloqueMouseX = static_cast<int>(std::floor(posicionMundoMouse.x / 32.0f));
+        int bloqueMouseY = static_cast<int>(std::floor(posicionMundoMouse.y / 32.0f));
 
-            int bloqueX = static_cast<int>(std::floor(posicionMundo.x / 32.0f));
-            int bloqueY = static_cast<int>(std::floor(posicionMundo.y / 32.0f));
+        bool mesaHoverCercana = false;
+        bool clickSobreMesa = false;
+        if (jugador && mapaSuperficie) {
+            TipoBloque tipoHover = mapaSuperficie->getTipoBloque(bloqueMouseX, bloqueMouseY);
+            if (tipoHover == TipoBloque::MesaCrafteo) {
+                sf::Vector2f posJugador = jugador->getPosicion();
+                sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
+                sf::Vector2f centroBloque((bloqueMouseX * 32.0f) + 16.0f, (bloqueMouseY * 32.0f) + 16.0f);
+                float dx = centroBloque.x - centroJugador.x;
+                float dy = centroBloque.y - centroJugador.y;
+                mesaHoverCercana = std::sqrt(dx * dx + dy * dy) <= 64.0f;
+                clickSobreMesa = mesaHoverCercana && clickIzquierdo && !clickIzquierdoAnterior;
+            }
+        }
+
+        if (!uiAbierta && clickDerecho && !clickDerechoAnterior) {
+            ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
+            TipoBloque bloqueAColocar = bloqueDesdeItem(itemEnMano);
+
+            if (esItemColocable(itemEnMano) && bloqueAColocar != TipoBloque::Aire &&
+                jugador && mapaSuperficie) {
+                sf::Vector2f posJugador = jugador->getPosicion();
+                sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
+                sf::Vector2f centroBloque((bloqueMouseX * 32.0f) + 16.0f, (bloqueMouseY * 32.0f) + 16.0f);
+                float dx = centroBloque.x - centroJugador.x;
+                float dy = centroBloque.y - centroJugador.y;
+                float distancia = std::sqrt(dx * dx + dy * dy);
+
+                if (distancia <= 115.0f && mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
+                    inventarioGrid.consumirItemHotbar(1);
+                }
+            }
+        }
+
+        if (clickSobreMesa) {
+            sistemaCrafteo.alternarMenu();
+        }
+
+        if (!uiAbierta && clickIzquierdo && !clickSobreMesa) {
+            ventana.setView(camara);
+            int bloqueX = bloqueMouseX;
+            int bloqueY = bloqueMouseY;
 
             if (jugador && mapaSuperficie) {
                 sf::Vector2f posJugador = jugador->getPosicion();
@@ -171,10 +225,22 @@ inline void Juego::ejecutar() {
         }
 
         if (fuenteCargada) {
+            if (mesaHoverCercana && !uiAbierta) {
+                sf::Text textoMesa(fuente, "Mesa de Crafteo", 14);
+                textoMesa.setPosition({static_cast<float>(mousePos.x + 12), static_cast<float>(mousePos.y - 18)});
+                textoMesa.setFillColor(sf::Color::White);
+                textoMesa.setOutlineColor(sf::Color::Black);
+                textoMesa.setOutlineThickness(2.0f);
+                ventana.draw(textoMesa);
+            }
+
             inventarioGrid.dibujar(ventana, fuente);
+            sistemaCrafteo.dibujar(ventana, fuente);
         }
 
         ventana.display();
+        clickIzquierdoAnterior = clickIzquierdo;
+        clickDerechoAnterior = clickDerecho;
     }
 }
 

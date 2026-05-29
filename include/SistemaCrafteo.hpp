@@ -2,23 +2,23 @@
 
 #include <SFML/Graphics.hpp>
 #include <map>
-#include "Mundo.hpp"
+#include "Item.hpp"
 
 struct RecetaMatriz {
-    TipoBloque matriz[3][3];
+    ItemId matriz[3][3];
 
     bool operator<(const RecetaMatriz& otra) const;
 };
 
 struct ResultadoCrafteo {
-    TipoBloque tipo = TipoBloque::Aire;
+    ItemId item = ItemId::Ninguno;
     int cantidad = 0;
 };
 
 class SistemaCrafteo {
 private:
     bool menuAbierto;
-    TipoBloque matrizEntrada[3][3];
+    ItemId matrizEntrada[3][3];
     ResultadoCrafteo ranuraSalida;
     std::map<RecetaMatriz, ResultadoCrafteo> libroRecetas;
 
@@ -31,10 +31,10 @@ public:
     void alternarMenu();
     bool esMenuAbierto() const;
 
-    void registrarReceta(RecetaMatriz patron, TipoBloque resultado, int cantidad);
+    void registrarReceta(RecetaMatriz patron, ItemId resultado, int cantidad);
     void inicializarRecetasBase();
     void verificarCrafteo();
-    void manejarClicks(sf::Vector2i posicionMouse, bool clicPresionado, TipoBloque itemEnMano);
+    void manejarClicks(sf::Vector2i posicionMouse, bool clicPresionado, ItemId itemEnMano);
     void dibujar(sf::RenderWindow& ventana, sf::Font& fuente);
 };
 

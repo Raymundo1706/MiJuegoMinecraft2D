@@ -60,6 +60,7 @@ public:
     ItemId getItemEnHotbar() const;
     TipoBloque getTipoEnHotbar() const;
     void seleccionarSlotHotbar(int slot);
+    bool consumirItemHotbar(int cantidad = 1);
 
     bool tieneItemEnMano() const;
     SlotInventario& getSlotArrastrando();
