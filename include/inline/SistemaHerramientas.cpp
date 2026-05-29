@@ -1,6 +1,5 @@
-#include "SistemaHerramientas.hpp"
-
-SistemaHerramientas::SistemaHerramientas() : herramientaActiva(0) {
+﻿
+inline SistemaHerramientas::SistemaHerramientas() : herramientaActiva(0) {
     inventario[TipoBloque::Pasto] = 0;
     inventario[TipoBloque::Tierra] = 0;
     inventario[TipoBloque::Madera] = 0;
@@ -9,19 +8,19 @@ SistemaHerramientas::SistemaHerramientas() : herramientaActiva(0) {
     inventario[TipoBloque::MineralDiamante] = 0;
 }
 
-SistemaHerramientas::~SistemaHerramientas() {}
+inline SistemaHerramientas::~SistemaHerramientas() {}
 
-void SistemaHerramientas::cambiarHerramienta(int slot) {
+inline void SistemaHerramientas::cambiarHerramienta(int slot) {
     if (slot >= 0 && slot <= 3) {
         herramientaActiva = slot;
     }
 }
 
-int SistemaHerramientas::getHerramientaActiva() const {
+inline int SistemaHerramientas::getHerramientaActiva() const {
     return herramientaActiva;
 }
 
-float SistemaHerramientas::calcularDanio(TipoBloque tipo) const {
+inline float SistemaHerramientas::calcularDanio(TipoBloque tipo) const {
     ItemId itemLegacy = ItemId::Ninguno;
     if (herramientaActiva == 1) itemLegacy = ItemId::PicoMadera;
     if (herramientaActiva == 2) itemLegacy = ItemId::PalaMadera;
@@ -29,7 +28,7 @@ float SistemaHerramientas::calcularDanio(TipoBloque tipo) const {
     return calcularDanio(tipo, itemLegacy);
 }
 
-float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMano) const {
+inline float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMano) const {
     float danio = 0.5f;
 
     if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra) {
@@ -71,7 +70,7 @@ float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMano) con
     return danio;
 }
 
-bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const {
+inline bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const {
     bool requierePico = (tipo == TipoBloque::Piedra ||
                          tipo == TipoBloque::MineralHierro ||
                          tipo == TipoBloque::MineralOro ||
@@ -85,7 +84,7 @@ bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) co
     return tipoHerramienta(itemEnMano) == TipoHerramienta::Pico;
 }
 
-void SistemaHerramientas::agregarAlInventario(TipoBloque tipo, int herramientaUsada) {
+inline void SistemaHerramientas::agregarAlInventario(TipoBloque tipo, int herramientaUsada) {
     bool esMineral = (tipo == TipoBloque::Piedra ||
                       tipo == TipoBloque::MineralHierro ||
                       tipo == TipoBloque::MineralDiamante);
@@ -99,10 +98,12 @@ void SistemaHerramientas::agregarAlInventario(TipoBloque tipo, int herramientaUs
     }
 }
 
-int SistemaHerramientas::getCantidad(TipoBloque tipo) const {
+inline int SistemaHerramientas::getCantidad(TipoBloque tipo) const {
     auto it = inventario.find(tipo);
     if (it != inventario.end()) {
         return it->second;
     }
     return 0;
 }
+
+

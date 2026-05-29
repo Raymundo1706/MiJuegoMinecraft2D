@@ -61,8 +61,10 @@ public:
     TipoBloque getTipoEnHotbar() const;
     void seleccionarSlotHotbar(int slot);
 
-    bool tieneItemEnMano() const { return manteniendoItem; }
-    SlotInventario& getSlotArrastrando() { return itemCursor; }
-    void soltarItemEnMano() { itemCursor = {}; manteniendoItem = false; }
-    std::vector<SlotInventario>& getSlots() { return slots; }
+    bool tieneItemEnMano() const;
+    SlotInventario& getSlotArrastrando();
+    void soltarItemEnMano();
+    std::vector<SlotInventario>& getSlots();
 };
+
+#include "inline/InventarioGrid.cpp"

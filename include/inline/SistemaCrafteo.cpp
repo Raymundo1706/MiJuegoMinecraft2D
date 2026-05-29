@@ -1,8 +1,18 @@
-#include "SistemaCrafteo.hpp"
-#include <iostream>
+﻿#include <iostream>
 
-SistemaCrafteo::SistemaCrafteo() : menuAbierto(false) {
-    // Inicializar la mesa de crafteo completamente vacía (con Aire)
+inline bool RecetaMatriz::operator<(const RecetaMatriz& otra) const {
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            if (matriz[i][j] != otra.matriz[i][j]) {
+                return matriz[i][j] < otra.matriz[i][j];
+            }
+        }
+    }
+    return false;
+}
+
+inline SistemaCrafteo::SistemaCrafteo() : menuAbierto(false) {
+    // Inicializar la mesa de crafteo completamente vacÃ­a (con Aire)
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
             matrizEntrada[i][j] = TipoBloque::Aire;
@@ -15,24 +25,24 @@ SistemaCrafteo::SistemaCrafteo() : menuAbierto(false) {
     inicializarRecetasBase();
 }
 
-SistemaCrafteo::~SistemaCrafteo() {}
+inline SistemaCrafteo::~SistemaCrafteo() {}
 
-void SistemaCrafteo::alternarMenu() {
+inline void SistemaCrafteo::alternarMenu() {
     menuAbierto = !menuAbierto;
 }
 
-bool SistemaCrafteo::esMenuAbierto() const {
+inline bool SistemaCrafteo::esMenuAbierto() const {
     return menuAbierto;
 }
 
-void SistemaCrafteo::registrarReceta(RecetaMatriz patron, TipoBloque resultado, int cantidad) {
+inline void SistemaCrafteo::registrarReceta(RecetaMatriz patron, TipoBloque resultado, int cantidad) {
     libroRecetas[patron] = {resultado, cantidad};
 }
 
-void SistemaCrafteo::inicializarRecetasBase() {
+inline void SistemaCrafteo::inicializarRecetasBase() {
     // -------------------------------------------------------------------
     // RECETA BASE 1: 1 Tronco de Madera -> 4 Tablas de Madera Procesada
-    // Ponemos el Tronco en la esquina superior izquierda [0][0], lo demás Aire
+    // Ponemos el Tronco en la esquina superior izquierda [0][0], lo demÃ¡s Aire
     // -------------------------------------------------------------------
     RecetaMatriz recetaMadera;
     for (int i = 0; i < 3; ++i) {
@@ -41,18 +51,18 @@ void SistemaCrafteo::inicializarRecetasBase() {
         }
     }
     
-    // NOTA: Asegúrate de que en tu 'Mundo.hpp' tu bloque de madera recién talada 
-    // se llame 'Madera' o similar. Si tienes 'TipoBloque::Madera', aquí lo usamos:
+    // NOTA: AsegÃºrate de que en tu 'Mundo.hpp' tu bloque de madera reciÃ©n talada 
+    // se llame 'Madera' o similar. Si tienes 'TipoBloque::Madera', aquÃ­ lo usamos:
     recetaMadera.matriz[0][0] = TipoBloque::Madera; 
 
-    // Registramos: Ese patrón da como resultado 4 bloques de Madera (Tablas)
+    // Registramos: Ese patrÃ³n da como resultado 4 bloques de Madera (Tablas)
     registrarReceta(recetaMadera, TipoBloque::Madera, 4);
     
     std::cout << "[Mesa Crafteo] Fase 1: Recetas base inicializadas con exito." << std::endl;
 }
 
-void SistemaCrafteo::verificarCrafteo() {
-    // CORREGIDO: Convertimos explícitamente la matriz nativa actual en un objeto RecetaMatriz
+inline void SistemaCrafteo::verificarCrafteo() {
+    // CORREGIDO: Convertimos explÃ­citamente la matriz nativa actual en un objeto RecetaMatriz
     RecetaMatriz intentoActual;
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
@@ -64,26 +74,26 @@ void SistemaCrafteo::verificarCrafteo() {
     auto it = libroRecetas.find(intentoActual);
     
     if (it != libroRecetas.end()) {
-        ranuraSalida = it->second; // Se activa el ítem de salida
+        ranuraSalida = it->second; // Se activa el Ã­tem de salida
     } else {
-        // Si no coincide con ninguna receta, la salida se queda vacía
+        // Si no coincide con ninguna receta, la salida se queda vacÃ­a
         ranuraSalida.tipo = TipoBloque::Aire;
         ranuraSalida.cantidad = 0;
     }
 }
 
-void SistemaCrafteo::manejarClicks(sf::Vector2i posicionMouse, bool clicPresionado, TipoBloque itemEnMano) {
+inline void SistemaCrafteo::manejarClicks(sf::Vector2i posicionMouse, bool clicPresionado, TipoBloque itemEnMano) {
     if (!menuAbierto || !clicPresionado) return;
 
-    // La lógica de interacción por clicks y arrastres la desarrollaremos en la Fase 2.
-    // De momento, dejamos la verificación en escucha.
+    // La lÃ³gica de interacciÃ³n por clicks y arrastres la desarrollaremos en la Fase 2.
+    // De momento, dejamos la verificaciÃ³n en escucha.
     verificarCrafteo();
 }
 
-void SistemaCrafteo::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
+inline void SistemaCrafteo::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
     if (!menuAbierto) return;
 
-    // Fondo de la Mesa - EMPUJADO AÚN MÁS A LA DERECHA (X increased dramatically)
+    // Fondo de la Mesa - EMPUJADO AÃšN MÃS A LA DERECHA (X increased dramatically)
     sf::RectangleShape fondoCrafteo({230.0f, 160.0f});
     fondoCrafteo.setPosition({400.0f, 150.0f}); // X increased from 540 to 600
     fondoCrafteo.setFillColor(sf::Color(30, 30, 30, 240));
@@ -91,7 +101,7 @@ void SistemaCrafteo::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
     fondoCrafteo.setOutlineThickness(1.0f);
     ventana.draw(fondoCrafteo);
 
-    // Dibujar la cuadrícula 3x3 movida a su nueva posición (X increased dramatically)
+    // Dibujar la cuadrÃ­cula 3x3 movida a su nueva posiciÃ³n (X increased dramatically)
     for (int fila = 0; fila < 3; ++fila) {
         for (int col = 0; col < 3; ++col) {
             sf::RectangleShape celda({TAMANIO_CUADRO, TAMANIO_CUADRO});
@@ -118,3 +128,4 @@ void SistemaCrafteo::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
     celdaSalida.setOutlineThickness(1.0f);
     ventana.draw(celdaSalida);
 }
+

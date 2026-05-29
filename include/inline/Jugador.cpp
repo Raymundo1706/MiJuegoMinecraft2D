@@ -1,27 +1,26 @@
-#include "Jugador.hpp"
-#include "Mundo.hpp" // Necesario para interactuar con las colisiones del mapa
+﻿#include "Mundo.hpp"
 #include <cmath>
 #include <algorithm>
 
-// Constructor: Recibe la posición aleatoria de spawn
-Jugador::Jugador(float x, float y) {
+// Constructor: Recibe la posiciÃ³n aleatoria de spawn
+inline Jugador::Jugador(float x, float y) {
     posicion = {x, y};
-    velocidad = 250.0f; // Píxeles por segundo
+    velocidad = 250.0f; // PÃ­xeles por segundo
 
-    // Tamaño del personaje: 24x24 píxeles (cabe perfectamente dentro de un bloque de 32x32)
+    // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
     forma.setFillColor(sf::Color::Red); // Cuadro rojo identificador
     forma.setPosition(posicion);
 }
 
 // Destructor
-Jugador::~Jugador() {}
+inline Jugador::~Jugador() {}
 
-// Método para mover al personaje detectando colisiones sólidas con el terreno
-void Jugador::controlar(float dt, const Mundo& mundo) {
+// MÃ©todo para mover al personaje detectando colisiones sÃ³lidas con el terreno
+inline void Jugador::controlar(float dt, const Mundo& mundo) {
     sf::Vector2f direccion(0.0f, 0.0f);
 
-    // Detección de teclas (WASD y Flechas)
+    // DetecciÃ³n de teclas (WASD y Flechas)
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
         direccion.y -= 1.0f;
     }
@@ -35,10 +34,10 @@ void Jugador::controlar(float dt, const Mundo& mundo) {
         direccion.x += 1.0f;
     }
 
-    // Si no hay teclas presionadas, no hacemos cálculos
+    // Si no hay teclas presionadas, no hacemos cÃ¡lculos
     if (direccion.x == 0.0f && direccion.y == 0.0f) return;
 
-    // Normalizamos el vector de dirección para evitar que camine más rápido en diagonal
+    // Normalizamos el vector de direcciÃ³n para evitar que camine mÃ¡s rÃ¡pido en diagonal
     float longitud = std::sqrt(direccion.x * direccion.x + direccion.y * direccion.y);
     direccion /= longitud;
 
@@ -52,7 +51,7 @@ void Jugador::controlar(float dt, const Mundo& mundo) {
     sf::Vector2f nuevaPosicionX = posicion;
     nuevaPosicionX.x += direccion.x * velocidad * dt;
 
-    // Calculamos las esquinas de la caja del jugador en el eje X para ver con qué bloques interseca
+    // Calculamos las esquinas de la caja del jugador en el eje X para ver con quÃ© bloques interseca
     int bloqueIzq = static_cast<int>(nuevaPosicionX.x / TAMANIO_BLOQUE);
     int bloqueDer = static_cast<int>((nuevaPosicionX.x + anchoJugador) / TAMANIO_BLOQUE);
     int bloqueArriba = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
@@ -65,7 +64,7 @@ void Jugador::controlar(float dt, const Mundo& mundo) {
         if (direccion.x > 0.0f && mundo.esBloqueSolido(bloqueDer, y)) colisionX = true;
     }
 
-    // Si no hay colisión, aceptamos el movimiento en X
+    // Si no hay colisiÃ³n, aceptamos el movimiento en X
     if (!colisionX) {
         posicion.x = nuevaPosicionX.x;
     }
@@ -87,16 +86,21 @@ void Jugador::controlar(float dt, const Mundo& mundo) {
         if (direccion.y > 0.0f && mundo.esBloqueSolido(x, bloqueAbajo)) colisionY = true;
     }
 
-    // Si no hay colisión, aceptamos el movimiento en Y
+    // Si no hay colisiÃ³n, aceptamos el movimiento en Y
     if (!colisionY) {
         posicion.y = nuevaPosicionY.y;
     }
 
-    // Aplicamos la posición final validada a la figura del jugador
+    // Aplicamos la posiciÃ³n final validada a la figura del jugador
     forma.setPosition(posicion);
 }
 
-// Método para pintar al jugador encima del mundo
-void Jugador::dibujar(sf::RenderWindow& ventana) {
+// MÃ©todo para pintar al jugador encima del mundo
+inline void Jugador::dibujar(sf::RenderWindow& ventana) {
     ventana.draw(forma);
 }
+
+inline sf::Vector2f Jugador::getPosicion() const {
+    return posicion;
+}
+

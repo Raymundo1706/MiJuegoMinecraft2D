@@ -1,14 +1,13 @@
-#include "entidades/Animal.hpp"
-#include "core/Mundo.hpp"
+﻿#include "Mundo.hpp"
 #include <random>
 #include <cmath>
 
-Animal::Animal(float x, float y, TipoAnimal tipo) 
+inline Animal::Animal(float x, float y, TipoAnimal tipo) 
     : posicion(x, y), tipo(tipo), tiempoCambiandoDireccion(0.0f) {
     
     forma.setSize({ANCHO_ANIMAL, ALTO_ANIMAL});
     
-    // Color según la criatura estilo Minecraft
+    // Color segÃºn la criatura estilo Minecraft
     if (tipo == TipoAnimal::Cerdo) {
         forma.setFillColor(sf::Color(255, 105, 180)); // Rosa Cerdito
     } else {
@@ -23,9 +22,9 @@ Animal::Animal(float x, float y, TipoAnimal tipo)
     elegirNuevaDireccion();
 }
 
-Animal::~Animal() {}
+inline Animal::~Animal() {}
 
-void Animal::elegirNuevaDireccion() {
+inline void Animal::elegirNuevaDireccion() {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> disDir(0, 4); // 0=Quieto, 1=Izquierda, 2=Derecha, 3=Arriba, 4=Abajo
@@ -44,7 +43,7 @@ void Animal::elegirNuevaDireccion() {
     tiempoMaximoDireccion = disTiempo(gen);
 }
 
-void Animal::actualizar(float dt, const Mundo& mundo) {
+inline void Animal::actualizar(float dt, const Mundo& mundo) {
     tiempoCambiandoDireccion += dt;
     if (tiempoCambiandoDireccion >= tiempoMaximoDireccion) {
         elegirNuevaDireccion();
@@ -52,7 +51,7 @@ void Animal::actualizar(float dt, const Mundo& mundo) {
 
     const float TAMANIO_BLOQUE = 32.0f;
 
-    // --- COLISIÓN EN EJE X ---
+    // --- COLISIÃ“N EN EJE X ---
     posicion.x += velocidad.x * dt;
     
     int blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
@@ -60,19 +59,19 @@ void Animal::actualizar(float dt, const Mundo& mundo) {
     int blqArribaY = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
     int blqAbajoY = static_cast<int>((posicion.y + ALTO_ANIMAL) / TAMANIO_BLOQUE);
 
-    if (velocidad.x > 0) { // Moviéndose a la derecha
+    if (velocidad.x > 0) { // MoviÃ©ndose a la derecha
         if (mundo.esBloqueSolido(blqDer, blqArribaY) || mundo.esBloqueSolido(blqDer, blqAbajoY)) {
             posicion.x = blqDer * TAMANIO_BLOQUE - ANCHO_ANIMAL - 0.1f;
             elegirNuevaDireccion(); // Cambia de rumbo si choca
         }
-    } else if (velocidad.x < 0) { // Moviéndose a la izquierda
+    } else if (velocidad.x < 0) { // MoviÃ©ndose a la izquierda
         if (mundo.esBloqueSolido(blqIzq, blqArribaY) || mundo.esBloqueSolido(blqIzq, blqAbajoY)) {
             posicion.x = (blqIzq + 1) * TAMANIO_BLOQUE + 0.1f;
             elegirNuevaDireccion();
         }
     }
 
-    // --- COLISIÓN EN EJE Y ---
+    // --- COLISIÃ“N EN EJE Y ---
     posicion.y += velocidad.y * dt;
     
     blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
@@ -80,12 +79,12 @@ void Animal::actualizar(float dt, const Mundo& mundo) {
     int blqArriba = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
     int blqAbajo = static_cast<int>((posicion.y + ALTO_ANIMAL) / TAMANIO_BLOQUE);
 
-    if (velocidad.y > 0) { // Moviéndose hacia abajo
+    if (velocidad.y > 0) { // MoviÃ©ndose hacia abajo
         if (mundo.esBloqueSolido(blqIzq, blqAbajo) || mundo.esBloqueSolido(blqDer, blqAbajo)) {
             posicion.y = blqAbajo * TAMANIO_BLOQUE - ALTO_ANIMAL - 0.1f;
             elegirNuevaDireccion();
         }
-    } else if (velocidad.y < 0) { // Moviéndose hacia arriba
+    } else if (velocidad.y < 0) { // MoviÃ©ndose hacia arriba
         if (mundo.esBloqueSolido(blqIzq, blqArriba) || mundo.esBloqueSolido(blqDer, blqArriba)) {
             posicion.y = (blqArriba + 1) * TAMANIO_BLOQUE + 0.1f;
             elegirNuevaDireccion();
@@ -93,7 +92,12 @@ void Animal::actualizar(float dt, const Mundo& mundo) {
     }
 }
 
-void Animal::dibujar(sf::RenderWindow& ventana) {
+inline void Animal::dibujar(sf::RenderWindow& ventana) {
     forma.setPosition(posicion);
     ventana.draw(forma);
 }
+
+inline sf::Vector2f Animal::getPosicion() const {
+    return posicion;
+}
+

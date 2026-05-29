@@ -1,5 +1,4 @@
-#include "InventarioGrid.hpp"
-#include <algorithm>
+﻿#include <algorithm>
 #include <string>
 
 namespace {
@@ -8,7 +7,7 @@ const sf::Vector2f PANEL_SIZE(736.0f, 552.0f);
 const sf::Vector2f PLAYER_POS(122.0f, 64.0f);
 const sf::Vector2f PLAYER_SIZE(170.0f, 206.0f);
 
-sf::Vector2f posicionSlot(int indice) {
+inline sf::Vector2f posicionSlot(int indice) {
     const float paso = 48.0f;
 
     if (indice >= 0 && indice < 27) {
@@ -41,7 +40,7 @@ sf::Vector2f posicionSlot(int indice) {
     return {640.0f, 140.0f};
 }
 
-sf::Color colorDeItem(ItemId item) {
+inline sf::Color colorDeItem(ItemId item) {
     switch (item) {
         case ItemId::BloquePasto: return sf::Color(55, 150, 65);
         case ItemId::BloqueTierra: return sf::Color(120, 78, 45);
@@ -63,7 +62,7 @@ sf::Color colorDeItem(ItemId item) {
     }
 }
 
-std::string inicialItem(ItemId item) {
+inline std::string inicialItem(ItemId item) {
     switch (item) {
         case ItemId::BloquePasto: return "Pa";
         case ItemId::BloqueTierra: return "Ti";
@@ -84,13 +83,13 @@ std::string inicialItem(ItemId item) {
     }
 }
 
-bool contiene(sf::Vector2f pos, float tam, sf::Vector2i mouse) {
+inline bool contiene(sf::Vector2f pos, float tam, sf::Vector2i mouse) {
     return mouse.x >= pos.x && mouse.x <= pos.x + tam &&
            mouse.y >= pos.y && mouse.y <= pos.y + tam;
 }
 }
 
-InventarioGrid::InventarioGrid()
+inline InventarioGrid::InventarioGrid()
     : menuAbierto(false),
       slotSeleccionadoHotbar(0),
       manteniendoItem(false),
@@ -99,9 +98,9 @@ InventarioGrid::InventarioGrid()
     slots.resize(TOTAL_SLOTS);
 }
 
-InventarioGrid::~InventarioGrid() {}
+inline InventarioGrid::~InventarioGrid() {}
 
-void InventarioGrid::alternarMenu() {
+inline void InventarioGrid::alternarMenu() {
     if (menuAbierto) {
         devolverCrafteoAlInventario();
     }
@@ -110,50 +109,50 @@ void InventarioGrid::alternarMenu() {
     clicDerechoAnterior = false;
 }
 
-bool InventarioGrid::esMenuAbierto() const {
+inline bool InventarioGrid::esMenuAbierto() const {
     return menuAbierto;
 }
 
-void InventarioGrid::seleccionarSlotHotbar(int slot) {
+inline void InventarioGrid::seleccionarSlotHotbar(int slot) {
     if (slot >= 0 && slot < SLOTS_HOTBAR) {
         slotSeleccionadoHotbar = slot;
     }
 }
 
-ItemId InventarioGrid::getItemEnHotbar() const {
+inline ItemId InventarioGrid::getItemEnHotbar() const {
     return slots[INDICE_HOTBAR + slotSeleccionadoHotbar].item;
 }
 
-TipoBloque InventarioGrid::getTipoEnHotbar() const {
+inline TipoBloque InventarioGrid::getTipoEnHotbar() const {
     return bloqueDesdeItem(getItemEnHotbar());
 }
 
-int InventarioGrid::maxStack(ItemId item) const {
+inline int InventarioGrid::maxStack(ItemId item) const {
     return maxStackItem(item);
 }
 
-bool InventarioGrid::esSlotResultado(int indice) const {
+inline bool InventarioGrid::esSlotResultado(int indice) const {
     return indice == INDICE_RESULTADO;
 }
 
-bool InventarioGrid::esSlotPersistente(int indice) const {
+inline bool InventarioGrid::esSlotPersistente(int indice) const {
     return indice >= 0 && indice < INDICE_CRAFTEO;
 }
 
-bool InventarioGrid::puedeColocarEnSlot(int indice, ItemId item) const {
+inline bool InventarioGrid::puedeColocarEnSlot(int indice, ItemId item) const {
     if (indice < 0 || indice >= TOTAL_SLOTS || esSlotResultado(indice)) return false;
     if (esItemVacio(item)) return false;
     return true;
 }
 
-void InventarioGrid::limpiarSlotSiVacio(SlotInventario& slot) {
+inline void InventarioGrid::limpiarSlotSiVacio(SlotInventario& slot) {
     if (slot.cantidad <= 0) {
         slot.item = ItemId::Ninguno;
         slot.cantidad = 0;
     }
 }
 
-void InventarioGrid::agregarItem(ItemId item, int cantidad) {
+inline void InventarioGrid::agregarItem(ItemId item, int cantidad) {
     if (esItemVacio(item) || cantidad <= 0) return;
 
     int restante = cantidad;
@@ -176,11 +175,11 @@ void InventarioGrid::agregarItem(ItemId item, int cantidad) {
     }
 }
 
-void InventarioGrid::agregarItem(TipoBloque bloque, int cantidad) {
+inline void InventarioGrid::agregarItem(TipoBloque bloque, int cantidad) {
     agregarItem(itemDesdeBloque(bloque), cantidad);
 }
 
-int InventarioGrid::obtenerSlotEnPosicion(sf::Vector2i posicionMouse) const {
+inline int InventarioGrid::obtenerSlotEnPosicion(sf::Vector2i posicionMouse) const {
     if (!menuAbierto) {
         return -1;
     }
@@ -191,7 +190,7 @@ int InventarioGrid::obtenerSlotEnPosicion(sf::Vector2i posicionMouse) const {
     return -1;
 }
 
-void InventarioGrid::actualizarResultadoCrafteo() {
+inline void InventarioGrid::actualizarResultadoCrafteo() {
     slots[INDICE_RESULTADO] = {};
 
     int cantidadMadera = 0;
@@ -210,7 +209,7 @@ void InventarioGrid::actualizarResultadoCrafteo() {
     }
 }
 
-void InventarioGrid::consumirIngredientesCrafteo() {
+inline void InventarioGrid::consumirIngredientesCrafteo() {
     for (int i = INDICE_CRAFTEO; i < INDICE_RESULTADO; ++i) {
         if (!esItemVacio(slots[i].item)) {
             slots[i].cantidad -= 1;
@@ -220,7 +219,7 @@ void InventarioGrid::consumirIngredientesCrafteo() {
     actualizarResultadoCrafteo();
 }
 
-void InventarioGrid::devolverCrafteoAlInventario() {
+inline void InventarioGrid::devolverCrafteoAlInventario() {
     for (int i = INDICE_CRAFTEO; i < INDICE_RESULTADO; ++i) {
         if (!esItemVacio(slots[i].item)) {
             agregarItem(slots[i].item, slots[i].cantidad);
@@ -230,7 +229,7 @@ void InventarioGrid::devolverCrafteoAlInventario() {
     slots[INDICE_RESULTADO] = {};
 }
 
-void InventarioGrid::manejarClickIzquierdo(int indice) {
+inline void InventarioGrid::manejarClickIzquierdo(int indice) {
     if (indice < 0 || indice >= TOTAL_SLOTS) return;
 
     if (esSlotResultado(indice)) {
@@ -282,7 +281,7 @@ void InventarioGrid::manejarClickIzquierdo(int indice) {
     actualizarResultadoCrafteo();
 }
 
-void InventarioGrid::manejarClickDerecho(int indice) {
+inline void InventarioGrid::manejarClickDerecho(int indice) {
     if (indice < 0 || indice >= TOTAL_SLOTS || esSlotResultado(indice)) return;
 
     SlotInventario& slot = slots[indice];
@@ -314,7 +313,7 @@ void InventarioGrid::manejarClickDerecho(int indice) {
     actualizarResultadoCrafteo();
 }
 
-void InventarioGrid::manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho) {
+inline void InventarioGrid::manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho) {
     if (!menuAbierto) {
         clicIzquierdoAnterior = clicIzquierdo;
         clicDerechoAnterior = clicDerecho;
@@ -335,7 +334,7 @@ void InventarioGrid::manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierd
     clicDerechoAnterior = clicDerecho;
 }
 
-void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
+inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
     sf::Vector2i mouse = sf::Mouse::getPosition(ventana);
     int hover = obtenerSlotEnPosicion(mouse);
 
@@ -437,3 +436,22 @@ void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
         }
     }
 }
+
+inline bool InventarioGrid::tieneItemEnMano() const {
+    return manteniendoItem;
+}
+
+inline SlotInventario& InventarioGrid::getSlotArrastrando() {
+    return itemCursor;
+}
+
+inline void InventarioGrid::soltarItemEnMano() {
+    itemCursor = {};
+    manteniendoItem = false;
+}
+
+inline std::vector<SlotInventario>& InventarioGrid::getSlots() {
+    return slots;
+}
+
+

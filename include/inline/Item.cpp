@@ -1,35 +1,4 @@
-#pragma once
-
-#include <string>
-#include "Mundo.hpp"
-
-enum class ItemId {
-    Ninguno,
-    BloquePasto,
-    BloqueTierra,
-    BloquePiedra,
-    BloqueMadera,
-    MineralHierro,
-    MineralOro,
-    MineralDiamante,
-    Redstone,
-    Cristal,
-    BloqueTecho,
-    PicoMadera,
-    PicoPiedra,
-    PicoDiamante,
-    PalaMadera,
-    HachaMadera
-};
-
-enum class TipoHerramienta {
-    Ninguna,
-    Pico,
-    Pala,
-    Hacha
-};
-
-inline bool esItemVacio(ItemId item) {
+﻿inline bool esItemVacio(ItemId item) {
     return item == ItemId::Ninguno;
 }
 
@@ -88,8 +57,6 @@ inline TipoBloque bloqueDesdeItem(ItemId item) {
         case ItemId::MineralOro: return TipoBloque::MineralOro;
         case ItemId::MineralDiamante: return TipoBloque::MineralDiamante;
         case ItemId::Redstone: return TipoBloque::Redstone;
-        case ItemId::Cristal: return TipoBloque::Aire;
-        case ItemId::BloqueTecho: return TipoBloque::Aire;
         default: return TipoBloque::Aire;
     }
 }
@@ -120,3 +87,4 @@ inline std::string nombreItem(ItemId item) {
         default: return "Mano";
     }
 }
+

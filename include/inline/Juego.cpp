@@ -1,12 +1,11 @@
-#include "Juego.hpp"
-#include <iostream>
+﻿#include <iostream>
 #include <random>
 #include <sstream>
 #include <cmath>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
 
-Juego::Juego()
+inline Juego::Juego()
     : ventana(sf::VideoMode({800, 600}), "TEST DE CAMBIOS REALES"),
       estaCorriendo(true),
       fuenteCargada(false) {
@@ -49,14 +48,14 @@ Juego::Juego()
               << " Y: " << (posY / 32) << "." << std::endl;
 }
 
-Juego::~Juego() {
+inline Juego::~Juego() {
     for (auto* animal : animales) {
         delete animal;
     }
     animales.clear();
 }
 
-void Juego::ejecutar() {
+inline void Juego::ejecutar() {
     sf::Clock reloj;
     SistemaHerramientas herramientas;
     InventarioGrid inventarioGrid;
@@ -178,3 +177,5 @@ void Juego::ejecutar() {
         ventana.display();
     }
 }
+
+

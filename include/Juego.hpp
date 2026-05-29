@@ -2,10 +2,11 @@
 
 #include <SFML/Graphics.hpp>
 #include <memory>
+#include <optional>
 #include <vector>
-#include "core/Mundo.hpp"
-#include "core/Jugador.hpp"
-#include "entidades/Animal.hpp" // <-- IMPORTANTE: Para que conozca TipoAnimal y Animal
+#include "Mundo.hpp"
+#include "Jugador.hpp"
+#include "Animal.hpp"
 
 class Juego {
 private:
@@ -16,13 +17,11 @@ private:
     std::unique_ptr<Mundo> mapaSuperficie;
     std::unique_ptr<Jugador> jugador;
 
-    // Elementos de Interfaz (UI)
     sf::Font fuente;
     std::optional<sf::Text> textoCoordenadas;
     bool fuenteCargada;
 
-    // LISTA DE ANIMALES AUTÓNOMOS
-    std::vector<Animal*> animales; // <-- IMPORTANTE: Declaración de la lista
+    std::vector<Animal*> animales;
 
 public:
     Juego();
@@ -30,3 +29,4 @@ public:
     void ejecutar();
 };
 
+#include "inline/Juego.cpp"
