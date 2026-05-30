@@ -21,6 +21,7 @@ enum class ItemId {
     Horno,
     Cama,
     BloqueTecho,
+    SemillaArbol,
     PicoMadera,
     PicoPiedra,
     PicoDiamante,

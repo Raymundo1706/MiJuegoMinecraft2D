@@ -53,9 +53,9 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
 
     // Calculamos las esquinas de la caja del jugador en el eje X para ver con quÃ© bloques interseca
     int bloqueIzq = static_cast<int>(nuevaPosicionX.x / TAMANIO_BLOQUE);
-    int bloqueDer = static_cast<int>((nuevaPosicionX.x + anchoJugador) / TAMANIO_BLOQUE);
+    int bloqueDer = static_cast<int>((nuevaPosicionX.x + anchoJugador - 1.0f) / TAMANIO_BLOQUE);
     int bloqueArriba = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
-    int bloqueAbajo = static_cast<int>((posicion.y + altoJugador) / TAMANIO_BLOQUE);
+    int bloqueAbajo = static_cast<int>((posicion.y + altoJugador - 1.0f) / TAMANIO_BLOQUE);
 
     bool colisionX = false;
     // Revisamos la solidez de los bloques que toca el cuerpo del jugador en X
@@ -75,9 +75,9 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
 
     // Recalculamos las esquinas ahora con la nueva coordenada de Y
     bloqueIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
-    bloqueDer = static_cast<int>((posicion.x + anchoJugador) / TAMANIO_BLOQUE);
+    bloqueDer = static_cast<int>((posicion.x + anchoJugador - 1.0f) / TAMANIO_BLOQUE);
     bloqueArriba = static_cast<int>(nuevaPosicionY.y / TAMANIO_BLOQUE);
-    bloqueAbajo = static_cast<int>((nuevaPosicionY.y + altoJugador) / TAMANIO_BLOQUE);
+    bloqueAbajo = static_cast<int>((nuevaPosicionY.y + altoJugador - 1.0f) / TAMANIO_BLOQUE);
 
     bool colisionY = false;
     // Revisamos la solidez de los bloques que toca el cuerpo del jugador en Y

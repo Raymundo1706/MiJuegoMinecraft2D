@@ -98,6 +98,7 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::Horno: return "Horno";
         case ItemId::Cama: return "Cama";
         case ItemId::BloqueTecho: return "Techo";
+        case ItemId::SemillaArbol: return "Semilla de arbol";
         case ItemId::PicoMadera: return "Pico madera";
         case ItemId::PicoPiedra: return "Pico piedra";
         case ItemId::PicoDiamante: return "Pico diamante";

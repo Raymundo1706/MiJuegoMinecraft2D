@@ -13,11 +13,52 @@ inline Juego::Juego()
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> spawnX(100 * 32, 800 * 32);
-    std::uniform_int_distribution<> spawnY(100 * 32, 800 * 32);
+    std::uniform_int_distribution<> spawnBloqueX(30, mapaSuperficie->getAncho() - 31);
+    std::uniform_int_distribution<> spawnBloqueY(30, mapaSuperficie->getAlto() - 31);
 
-    float posX = static_cast<float>(spawnX(gen));
-    float posY = static_cast<float>(spawnY(gen));
+    auto bloqueSeguroParaSpawn = [&](int bx, int by) {
+        if (mapaSuperficie->getTipoBloque(bx, by) != TipoBloque::Pasto) {
+            return false;
+        }
+
+        for (int y = by - 1; y <= by + 1; ++y) {
+            for (int x = bx - 1; x <= bx + 1; ++x) {
+                if (mapaSuperficie->esBloqueSolido(x, y)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    int bloqueSpawnX = 50;
+    int bloqueSpawnY = 50;
+    bool spawnEncontrado = false;
+
+    for (int intento = 0; intento < 8000 && !spawnEncontrado; ++intento) {
+        int bx = spawnBloqueX(gen);
+        int by = spawnBloqueY(gen);
+        if (bloqueSeguroParaSpawn(bx, by)) {
+            bloqueSpawnX = bx;
+            bloqueSpawnY = by;
+            spawnEncontrado = true;
+        }
+    }
+
+    if (!spawnEncontrado) {
+        for (int y = 30; y < mapaSuperficie->getAlto() - 30 && !spawnEncontrado; ++y) {
+            for (int x = 30; x < mapaSuperficie->getAncho() - 30 && !spawnEncontrado; ++x) {
+                if (bloqueSeguroParaSpawn(x, y)) {
+                    bloqueSpawnX = x;
+                    bloqueSpawnY = y;
+                    spawnEncontrado = true;
+                }
+            }
+        }
+    }
+
+    float posX = static_cast<float>(bloqueSpawnX * 32 + 4);
+    float posY = static_cast<float>(bloqueSpawnY * 32 + 4);
 
     jugador = std::make_unique<Jugador>(posX, posY);
     camara.setSize({800.0f, 600.0f});
@@ -61,9 +102,23 @@ inline void Juego::ejecutar() {
     InventarioGrid inventarioGrid;
     bool clickIzquierdoAnterior = false;
     bool clickDerechoAnterior = false;
+    bool mostrarDebug = false;
+    float acumuladorFPS = 0.0f;
+    int contadorFrames = 0;
+    int fpsActuales = 0;
 
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
+        if (dt > 0.05f) {
+            dt = 0.05f;
+        }
+        acumuladorFPS += dt;
+        contadorFrames++;
+        if (acumuladorFPS >= 1.0f) {
+            fpsActuales = contadorFrames;
+            contadorFrames = 0;
+            acumuladorFPS = 0.0f;
+        }
 
         while (const std::optional<sf::Event> evento = ventana.pollEvent()) {
             if (evento->is<sf::Event::Closed>()) {
@@ -96,6 +151,10 @@ inline void Juego::ejecutar() {
                         inventarioGrid.alternarMenu();
                     }
                 }
+
+                if (botonTeclado->code == sf::Keyboard::Key::F3) {
+                    mostrarDebug = !mostrarDebug;
+                }
             }
         }
 
@@ -120,6 +179,38 @@ inline void Juego::ejecutar() {
         int bloqueMouseX = static_cast<int>(std::floor(posicionMundoMouse.x / 32.0f));
         int bloqueMouseY = static_cast<int>(std::floor(posicionMundoMouse.y / 32.0f));
 
+        int bloqueJugadorX = -1;
+        int bloqueJugadorY = -1;
+        bool jugadorSobreEntradaMina = false;
+        bool minaAbierta = false;
+        float minaRestante = 0.0f;
+        float minaProgreso = 0.0f;
+        bool mostrandoBarraArbol = false;
+        float progresoArbol = 0.0f;
+
+        if (jugador && mapaSuperficie) {
+            sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+            bloqueJugadorX = static_cast<int>(std::floor(centroJugador.x / 32.0f));
+            bloqueJugadorY = static_cast<int>(std::floor(centroJugador.y / 32.0f));
+            jugadorSobreEntradaMina = mapaSuperficie->getTipoBloque(bloqueJugadorX, bloqueJugadorY) == TipoBloque::CuevaEntrada;
+
+            if (jugadorSobreEntradaMina) {
+                ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
+                float velocidadPicadoMina = 0.0f;
+                if (itemEnMano == ItemId::PicoMadera) velocidadPicadoMina = 1.0f;
+                if (itemEnMano == ItemId::PicoPiedra) velocidadPicadoMina = 1.5f;
+                if (itemEnMano == ItemId::PicoDiamante) velocidadPicadoMina = 3.0f;
+
+                if (!uiAbierta && clickIzquierdo && velocidadPicadoMina > 0.0f) {
+                    mapaSuperficie->picarEntradaMina(bloqueJugadorX, bloqueJugadorY, dt * velocidadPicadoMina);
+                }
+
+                minaAbierta = mapaSuperficie->esMinaAbierta(bloqueJugadorX, bloqueJugadorY);
+                minaRestante = mapaSuperficie->getTiempoMinaRestante(bloqueJugadorX, bloqueJugadorY);
+                minaProgreso = mapaSuperficie->getProgresoMina(bloqueJugadorX, bloqueJugadorY);
+            }
+        }
+
         bool mesaHoverCercana = false;
         bool clickSobreMesa = false;
         if (jugador && mapaSuperficie) {
@@ -139,8 +230,7 @@ inline void Juego::ejecutar() {
             ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
             TipoBloque bloqueAColocar = bloqueDesdeItem(itemEnMano);
 
-            if (esItemColocable(itemEnMano) && bloqueAColocar != TipoBloque::Aire &&
-                jugador && mapaSuperficie) {
+            if (jugador && mapaSuperficie) {
                 sf::Vector2f posJugador = jugador->getPosicion();
                 sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
                 sf::Vector2f centroBloque((bloqueMouseX * 32.0f) + 16.0f, (bloqueMouseY * 32.0f) + 16.0f);
@@ -148,7 +238,10 @@ inline void Juego::ejecutar() {
                 float dy = centroBloque.y - centroJugador.y;
                 float distancia = std::sqrt(dx * dx + dy * dy);
 
-                if (distancia <= 115.0f && mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
+                if (distancia <= 115.0f &&
+                           esItemColocable(itemEnMano) &&
+                           bloqueAColocar != TipoBloque::Aire &&
+                           mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
                     inventarioGrid.consumirItemHotbar(1);
                 }
             }
@@ -158,7 +251,8 @@ inline void Juego::ejecutar() {
             inventarioGrid.abrirMesaCrafteo();
         }
 
-        if (!uiAbierta && clickIzquierdo && !clickSobreMesa) {
+        bool usandoMina = jugadorSobreEntradaMina && tipoHerramienta(inventarioGrid.getItemEnHotbar()) == TipoHerramienta::Pico;
+        if (!uiAbierta && clickIzquierdo && !clickSobreMesa && !usandoMina) {
             ventana.setView(camara);
             int bloqueX = bloqueMouseX;
             int bloqueY = bloqueMouseY;
@@ -177,15 +271,62 @@ inline void Juego::ejecutar() {
 
                     if (tipoActual != TipoBloque::Aire && tipoActual != TipoBloque::Agua) {
                         ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
-                        float danioAplicado = herramientas.calcularDanio(tipoActual, itemEnMano);
-                        bool destruido = mapaSuperficie->daniarBloque(bloqueX, bloqueY, danioAplicado);
+                        if (tipoActual == TipoBloque::Madera) {
+                            float velocidadTala = 0.35f;
+                            if (itemEnMano == ItemId::HachaMadera) velocidadTala = 1.0f;
+                            if (itemEnMano == ItemId::HachaPiedra) velocidadTala = 1.35f;
 
-                        if (destruido) {
-                            if (herramientas.puedeRecolectar(tipoActual, itemEnMano)) {
-                                inventarioGrid.agregarItem(itemDesdeBloque(tipoActual), 1);
+                            int troncosObtenidos = 0;
+                            bool soltoSemilla = false;
+                            bool arbolCayo = mapaSuperficie->talarArbol(
+                                bloqueX,
+                                bloqueY,
+                                dt * velocidadTala,
+                                troncosObtenidos,
+                                soltoSemilla
+                            );
+
+                            if (arbolCayo) {
+                                inventarioGrid.agregarItem(ItemId::BloqueTronco, troncosObtenidos);
+                                if (soltoSemilla) {
+                                    inventarioGrid.agregarItem(ItemId::SemillaArbol, 1);
+                                }
+                            }
+                            tipoActual = TipoBloque::Aire;
+                        }
+
+                        if (tipoActual == TipoBloque::Piedra &&
+                            tipoHerramienta(itemEnMano) == TipoHerramienta::Pico &&
+                            mapaSuperficie->crearEntradaMina(bloqueX, bloqueY)) {
+                            tipoActual = TipoBloque::Aire;
+                        }
+
+                        if (tipoActual != TipoBloque::Aire) {
+                            float danioAplicado = herramientas.calcularDanio(tipoActual, itemEnMano);
+                            bool destruido = mapaSuperficie->daniarBloque(bloqueX, bloqueY, danioAplicado);
+
+                            if (destruido) {
+                                if (herramientas.puedeRecolectar(tipoActual, itemEnMano)) {
+                                    inventarioGrid.agregarItem(itemDesdeBloque(tipoActual), 1);
+                                }
                             }
                         }
                     }
+                }
+            }
+        }
+
+        if (!uiAbierta && jugador && mapaSuperficie) {
+            TipoBloque tipoHover = mapaSuperficie->getTipoBloque(bloqueMouseX, bloqueMouseY);
+            if (tipoHover == TipoBloque::Madera) {
+                sf::Vector2f posJugador = jugador->getPosicion();
+                sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
+                sf::Vector2f centroBloque((bloqueMouseX * 32.0f) + 16.0f, (bloqueMouseY * 32.0f) + 16.0f);
+                float dx = centroBloque.x - centroJugador.x;
+                float dy = centroBloque.y - centroJugador.y;
+                if (std::sqrt(dx * dx + dy * dy) <= 115.0f) {
+                    mostrandoBarraArbol = true;
+                    progresoArbol = mapaSuperficie->getProgresoTala(bloqueMouseX, bloqueMouseY);
                 }
             }
         }
@@ -203,16 +344,24 @@ inline void Juego::ejecutar() {
 
         ventana.setView(ventana.getDefaultView());
 
-        if (fuenteCargada && textoCoordenadas && jugador) {
+        if (fuenteCargada && textoCoordenadas && jugador && mostrarDebug) {
             std::stringstream ss;
             sf::Vector2f pos = jugador->getPosicion();
 
             std::string nombreEnMano = nombreItem(inventarioGrid.getItemEnHotbar());
 
-            ss << "FPS: " << static_cast<int>(1.0f / dt) << "\n"
+            ss << "FPS: " << fpsActuales << "\n"
                << "Bloque Coords -> X: " << static_cast<int>(pos.x / 32.0f)
                << " Y: " << static_cast<int>(pos.y / 32.0f) << "\n"
                << "Item en Mano: " << nombreEnMano;
+
+            if (jugadorSobreEntradaMina) {
+                int segundosRestantes = static_cast<int>(std::ceil(minaRestante));
+                int minutos = segundosRestantes / 60;
+                int segundos = segundosRestantes % 60;
+                ss << "\nMina: " << (minaAbierta ? "Abierta" : "Cerrada")
+                   << "\nRestante: " << minutos << "m " << segundos << "s";
+            }
 
             textoCoordenadas->setString(ss.str());
             textoCoordenadas->setPosition({10.0f, 10.0f});
@@ -227,6 +376,48 @@ inline void Juego::ejecutar() {
                 textoMesa.setOutlineColor(sf::Color::Black);
                 textoMesa.setOutlineThickness(2.0f);
                 ventana.draw(textoMesa);
+            }
+
+            if (jugadorSobreEntradaMina && !uiAbierta) {
+                sf::RectangleShape fondoBarra({220.0f, 18.0f});
+                fondoBarra.setPosition({290.0f, 78.0f});
+                fondoBarra.setFillColor(sf::Color(20, 20, 20, 220));
+                fondoBarra.setOutlineColor(sf::Color::White);
+                fondoBarra.setOutlineThickness(1.0f);
+                ventana.draw(fondoBarra);
+
+                sf::RectangleShape progreso({216.0f * minaProgreso, 14.0f});
+                progreso.setPosition({292.0f, 80.0f});
+                progreso.setFillColor(minaAbierta ? sf::Color(80, 200, 120) : sf::Color(180, 140, 70));
+                ventana.draw(progreso);
+
+                sf::Text textoMina(fuente, minaAbierta ? "Mina abierta" : "Picando entrada de mina", 12);
+                textoMina.setPosition({294.0f, 58.0f});
+                textoMina.setFillColor(sf::Color::White);
+                textoMina.setOutlineColor(sf::Color::Black);
+                textoMina.setOutlineThickness(2.0f);
+                ventana.draw(textoMina);
+            }
+
+            if (mostrandoBarraArbol && !uiAbierta) {
+                sf::RectangleShape fondoBarra({220.0f, 16.0f});
+                fondoBarra.setPosition({290.0f, 104.0f});
+                fondoBarra.setFillColor(sf::Color(28, 20, 12, 220));
+                fondoBarra.setOutlineColor(sf::Color(235, 220, 180));
+                fondoBarra.setOutlineThickness(1.0f);
+                ventana.draw(fondoBarra);
+
+                sf::RectangleShape progreso({216.0f * progresoArbol, 12.0f});
+                progreso.setPosition({292.0f, 106.0f});
+                progreso.setFillColor(sf::Color(92, 154, 72));
+                ventana.draw(progreso);
+
+                sf::Text textoArbol(fuente, "Talando arbol", 12);
+                textoArbol.setPosition({294.0f, 84.0f});
+                textoArbol.setFillColor(sf::Color::White);
+                textoArbol.setOutlineColor(sf::Color::Black);
+                textoArbol.setOutlineThickness(2.0f);
+                ventana.draw(textoArbol);
             }
 
             inventarioGrid.dibujar(ventana, fuente);

@@ -29,12 +29,12 @@ inline float SistemaHerramientas::calcularDanio(TipoBloque tipo) const {
 }
 
 inline float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMano) const {
-    float danio = 0.5f;
+    float danio = 1.0f;
 
     if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra) {
-        danio = 0.16f;
+        danio = 2.0f;
     } else if (tipo == TipoBloque::Madera) {
-        danio = 0.5f;
+        danio = 1.0f;
     } else if (tipo == TipoBloque::Piedra ||
                tipo == TipoBloque::MineralHierro ||
                tipo == TipoBloque::MineralOro ||
@@ -59,11 +59,11 @@ inline float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMa
         }
     } else if (herramienta == TipoHerramienta::Pala) {
         if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra) {
-            danio = 0.25f;
+            danio = 5.0f;
         }
     } else if (herramienta == TipoHerramienta::Hacha) {
         if (tipo == TipoBloque::Madera) {
-            danio = 0.75f;
+            danio = 4.0f;
         }
     }
 

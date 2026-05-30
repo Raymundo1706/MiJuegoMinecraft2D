@@ -1,4 +1,5 @@
 ﻿#include <algorithm>
+#include <cmath>
 #include <string>
 
 namespace {
@@ -82,6 +83,7 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::Horno: return sf::Color(85, 85, 85);
         case ItemId::Cama: return sf::Color(200, 70, 70);
         case ItemId::BloqueTecho: return sf::Color(85, 85, 105);
+        case ItemId::SemillaArbol: return sf::Color(58, 150, 55);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
@@ -114,6 +116,7 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::Horno: return "Ho";
         case ItemId::Cama: return "Ca";
         case ItemId::BloqueTecho: return "Te";
+        case ItemId::SemillaArbol: return "Se";
         case ItemId::PicoMadera: return "Pk";
         case ItemId::PicoPiedra: return "Pp";
         case ItemId::PicoDiamante: return "Pd";
@@ -124,6 +127,160 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::EspadaMadera: return "Em";
         case ItemId::EspadaPiedra: return "Ep";
         default: return "?";
+    }
+}
+
+inline void pixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
+    if (color.a == 0) return;
+    sf::RectangleShape punto({escala, escala});
+    punto.setPosition({origen.x + static_cast<float>(x) * escala, origen.y + static_cast<float>(y) * escala});
+    punto.setFillColor(color);
+    ventana.draw(punto);
+}
+
+inline void lineaPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x1, int y1, int x2, int y2, sf::Color color, float escala) {
+    int dx = std::abs(x2 - x1);
+    int dy = -std::abs(y2 - y1);
+    int sx = x1 < x2 ? 1 : -1;
+    int sy = y1 < y2 ? 1 : -1;
+    int err = dx + dy;
+    int x = x1;
+    int y = y1;
+
+    while (true) {
+        pixel(ventana, origen, x, y, color, escala);
+        if (x == x2 && y == y2) break;
+        int e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+
+inline sf::Color materialHerramienta(ItemId item) {
+    switch (item) {
+        case ItemId::PicoPiedra:
+        case ItemId::PalaPiedra:
+        case ItemId::HachaPiedra:
+        case ItemId::EspadaPiedra:
+            return sf::Color(158, 158, 158);
+        case ItemId::PicoDiamante:
+            return sf::Color(75, 225, 235);
+        default:
+            return sf::Color(184, 124, 60);
+    }
+}
+
+inline void dibujarBloqueSprite(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala) {
+    sf::Color base = colorDeItem(item);
+    sf::Color luz(std::min(255, base.r + 35), std::min(255, base.g + 35), std::min(255, base.b + 35), base.a);
+    sf::Color sombra(base.r / 2, base.g / 2, base.b / 2, base.a);
+
+    for (int y = 2; y < 14; ++y) {
+        for (int x = 2; x < 14; ++x) {
+            sf::Color c = ((x * 5 + y * 3) % 7 == 0) ? luz : base;
+            if ((x * 11 + y * 13) % 17 == 0) c = sombra;
+            pixel(ventana, origen, x, y, c, escala);
+        }
+    }
+
+    for (int i = 2; i < 14; ++i) {
+        pixel(ventana, origen, i, 2, luz, escala);
+        pixel(ventana, origen, 2, i, luz, escala);
+        pixel(ventana, origen, i, 13, sombra, escala);
+        pixel(ventana, origen, 13, i, sombra, escala);
+    }
+}
+
+inline void dibujarHerramientaSprite(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala) {
+    sf::Color mango(120, 72, 32);
+    sf::Color material = materialHerramienta(item);
+    sf::Color borde(material.r / 2, material.g / 2, material.b / 2);
+
+    if (item == ItemId::EspadaMadera || item == ItemId::EspadaPiedra) {
+        for (int y = 2; y < 11; ++y) {
+            pixel(ventana, origen, 7, y, material, escala);
+            pixel(ventana, origen, 8, y, material, escala);
+            if (y > 3) pixel(ventana, origen, 6, y, borde, escala);
+        }
+        pixel(ventana, origen, 7, 1, material, escala);
+        pixel(ventana, origen, 8, 1, material, escala);
+        for (int x = 5; x <= 10; ++x) pixel(ventana, origen, x, 11, mango, escala);
+        for (int y = 12; y <= 14; ++y) {
+            pixel(ventana, origen, 7, y, mango, escala);
+            pixel(ventana, origen, 8, y, mango, escala);
+        }
+        return;
+    }
+
+    if (item == ItemId::PalaMadera || item == ItemId::PalaPiedra) {
+        for (int y = 6; y <= 14; ++y) {
+            pixel(ventana, origen, 7, y, mango, escala);
+            pixel(ventana, origen, 8, y, mango, escala);
+        }
+        for (int y = 1; y <= 5; ++y) {
+            for (int x = 6 - (y > 2 ? 1 : 0); x <= 9 + (y > 2 ? 1 : 0); ++x) {
+                pixel(ventana, origen, x, y, material, escala);
+            }
+        }
+        pixel(ventana, origen, 6, 5, borde, escala);
+        pixel(ventana, origen, 10, 5, borde, escala);
+        return;
+    }
+
+    if (item == ItemId::HachaMadera || item == ItemId::HachaPiedra) {
+        for (int y = 5; y <= 14; ++y) {
+            pixel(ventana, origen, 8, y, mango, escala);
+            if (y > 8) pixel(ventana, origen, 7, y, mango, escala);
+        }
+        for (int y = 2; y <= 7; ++y) {
+            for (int x = 4; x <= 9; ++x) {
+                if (!(x == 4 && y == 7)) pixel(ventana, origen, x, y, material, escala);
+            }
+        }
+        pixel(ventana, origen, 3, 4, borde, escala);
+        pixel(ventana, origen, 3, 5, borde, escala);
+        return;
+    }
+
+    if (item == ItemId::PicoMadera || item == ItemId::PicoPiedra || item == ItemId::PicoDiamante) {
+        lineaPixel(ventana, origen, 5, 14, 9, 7, mango, escala);
+        lineaPixel(ventana, origen, 6, 14, 10, 7, mango, escala);
+        for (int x = 3; x <= 12; ++x) {
+            pixel(ventana, origen, x, 3, material, escala);
+            if (x >= 4 && x <= 11) pixel(ventana, origen, x, 4, material, escala);
+        }
+        pixel(ventana, origen, 2, 4, borde, escala);
+        pixel(ventana, origen, 13, 4, borde, escala);
+        return;
+    }
+}
+
+inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector2f origen, float escala) {
+    switch (item) {
+        case ItemId::PicoMadera:
+        case ItemId::PicoPiedra:
+        case ItemId::PicoDiamante:
+        case ItemId::PalaMadera:
+        case ItemId::PalaPiedra:
+        case ItemId::HachaMadera:
+        case ItemId::HachaPiedra:
+        case ItemId::EspadaMadera:
+        case ItemId::EspadaPiedra:
+            dibujarHerramientaSprite(ventana, origen, item, escala);
+            return;
+        case ItemId::PaloMadera:
+            lineaPixel(ventana, origen, 5, 13, 11, 3, sf::Color(154, 93, 39), escala);
+            lineaPixel(ventana, origen, 6, 13, 12, 3, sf::Color(100, 62, 28), escala);
+            return;
+        default:
+            dibujarBloqueSprite(ventana, origen, item, escala);
+            return;
     }
 }
 
@@ -572,7 +729,7 @@ inline void InventarioGrid::manejarClickDerecho(int indice) {
 }
 
 inline void InventarioGrid::manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho) {
-    if (!menuAbierto) {
+    if (!menuAbierto && !mesaCrafteoAbierta) {
         clicIzquierdoAnterior = clicIzquierdo;
         clicDerechoAnterior = clicDerecho;
         return;
@@ -658,10 +815,37 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
         sf::Vector2f pos = mesaCrafteoAbierta ? posicionSlotMesa(indice) : posicionSlot(indice);
         sf::RectangleShape marco({TAMANIO_CUADRO, TAMANIO_CUADRO});
         marco.setPosition(pos);
-        marco.setFillColor(sf::Color(138, 138, 138));
-        marco.setOutlineThickness(2.0f);
-        marco.setOutlineColor(indice == INDICE_HOTBAR + slotSeleccionadoHotbar ? sf::Color::Yellow : sf::Color(238, 238, 238));
+        marco.setFillColor(sf::Color(88, 88, 88));
         ventana.draw(marco);
+
+        sf::RectangleShape bordeSuperior({TAMANIO_CUADRO, 2.0f});
+        bordeSuperior.setPosition(pos);
+        bordeSuperior.setFillColor(sf::Color(220, 220, 220));
+        ventana.draw(bordeSuperior);
+
+        sf::RectangleShape bordeIzquierdo({2.0f, TAMANIO_CUADRO});
+        bordeIzquierdo.setPosition(pos);
+        bordeIzquierdo.setFillColor(sf::Color(220, 220, 220));
+        ventana.draw(bordeIzquierdo);
+
+        sf::RectangleShape bordeInferior({TAMANIO_CUADRO, 2.0f});
+        bordeInferior.setPosition({pos.x, pos.y + TAMANIO_CUADRO - 2.0f});
+        bordeInferior.setFillColor(sf::Color(18, 18, 18));
+        ventana.draw(bordeInferior);
+
+        sf::RectangleShape bordeDerecho({2.0f, TAMANIO_CUADRO});
+        bordeDerecho.setPosition({pos.x + TAMANIO_CUADRO - 2.0f, pos.y});
+        bordeDerecho.setFillColor(sf::Color(18, 18, 18));
+        ventana.draw(bordeDerecho);
+
+        if (indice == INDICE_HOTBAR + slotSeleccionadoHotbar) {
+            sf::RectangleShape seleccion({TAMANIO_CUADRO, TAMANIO_CUADRO});
+            seleccion.setPosition(pos);
+            seleccion.setFillColor(sf::Color::Transparent);
+            seleccion.setOutlineThickness(2.0f);
+            seleccion.setOutlineColor(sf::Color::Yellow);
+            ventana.draw(seleccion);
+        }
 
         if (indice == hover) {
             sf::RectangleShape luz({TAMANIO_CUADRO, TAMANIO_CUADRO});
@@ -671,15 +855,7 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
         }
 
         if (!esItemVacio(slots[indice].item)) {
-            sf::RectangleShape icono({26.0f, 26.0f});
-            icono.setPosition({pos.x + 7.0f, pos.y + 6.0f});
-            icono.setFillColor(colorDeItem(slots[indice].item));
-            ventana.draw(icono);
-
-            sf::Text inicial(fuente, inicialItem(slots[indice].item), 10);
-            inicial.setPosition({pos.x + 9.0f, pos.y + 9.0f});
-            inicial.setFillColor(sf::Color::White);
-            ventana.draw(inicial);
+            dibujarItemSprite(ventana, slots[indice].item, {pos.x + 6.0f, pos.y + 5.0f}, 1.8f);
 
             if (slots[indice].cantidad > 1) {
                 sf::Text sombra(fuente, std::to_string(slots[indice].cantidad), 12);
@@ -714,12 +890,12 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
     }
 
     if (manteniendoItem && !esItemVacio(itemCursor.item)) {
-        sf::RectangleShape icono({28.0f, 28.0f});
-        icono.setPosition({static_cast<float>(mouse.x - 14), static_cast<float>(mouse.y - 14)});
-        icono.setFillColor(colorDeItem(itemCursor.item));
-        icono.setOutlineColor(sf::Color::White);
-        icono.setOutlineThickness(1.0f);
-        ventana.draw(icono);
+        dibujarItemSprite(
+            ventana,
+            itemCursor.item,
+            {static_cast<float>(mouse.x - 14), static_cast<float>(mouse.y - 14)},
+            1.8f
+        );
 
         if (itemCursor.cantidad > 1) {
             sf::Text cantidad(fuente, std::to_string(itemCursor.cantidad), 12);

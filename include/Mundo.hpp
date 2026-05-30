@@ -22,11 +22,24 @@ enum class TipoBloque {
     CuevaEntrada
 };
 
+enum class TipoBioma {
+    Pradera,
+    Bosque,
+    Seco,
+    Montana
+};
+
 struct Bloque {
-    TipoBloque tipo;
-    bool esSolido;
-    float vida;
-    bool estaHidratado;
+    TipoBloque tipo = TipoBloque::Aire;
+    bool esSolido = false;
+    float vida = 0.0f;
+    bool estaHidratado = false;
+    float tiempoMinaRestante = 0.0f;
+    bool minaAbierta = false;
+    int troncosAlTalar = 1;
+    float vidaMaxima = 0.0f;
+    TipoBioma bioma = TipoBioma::Pradera;
+    int varianteArbol = 0;
 };
 
 class Mundo {
@@ -45,6 +58,14 @@ public:
     bool esBloqueSolido(int x, int y) const;
     bool puedeColocarBloque(int x, int y) const;
     bool colocarBloque(int x, int y, TipoBloque tipo);
+    bool ararTierra(int x, int y);
+    bool crearEntradaMina(int x, int y);
+    bool talarArbol(int x, int y, float segundosTrabajo, int& troncosObtenidos, bool& soltoSemilla);
+    float getProgresoTala(int x, int y) const;
+    bool picarEntradaMina(int x, int y, float segundosTrabajo);
+    bool esMinaAbierta(int x, int y) const;
+    float getTiempoMinaRestante(int x, int y) const;
+    float getProgresoMina(int x, int y) const;
     void romperBloque(int x, int y);
     TipoBloque getTipoBloque(int x, int y) const;
     int getVidaMaximaBloque(TipoBloque tipo) const;
