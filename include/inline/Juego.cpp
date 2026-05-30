@@ -111,6 +111,8 @@ inline void Juego::ejecutar() {
     int mapaCentroX = 0;
     int mapaCentroY = 0;
     sf::Texture texturaMapaInicial;
+    constexpr int TAMANIO_MAPA_INICIAL = 700;
+    constexpr int RADIO_MAPA_INICIAL = TAMANIO_MAPA_INICIAL / 2;
 
     auto generarMapaInicial = [&]() {
         if (!jugador || !mapaSuperficie) return;
@@ -119,12 +121,12 @@ inline void Juego::ejecutar() {
         mapaCentroX = static_cast<int>(std::floor(centroJugador.x / 32.0f));
         mapaCentroY = static_cast<int>(std::floor(centroJugador.y / 32.0f));
 
-        sf::Image imagenMapa({200, 200}, sf::Color(20, 28, 42));
-        int inicioX = mapaCentroX - 100;
-        int inicioY = mapaCentroY - 100;
+        sf::Image imagenMapa({TAMANIO_MAPA_INICIAL, TAMANIO_MAPA_INICIAL}, sf::Color(20, 28, 42));
+        int inicioX = mapaCentroX - RADIO_MAPA_INICIAL;
+        int inicioY = mapaCentroY - RADIO_MAPA_INICIAL;
 
-        for (int y = 0; y < 200; ++y) {
-            for (int x = 0; x < 200; ++x) {
+        for (int y = 0; y < TAMANIO_MAPA_INICIAL; ++y) {
+            for (int x = 0; x < TAMANIO_MAPA_INICIAL; ++x) {
                 imagenMapa.setPixel(
                     sf::Vector2u(static_cast<unsigned int>(x), static_cast<unsigned int>(y)),
                     mapaSuperficie->getColorMapa(inicioX + x, inicioY + y)
@@ -404,8 +406,8 @@ inline void Juego::ejecutar() {
 
         if (fuenteCargada) {
             if (mapaEnSegundaMano && mapaInicialGenerado && jugador) {
-                const float escalaMapa = 0.78f;
-                const float tamMapa = 200.0f * escalaMapa;
+                const float tamMapa = 180.0f;
+                const float escalaMapa = tamMapa / static_cast<float>(TAMANIO_MAPA_INICIAL);
                 const sf::Vector2f posMapa(800.0f - tamMapa - 18.0f, 600.0f - tamMapa - 18.0f);
 
                 sf::RectangleShape marcoMapa({tamMapa + 8.0f, tamMapa + 8.0f});
@@ -421,10 +423,10 @@ inline void Juego::ejecutar() {
                 ventana.draw(spriteMapa);
 
                 sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
-                int jugadorMapaX = static_cast<int>(std::floor(centroJugador.x / 32.0f)) - (mapaCentroX - 100);
-                int jugadorMapaY = static_cast<int>(std::floor(centroJugador.y / 32.0f)) - (mapaCentroY - 100);
-                jugadorMapaX = std::clamp(jugadorMapaX, 0, 199);
-                jugadorMapaY = std::clamp(jugadorMapaY, 0, 199);
+                int jugadorMapaX = static_cast<int>(std::floor(centroJugador.x / 32.0f)) - (mapaCentroX - RADIO_MAPA_INICIAL);
+                int jugadorMapaY = static_cast<int>(std::floor(centroJugador.y / 32.0f)) - (mapaCentroY - RADIO_MAPA_INICIAL);
+                jugadorMapaX = std::clamp(jugadorMapaX, 0, TAMANIO_MAPA_INICIAL - 1);
+                jugadorMapaY = std::clamp(jugadorMapaY, 0, TAMANIO_MAPA_INICIAL - 1);
 
                 sf::CircleShape marcador(3.5f);
                 marcador.setOrigin({3.5f, 3.5f});
