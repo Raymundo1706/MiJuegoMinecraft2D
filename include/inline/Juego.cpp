@@ -403,6 +403,41 @@ inline void Juego::ejecutar() {
         }
 
         if (fuenteCargada) {
+            if (mapaEnSegundaMano && mapaInicialGenerado && jugador) {
+                const float escalaMapa = 0.78f;
+                const float tamMapa = 200.0f * escalaMapa;
+                const sf::Vector2f posMapa(800.0f - tamMapa - 18.0f, 600.0f - tamMapa - 18.0f);
+
+                sf::RectangleShape marcoMapa({tamMapa + 8.0f, tamMapa + 8.0f});
+                marcoMapa.setPosition({posMapa.x - 4.0f, posMapa.y - 4.0f});
+                marcoMapa.setFillColor(sf::Color(86, 66, 38, 230));
+                marcoMapa.setOutlineColor(sf::Color(30, 22, 14));
+                marcoMapa.setOutlineThickness(2.0f);
+                ventana.draw(marcoMapa);
+
+                sf::Sprite spriteMapa(texturaMapaInicial);
+                spriteMapa.setPosition(posMapa);
+                spriteMapa.setScale({escalaMapa, escalaMapa});
+                ventana.draw(spriteMapa);
+
+                sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+                int jugadorMapaX = static_cast<int>(std::floor(centroJugador.x / 32.0f)) - (mapaCentroX - 100);
+                int jugadorMapaY = static_cast<int>(std::floor(centroJugador.y / 32.0f)) - (mapaCentroY - 100);
+                jugadorMapaX = std::clamp(jugadorMapaX, 0, 199);
+                jugadorMapaY = std::clamp(jugadorMapaY, 0, 199);
+
+                sf::CircleShape marcador(3.5f);
+                marcador.setOrigin({3.5f, 3.5f});
+                marcador.setPosition({
+                    posMapa.x + static_cast<float>(jugadorMapaX) * escalaMapa,
+                    posMapa.y + static_cast<float>(jugadorMapaY) * escalaMapa
+                });
+                marcador.setFillColor(sf::Color(210, 40, 36));
+                marcador.setOutlineColor(sf::Color::White);
+                marcador.setOutlineThickness(1.0f);
+                ventana.draw(marcador);
+            }
+
             if (mesaHoverCercana && !uiAbierta) {
                 sf::Text textoMesa(fuente, "Mesa de Crafteo", 14);
                 textoMesa.setPosition({static_cast<float>(mousePos.x + 12), static_cast<float>(mousePos.y - 18)});
