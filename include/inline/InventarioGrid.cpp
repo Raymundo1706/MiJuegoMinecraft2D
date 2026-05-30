@@ -280,6 +280,26 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
             lineaPixel(ventana, origen, 5, 13, 11, 3, sf::Color(154, 93, 39), escala);
             lineaPixel(ventana, origen, 6, 13, 12, 3, sf::Color(100, 62, 28), escala);
             return;
+        case ItemId::MapaInicial:
+            for (int y = 2; y < 14; ++y) {
+                for (int x = 2; x < 14; ++x) {
+                    pixel(ventana, origen, x, y, sf::Color(219, 198, 132), escala);
+                }
+            }
+            for (int i = 2; i < 14; ++i) {
+                pixel(ventana, origen, i, 2, sf::Color(96, 73, 44), escala);
+                pixel(ventana, origen, i, 13, sf::Color(96, 73, 44), escala);
+                pixel(ventana, origen, 2, i, sf::Color(96, 73, 44), escala);
+                pixel(ventana, origen, 13, i, sf::Color(96, 73, 44), escala);
+            }
+            pixel(ventana, origen, 5, 5, sf::Color(61, 151, 74), escala);
+            pixel(ventana, origen, 6, 5, sf::Color(61, 151, 74), escala);
+            pixel(ventana, origen, 5, 6, sf::Color(61, 151, 74), escala);
+            pixel(ventana, origen, 9, 8, sf::Color(45, 116, 205), escala);
+            pixel(ventana, origen, 10, 8, sf::Color(45, 116, 205), escala);
+            pixel(ventana, origen, 9, 9, sf::Color(45, 116, 205), escala);
+            pixel(ventana, origen, 7, 10, sf::Color(180, 60, 52), escala);
+            return;
         default:
             dibujarBloqueSprite(ventana, origen, item, escala);
             return;

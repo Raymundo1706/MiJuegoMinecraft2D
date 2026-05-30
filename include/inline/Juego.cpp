@@ -100,12 +100,41 @@ inline void Juego::ejecutar() {
     sf::Clock reloj;
     SistemaHerramientas herramientas;
     InventarioGrid inventarioGrid;
+    inventarioGrid.agregarItem(ItemId::MapaInicial, 1);
     bool clickIzquierdoAnterior = false;
     bool clickDerechoAnterior = false;
     bool mostrarDebug = false;
     float acumuladorFPS = 0.0f;
     int contadorFrames = 0;
     int fpsActuales = 0;
+    bool mapaInicialGenerado = false;
+    int mapaCentroX = 0;
+    int mapaCentroY = 0;
+    sf::Texture texturaMapaInicial;
+
+    auto generarMapaInicial = [&]() {
+        if (!jugador || !mapaSuperficie) return;
+
+        sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+        mapaCentroX = static_cast<int>(std::floor(centroJugador.x / 32.0f));
+        mapaCentroY = static_cast<int>(std::floor(centroJugador.y / 32.0f));
+
+        sf::Image imagenMapa({200, 200}, sf::Color(20, 28, 42));
+        int inicioX = mapaCentroX - 100;
+        int inicioY = mapaCentroY - 100;
+
+        for (int y = 0; y < 200; ++y) {
+            for (int x = 0; x < 200; ++x) {
+                imagenMapa.setPixel(
+                    sf::Vector2u(static_cast<unsigned int>(x), static_cast<unsigned int>(y)),
+                    mapaSuperficie->getColorMapa(inicioX + x, inicioY + y)
+                );
+            }
+        }
+
+        mapaInicialGenerado = texturaMapaInicial.loadFromImage(imagenMapa);
+        texturaMapaInicial.setSmooth(false);
+    };
 
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
@@ -187,6 +216,11 @@ inline void Juego::ejecutar() {
         float minaProgreso = 0.0f;
         bool mostrandoBarraArbol = false;
         float progresoArbol = 0.0f;
+        bool mapaEnSegundaMano = inventarioGrid.getItemSegundaMano() == ItemId::MapaInicial;
+
+        if (mapaEnSegundaMano && !mapaInicialGenerado) {
+            generarMapaInicial();
+        }
 
         if (jugador && mapaSuperficie) {
             sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
