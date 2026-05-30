@@ -84,6 +84,7 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::Cama: return sf::Color(200, 70, 70);
         case ItemId::BloqueTecho: return sf::Color(85, 85, 105);
         case ItemId::SemillaArbol: return sf::Color(58, 150, 55);
+        case ItemId::MapaInicial: return sf::Color(216, 198, 134);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
@@ -117,6 +118,7 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::Cama: return "Ca";
         case ItemId::BloqueTecho: return "Te";
         case ItemId::SemillaArbol: return "Se";
+        case ItemId::MapaInicial: return "Mp";
         case ItemId::PicoMadera: return "Pk";
         case ItemId::PicoPiedra: return "Pp";
         case ItemId::PicoDiamante: return "Pd";
@@ -350,6 +352,10 @@ inline void InventarioGrid::seleccionarSlotHotbar(int slot) {
 
 inline ItemId InventarioGrid::getItemEnHotbar() const {
     return slots[INDICE_HOTBAR + slotSeleccionadoHotbar].item;
+}
+
+inline ItemId InventarioGrid::getItemSegundaMano() const {
+    return slots[INDICE_SEGUNDA_MANO].item;
 }
 
 inline TipoBloque InventarioGrid::getTipoEnHotbar() const {

@@ -638,6 +638,43 @@ inline TipoBloque Mundo::getTipoBloque(int x, int y) const {
     return cuadricula[y][x].tipo;
 }
 
+inline sf::Color Mundo::getColorMapa(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) {
+        return sf::Color(18, 38, 92);
+    }
+
+    const Bloque& bloque = cuadricula[y][x];
+    switch (bloque.tipo) {
+        case TipoBloque::Agua:
+            return sf::Color(36, 124, 210);
+        case TipoBloque::AguaProfunda:
+            return sf::Color(18, 54, 145);
+        case TipoBloque::Piedra:
+        case TipoBloque::MineralHierro:
+        case TipoBloque::MineralOro:
+        case TipoBloque::MineralDiamante:
+        case TipoBloque::Redstone:
+            return sf::Color(128, 128, 118);
+        case TipoBloque::Madera:
+            return sf::Color(24, 92, 42);
+        case TipoBloque::Tierra:
+        case TipoBloque::TierraArada:
+            return sf::Color(122, 82, 45);
+        case TipoBloque::MesaCrafteo:
+        case TipoBloque::Horno:
+            return sf::Color(116, 78, 52);
+        case TipoBloque::Cristal:
+            return sf::Color(165, 226, 230);
+        default:
+            switch (bloque.bioma) {
+                case TipoBioma::Bosque: return sf::Color(43, 118, 57);
+                case TipoBioma::Seco: return sf::Color(174, 166, 80);
+                case TipoBioma::Montana: return sf::Color(106, 139, 118);
+                default: return sf::Color(77, 166, 71);
+            }
+    }
+}
+
 inline void Mundo::romperBloque(int x, int y) {
     if (x >= 0 && x < ancho && y >= 0 && y < alto) {
         cuadricula[y][x] = {TipoBloque::Aire, false, 0.0f, false};

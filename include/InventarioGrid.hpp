@@ -67,6 +67,7 @@ public:
     void dibujar(sf::RenderWindow& ventana, sf::Font& fuente);
 
     ItemId getItemEnHotbar() const;
+    ItemId getItemSegundaMano() const;
     TipoBloque getTipoEnHotbar() const;
     void seleccionarSlotHotbar(int slot);
     bool consumirItemHotbar(int cantidad = 1);
