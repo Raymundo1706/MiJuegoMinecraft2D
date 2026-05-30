@@ -33,6 +33,7 @@ inline TipoHerramienta tipoHerramienta(ItemId item) {
 
 inline int maxStackItem(ItemId item) {
     if (esItemVacio(item)) return 0;
+    if (item == ItemId::MapaInicial) return 1;
     if (esHerramienta(item)) return 1;
     return 64;
 }
@@ -99,6 +100,7 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::Cama: return "Cama";
         case ItemId::BloqueTecho: return "Techo";
         case ItemId::SemillaArbol: return "Semilla de arbol";
+        case ItemId::MapaInicial: return "Mapa Inicial";
         case ItemId::PicoMadera: return "Pico madera";
         case ItemId::PicoPiedra: return "Pico piedra";
         case ItemId::PicoDiamante: return "Pico diamante";

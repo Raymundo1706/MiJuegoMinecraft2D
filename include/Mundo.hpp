@@ -68,6 +68,7 @@ public:
     float getProgresoMina(int x, int y) const;
     void romperBloque(int x, int y);
     TipoBloque getTipoBloque(int x, int y) const;
+    sf::Color getColorMapa(int x, int y) const;
     int getVidaMaximaBloque(TipoBloque tipo) const;
     bool daniarBloque(int x, int y, float cantidadDanio);
 
