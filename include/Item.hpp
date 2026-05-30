@@ -22,6 +22,7 @@ enum class ItemId {
     Cama,
     BloqueTecho,
     SemillaArbol,
+    MapaInicial,
     PicoMadera,
     PicoPiedra,
     PicoDiamante,
