@@ -85,6 +85,11 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::BloqueTecho: return sf::Color(85, 85, 105);
         case ItemId::SemillaArbol: return sf::Color(58, 150, 55);
         case ItemId::MapaInicial: return sf::Color(216, 198, 134);
+        case ItemId::Zanahoria: return sf::Color(230, 110, 35);
+        case ItemId::Patata: return sf::Color(176, 132, 70);
+        case ItemId::Remolacha: return sf::Color(150, 38, 62);
+        case ItemId::ChuletaCerdoCruda: return sf::Color(214, 103, 111);
+        case ItemId::ChuletaCerdoCocinada: return sf::Color(134, 75, 42);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
@@ -119,6 +124,11 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::BloqueTecho: return "Te";
         case ItemId::SemillaArbol: return "Se";
         case ItemId::MapaInicial: return "Mp";
+        case ItemId::Zanahoria: return "Za";
+        case ItemId::Patata: return "Pt";
+        case ItemId::Remolacha: return "Re";
+        case ItemId::ChuletaCerdoCruda: return "Ch";
+        case ItemId::ChuletaCerdoCocinada: return "Cc";
         case ItemId::PicoMadera: return "Pk";
         case ItemId::PicoPiedra: return "Pp";
         case ItemId::PicoDiamante: return "Pd";
@@ -300,6 +310,52 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
             pixel(ventana, origen, 9, 9, sf::Color(45, 116, 205), escala);
             pixel(ventana, origen, 7, 10, sf::Color(180, 60, 52), escala);
             return;
+        case ItemId::Zanahoria:
+            for (int y = 5; y < 14; ++y) {
+                int ancho = (y < 8) ? 5 : (y < 11 ? 4 : 2);
+                for (int x = 7; x < 7 + ancho; ++x) pixel(ventana, origen, x, y, sf::Color(232, 112, 35), escala);
+            }
+            pixel(ventana, origen, 7, 4, sf::Color(57, 155, 64), escala);
+            pixel(ventana, origen, 8, 3, sf::Color(57, 155, 64), escala);
+            pixel(ventana, origen, 10, 4, sf::Color(57, 155, 64), escala);
+            return;
+        case ItemId::Patata:
+            for (int y = 4; y < 13; ++y) {
+                for (int x = 5; x < 12; ++x) {
+                    if (!((x == 5 || x == 11) && (y < 6 || y > 11))) {
+                        pixel(ventana, origen, x, y, sf::Color(178, 132, 71), escala);
+                    }
+                }
+            }
+            pixel(ventana, origen, 7, 7, sf::Color(103, 78, 45), escala);
+            pixel(ventana, origen, 10, 10, sf::Color(103, 78, 45), escala);
+            return;
+        case ItemId::Remolacha:
+            for (int y = 6; y < 13; ++y) {
+                for (int x = 6; x < 12; ++x) {
+                    pixel(ventana, origen, x, y, sf::Color(151, 38, 63), escala);
+                }
+            }
+            pixel(ventana, origen, 7, 4, sf::Color(54, 146, 63), escala);
+            pixel(ventana, origen, 9, 3, sf::Color(54, 146, 63), escala);
+            pixel(ventana, origen, 10, 4, sf::Color(54, 146, 63), escala);
+            return;
+        case ItemId::ChuletaCerdoCruda:
+        case ItemId::ChuletaCerdoCocinada: {
+            sf::Color carne = item == ItemId::ChuletaCerdoCruda ? sf::Color(217, 103, 111) : sf::Color(139, 79, 45);
+            sf::Color borde = item == ItemId::ChuletaCerdoCruda ? sf::Color(156, 58, 72) : sf::Color(89, 48, 28);
+            for (int y = 5; y < 13; ++y) {
+                for (int x = 4; x < 13; ++x) {
+                    if (!((x == 4 || x == 12) && (y == 5 || y == 12))) {
+                        pixel(ventana, origen, x, y, carne, escala);
+                    }
+                }
+            }
+            pixel(ventana, origen, 4, 8, borde, escala);
+            pixel(ventana, origen, 5, 12, borde, escala);
+            pixel(ventana, origen, 11, 6, sf::Color(240, 178, 172), escala);
+            return;
+        }
         default:
             dibujarBloqueSprite(ventana, origen, item, escala);
             return;

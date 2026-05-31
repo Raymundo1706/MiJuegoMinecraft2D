@@ -333,7 +333,39 @@ inline void Juego::ejecutar() {
         }
 
         bool usandoMina = jugadorSobreEntradaMina && tipoHerramienta(inventarioGrid.getItemEnHotbar()) == TipoHerramienta::Pico;
-        if (!uiAbierta && clickIzquierdo && !clickSobreMesa && !usandoMina) {
+        bool golpeoAnimal = false;
+        if (!uiAbierta && clickIzquierdo && !clickIzquierdoAnterior && jugador) {
+            sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+            for (auto it = animales.begin(); it != animales.end(); ++it) {
+                Animal* animal = *it;
+                if (!animal || !animal->estaVivo() || !animal->contienePunto(posicionMundoMouse)) {
+                    continue;
+                }
+
+                sf::Vector2f centroAnimal = animal->getPosicion() + sf::Vector2f(14.0f, 14.0f);
+                float dx = centroAnimal.x - centroJugador.x;
+                float dy = centroAnimal.y - centroJugador.y;
+                if (std::sqrt(dx * dx + dy * dy) > 95.0f) {
+                    continue;
+                }
+
+                animal->recibirDanio(danioContraAnimal(inventarioGrid.getItemEnHotbar()));
+                golpeoAnimal = true;
+
+                if (!animal->estaVivo()) {
+                    if (animal->getTipo() == TipoAnimal::Cerdo) {
+                        std::uniform_int_distribution<> lootCerdo(1, 3);
+                        inventarioGrid.agregarItem(ItemId::ChuletaCerdoCruda, lootCerdo(gen));
+                    }
+
+                    delete animal;
+                    animales.erase(it);
+                }
+                break;
+            }
+        }
+
+        if (!uiAbierta && clickIzquierdo && !clickSobreMesa && !usandoMina && !golpeoAnimal) {
             ventana.setView(camara);
             int bloqueX = bloqueMouseX;
             int bloqueY = bloqueMouseY;
