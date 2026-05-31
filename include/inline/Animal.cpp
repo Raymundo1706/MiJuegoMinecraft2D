@@ -233,6 +233,17 @@ inline bool Animal::estaVivo() const {
     return vida > 0.0f;
 }
 
+inline bool Animal::contienePunto(sf::Vector2f punto) const {
+    return punto.x >= posicion.x &&
+           punto.x <= posicion.x + anchoAnimal &&
+           punto.y >= posicion.y &&
+           punto.y <= posicion.y + altoAnimal;
+}
+
+inline TipoAnimal Animal::getTipo() const {
+    return tipo;
+}
+
 inline sf::Vector2f Animal::getPosicion() const {
     return posicion;
 }

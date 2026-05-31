@@ -152,6 +152,18 @@ inline void Juego::ejecutar() {
         texturaMapaInicial.setSmooth(false);
     };
 
+    auto danioContraAnimal = [](ItemId item) {
+        switch (item) {
+            case ItemId::EspadaMadera: return 4.0f;
+            case ItemId::EspadaPiedra: return 5.0f;
+            case ItemId::HachaMadera:
+            case ItemId::HachaPiedra:
+                return 9.0f;
+            default:
+                return 1.0f;
+        }
+    };
+
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
         if (dt > 0.05f) {
@@ -228,7 +240,13 @@ inline void Juego::ejecutar() {
             sf::Vector2f posAnimal = animal->getPosicion();
             if (posAnimal.x >= activoIzq && posAnimal.x <= activoDer &&
                 posAnimal.y >= activoArriba && posAnimal.y <= activoAbajo) {
-                animal->actualizar(dt, *mapaSuperficie);
+                sf::Vector2f objetivoAnimal(-99999.0f, -99999.0f);
+                ItemId itemAtraccion = ItemId::Ninguno;
+                if (jugador) {
+                    objetivoAnimal = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+                    itemAtraccion = inventarioGrid.getItemEnHotbar();
+                }
+                animal->actualizar(dt, *mapaSuperficie, objetivoAnimal, itemAtraccion);
             }
         }
 
