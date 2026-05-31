@@ -1,7 +1,16 @@
 ﻿#include "Mundo.hpp"
+#include "Item.hpp"
 #include <algorithm>
 #include <random>
 #include <cmath>
+
+namespace {
+inline bool esComidaCerdo(ItemId item) {
+    return item == ItemId::Zanahoria ||
+           item == ItemId::Patata ||
+           item == ItemId::Remolacha;
+}
+}
 
 inline Animal::Animal(float x, float y, TipoAnimal tipo) 
     : posicion(x, y),
@@ -59,15 +68,36 @@ inline void Animal::elegirNuevaDireccion() {
 }
 
 inline void Animal::actualizar(float dt, const Mundo& mundo) {
+    actualizar(dt, mundo, {-99999.0f, -99999.0f}, ItemId::Ninguno);
+}
+
+inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posicionJugador, ItemId itemJugador) {
     if (vida <= 0.0f) return;
 
     if (tiempoPanico > 0.0f) {
         tiempoPanico = std::max(0.0f, tiempoPanico - dt);
     }
 
-    tiempoCambiandoDireccion += dt;
-    if (tiempoCambiandoDireccion >= tiempoMaximoDireccion) {
-        elegirNuevaDireccion();
+    bool atraidoPorComida = false;
+    if (tipo == TipoAnimal::Cerdo && tiempoPanico <= 0.0f && esComidaCerdo(itemJugador)) {
+        sf::Vector2f centroAnimal = posicion + sf::Vector2f(anchoAnimal * 0.5f, altoAnimal * 0.5f);
+        sf::Vector2f delta = posicionJugador - centroAnimal;
+        float distancia = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+
+        if (distancia < 8.0f * 32.0f && distancia > 1.0f) {
+            sf::Vector2f direccion = delta / distancia;
+            velocidad = direccion * 8.0f;
+            if (velocidad.x > 0.0f) mirandoDerecha = true;
+            if (velocidad.x < 0.0f) mirandoDerecha = false;
+            atraidoPorComida = true;
+        }
+    }
+
+    if (!atraidoPorComida) {
+        tiempoCambiandoDireccion += dt;
+        if (tiempoCambiandoDireccion >= tiempoMaximoDireccion) {
+            elegirNuevaDireccion();
+        }
     }
 
     const float TAMANIO_BLOQUE = 32.0f;
