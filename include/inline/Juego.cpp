@@ -63,16 +63,30 @@ inline Juego::Juego()
     jugador = std::make_unique<Jugador>(posX, posY);
     camara.setSize({800.0f, 600.0f});
 
-    std::uniform_real_distribution<float> disX(1600.0f, 30400.0f);
-    std::uniform_real_distribution<float> disY(1600.0f, 30400.0f);
+    std::uniform_int_distribution<> animalBloqueX(30, mapaSuperficie->getAncho() - 31);
+    std::uniform_int_distribution<> animalBloqueY(30, mapaSuperficie->getAlto() - 31);
 
-    for (int i = 0; i < 150; ++i) {
-        float animalX = disX(gen);
-        float animalY = disY(gen);
-        TipoAnimal tipo = (i % 2 == 0) ? TipoAnimal::Cerdo : TipoAnimal::Oveja;
+    auto bloqueSeguroParaAnimal = [&](int bx, int by) {
+        return mapaSuperficie->getTipoBloque(bx, by) == TipoBloque::Pasto &&
+               !mapaSuperficie->esBloqueSolido(bx, by);
+    };
+
+    constexpr int TOTAL_ANIMALES = 420;
+    int animalesCreados = 0;
+    for (int intento = 0; intento < TOTAL_ANIMALES * 40 && animalesCreados < TOTAL_ANIMALES; ++intento) {
+        int bx = animalBloqueX(gen);
+        int by = animalBloqueY(gen);
+        if (!bloqueSeguroParaAnimal(bx, by)) {
+            continue;
+        }
+
+        float animalX = static_cast<float>(bx * 32 + 2);
+        float animalY = static_cast<float>(by * 32 + 2);
+        TipoAnimal tipo = (animalesCreados % 2 == 0) ? TipoAnimal::Cerdo : TipoAnimal::Oveja;
         animales.push_back(new Animal(animalX, animalY, tipo));
+        animalesCreados++;
     }
-    std::cout << "Fauna esparcida con exito por los 32,000 pixeles del mapa." << std::endl;
+    std::cout << "Fauna esparcida con exito: " << animalesCreados << " animales." << std::endl;
 
     if (fuente.openFromFile("assets/fonts/Minecraft.ttf")) {
         fuenteCargada = true;
