@@ -1,11 +1,19 @@
 ﻿#include "Mundo.hpp"
+#include <algorithm>
 #include <random>
 #include <cmath>
 
 inline Animal::Animal(float x, float y, TipoAnimal tipo) 
-    : posicion(x, y), tipo(tipo), tiempoCambiandoDireccion(0.0f) {
+    : posicion(x, y),
+      tipo(tipo),
+      tiempoCambiandoDireccion(0.0f),
+      vidaMaxima(tipo == TipoAnimal::Cerdo ? 10.0f : 8.0f),
+      vida(vidaMaxima),
+      tiempoPanico(0.0f),
+      anchoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
+      altoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f) {
     
-    forma.setSize({ANCHO_ANIMAL, ALTO_ANIMAL});
+    forma.setSize({anchoAnimal, altoAnimal});
     
     // Color segÃºn la criatura estilo Minecraft
     if (tipo == TipoAnimal::Cerdo) {
@@ -31,7 +39,10 @@ inline void Animal::elegirNuevaDireccion() {
     std::uniform_real_distribution<> disTiempo(2.0f, 5.0f);
 
     int dir = disDir(gen);
-    float velocidadCaminado = 40.0f; // Velocidad lenta de paseo
+    float velocidadCaminado = (tipo == TipoAnimal::Cerdo) ? 8.0f : 40.0f;
+    if (tiempoPanico > 0.0f) {
+        velocidadCaminado *= 1.5f;
+    }
 
     if (dir == 0) velocidad = {0.0f, 0.0f};
     else if (dir == 1) velocidad = {-velocidadCaminado, 0.0f};
@@ -44,6 +55,12 @@ inline void Animal::elegirNuevaDireccion() {
 }
 
 inline void Animal::actualizar(float dt, const Mundo& mundo) {
+    if (vida <= 0.0f) return;
+
+    if (tiempoPanico > 0.0f) {
+        tiempoPanico = std::max(0.0f, tiempoPanico - dt);
+    }
+
     tiempoCambiandoDireccion += dt;
     if (tiempoCambiandoDireccion >= tiempoMaximoDireccion) {
         elegirNuevaDireccion();
@@ -55,13 +72,13 @@ inline void Animal::actualizar(float dt, const Mundo& mundo) {
     posicion.x += velocidad.x * dt;
     
     int blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
-    int blqDer = static_cast<int>((posicion.x + ANCHO_ANIMAL) / TAMANIO_BLOQUE);
+    int blqDer = static_cast<int>((posicion.x + anchoAnimal - 1.0f) / TAMANIO_BLOQUE);
     int blqArribaY = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
-    int blqAbajoY = static_cast<int>((posicion.y + ALTO_ANIMAL) / TAMANIO_BLOQUE);
+    int blqAbajoY = static_cast<int>((posicion.y + altoAnimal - 1.0f) / TAMANIO_BLOQUE);
 
     if (velocidad.x > 0) { // MoviÃ©ndose a la derecha
         if (mundo.esBloqueSolido(blqDer, blqArribaY) || mundo.esBloqueSolido(blqDer, blqAbajoY)) {
-            posicion.x = blqDer * TAMANIO_BLOQUE - ANCHO_ANIMAL - 0.1f;
+            posicion.x = blqDer * TAMANIO_BLOQUE - anchoAnimal - 0.1f;
             elegirNuevaDireccion(); // Cambia de rumbo si choca
         }
     } else if (velocidad.x < 0) { // MoviÃ©ndose a la izquierda
@@ -75,13 +92,13 @@ inline void Animal::actualizar(float dt, const Mundo& mundo) {
     posicion.y += velocidad.y * dt;
     
     blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
-    blqDer = static_cast<int>((posicion.x + ANCHO_ANIMAL) / TAMANIO_BLOQUE);
+    blqDer = static_cast<int>((posicion.x + anchoAnimal - 1.0f) / TAMANIO_BLOQUE);
     int blqArriba = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
-    int blqAbajo = static_cast<int>((posicion.y + ALTO_ANIMAL) / TAMANIO_BLOQUE);
+    int blqAbajo = static_cast<int>((posicion.y + altoAnimal - 1.0f) / TAMANIO_BLOQUE);
 
     if (velocidad.y > 0) { // MoviÃ©ndose hacia abajo
         if (mundo.esBloqueSolido(blqIzq, blqAbajo) || mundo.esBloqueSolido(blqDer, blqAbajo)) {
-            posicion.y = blqAbajo * TAMANIO_BLOQUE - ALTO_ANIMAL - 0.1f;
+            posicion.y = blqAbajo * TAMANIO_BLOQUE - altoAnimal - 0.1f;
             elegirNuevaDireccion();
         }
     } else if (velocidad.y < 0) { // MoviÃ©ndose hacia arriba
@@ -93,8 +110,77 @@ inline void Animal::actualizar(float dt, const Mundo& mundo) {
 }
 
 inline void Animal::dibujar(sf::RenderWindow& ventana) {
+    if (vida <= 0.0f) return;
+
+    if (tipo == TipoAnimal::Cerdo) {
+        dibujarCerdo(ventana);
+        return;
+    }
+
     forma.setPosition(posicion);
     ventana.draw(forma);
+}
+
+inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
+    const float escala = 2.0f;
+    const sf::Vector2f origen(posicion.x - 2.0f, posicion.y + 4.0f);
+    const sf::Color rosaBase(226, 121, 119);
+    const sf::Color rosaClaro(247, 157, 157);
+    const sf::Color rosaOscuro(206, 92, 96);
+    const sf::Color sombra(176, 73, 81);
+
+    auto pixel = [&](int x, int y, sf::Color color) {
+        sf::RectangleShape p({escala, escala});
+        p.setPosition({origen.x + static_cast<float>(x) * escala, origen.y + static_cast<float>(y) * escala});
+        p.setFillColor(color);
+        ventana.draw(p);
+    };
+
+    auto rect = [&](int x, int y, int w, int h, sf::Color color) {
+        for (int py = y; py < y + h; ++py) {
+            for (int px = x; px < x + w; ++px) {
+                pixel(px, py, color);
+            }
+        }
+    };
+
+    rect(3, 5, 15, 7, rosaBase);
+    rect(5, 3, 10, 3, rosaClaro);
+    rect(2, 8, 4, 4, rosaOscuro);
+    rect(6, 10, 11, 3, rosaBase);
+    rect(5, 12, 3, 2, sombra);
+    rect(14, 12, 3, 2, sombra);
+
+    rect(4, 2, 2, 3, rosaBase);
+    rect(13, 2, 2, 3, rosaBase);
+    rect(2, 9, 2, 2, rosaClaro);
+    rect(17, 8, 2, 2, rosaBase);
+    rect(19, 9, 1, 1, rosaClaro);
+
+    pixel(4, 7, sf::Color::Black);
+    pixel(8, 7, sf::Color::Black);
+    pixel(5, 9, rosaClaro);
+    pixel(6, 9, rosaClaro);
+    pixel(5, 10, sombra);
+    pixel(6, 10, sombra);
+
+    if (tiempoPanico > 0.0f) {
+        sf::RectangleShape brillo({anchoAnimal, altoAnimal});
+        brillo.setPosition(posicion);
+        brillo.setFillColor(sf::Color(255, 60, 60, 55));
+        ventana.draw(brillo);
+    }
+}
+
+inline void Animal::recibirDanio(float danio) {
+    if (vida <= 0.0f || danio <= 0.0f) return;
+    vida = std::max(0.0f, vida - danio);
+    tiempoPanico = 4.0f;
+    elegirNuevaDireccion();
+}
+
+inline bool Animal::estaVivo() const {
+    return vida > 0.0f;
 }
 
 inline sf::Vector2f Animal::getPosicion() const {
