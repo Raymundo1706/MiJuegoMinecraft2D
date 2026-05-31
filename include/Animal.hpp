@@ -17,11 +17,14 @@ private:
     TipoAnimal tipo;
     float tiempoCambiandoDireccion;
     float tiempoMaximoDireccion;
-
-    const float ANCHO_ANIMAL = 20.0f;
-    const float ALTO_ANIMAL = 20.0f;
+    float vidaMaxima;
+    float vida;
+    float tiempoPanico;
+    float anchoAnimal;
+    float altoAnimal;
 
     void elegirNuevaDireccion();
+    void dibujarCerdo(sf::RenderWindow& ventana);
 
 public:
     Animal(float x, float y, TipoAnimal tipo);
@@ -29,6 +32,8 @@ public:
 
     void actualizar(float dt, const Mundo& mundo);
     void dibujar(sf::RenderWindow& ventana);
+    void recibirDanio(float danio);
+    bool estaVivo() const;
 
     sf::Vector2f getPosicion() const;
 };
