@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 
 class Mundo;
+enum class ItemId;
 
 enum class TipoAnimal {
     Cerdo,
@@ -32,9 +33,12 @@ public:
     ~Animal();
 
     void actualizar(float dt, const Mundo& mundo);
+    void actualizar(float dt, const Mundo& mundo, sf::Vector2f posicionJugador, ItemId itemJugador);
     void dibujar(sf::RenderWindow& ventana);
     void recibirDanio(float danio);
     bool estaVivo() const;
+    bool contienePunto(sf::Vector2f punto) const;
+    TipoAnimal getTipo() const;
 
     sf::Vector2f getPosicion() const;
 };
