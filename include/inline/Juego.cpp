@@ -215,8 +215,21 @@ inline void Juego::ejecutar() {
             camara.setCenter(jugador->getPosicion());
         }
 
+        sf::Vector2f centroCamara = camara.getCenter();
+        sf::Vector2f tamanoCamara = camara.getSize();
+        float margenActivo = 256.0f;
+        float activoIzq = centroCamara.x - tamanoCamara.x / 2.0f - margenActivo;
+        float activoDer = centroCamara.x + tamanoCamara.x / 2.0f + margenActivo;
+        float activoArriba = centroCamara.y - tamanoCamara.y / 2.0f - margenActivo;
+        float activoAbajo = centroCamara.y + tamanoCamara.y / 2.0f + margenActivo;
+
         for (auto* animal : animales) {
-            if (animal) animal->actualizar(dt, *mapaSuperficie);
+            if (!animal) continue;
+            sf::Vector2f posAnimal = animal->getPosicion();
+            if (posAnimal.x >= activoIzq && posAnimal.x <= activoDer &&
+                posAnimal.y >= activoArriba && posAnimal.y <= activoAbajo) {
+                animal->actualizar(dt, *mapaSuperficie);
+            }
         }
 
         ventana.setView(camara);
@@ -386,8 +399,21 @@ inline void Juego::ejecutar() {
         ventana.setView(camara);
         if (mapaSuperficie) mapaSuperficie->dibujar(ventana);
 
+        sf::Vector2f centroVista = camara.getCenter();
+        sf::Vector2f tamanoVista = camara.getSize();
+        float margenDibujo = 96.0f;
+        float dibujoIzq = centroVista.x - tamanoVista.x / 2.0f - margenDibujo;
+        float dibujoDer = centroVista.x + tamanoVista.x / 2.0f + margenDibujo;
+        float dibujoArriba = centroVista.y - tamanoVista.y / 2.0f - margenDibujo;
+        float dibujoAbajo = centroVista.y + tamanoVista.y / 2.0f + margenDibujo;
+
         for (auto* animal : animales) {
-            if (animal) animal->dibujar(ventana);
+            if (!animal) continue;
+            sf::Vector2f posAnimal = animal->getPosicion();
+            if (posAnimal.x >= dibujoIzq && posAnimal.x <= dibujoDer &&
+                posAnimal.y >= dibujoArriba && posAnimal.y <= dibujoAbajo) {
+                animal->dibujar(ventana);
+            }
         }
 
         if (jugador) jugador->dibujar(ventana);

@@ -122,47 +122,58 @@ inline void Animal::dibujar(sf::RenderWindow& ventana) {
 }
 
 inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
-    const float escala = 2.0f;
-    const sf::Vector2f origen(posicion.x - 2.0f, posicion.y + 4.0f);
-    const sf::Color rosaBase(226, 121, 119);
-    const sf::Color rosaClaro(247, 157, 157);
-    const sf::Color rosaOscuro(206, 92, 96);
-    const sf::Color sombra(176, 73, 81);
+    static bool texturaLista = false;
+    static sf::Texture texturaCerdo;
 
-    auto pixel = [&](int x, int y, sf::Color color) {
-        sf::RectangleShape p({escala, escala});
-        p.setPosition({origen.x + static_cast<float>(x) * escala, origen.y + static_cast<float>(y) * escala});
-        p.setFillColor(color);
-        ventana.draw(p);
-    };
+    if (!texturaLista) {
+        sf::Image imagen({20, 16}, sf::Color::Transparent);
+        const sf::Color rosaBase(226, 121, 119);
+        const sf::Color rosaClaro(247, 157, 157);
+        const sf::Color rosaOscuro(206, 92, 96);
+        const sf::Color sombra(176, 73, 81);
 
-    auto rect = [&](int x, int y, int w, int h, sf::Color color) {
-        for (int py = y; py < y + h; ++py) {
-            for (int px = x; px < x + w; ++px) {
-                pixel(px, py, color);
+        auto pixel = [&](int x, int y, sf::Color color) {
+            if (x >= 0 && x < 20 && y >= 0 && y < 16) {
+                imagen.setPixel(sf::Vector2u(static_cast<unsigned int>(x), static_cast<unsigned int>(y)), color);
             }
-        }
-    };
+        };
 
-    rect(3, 5, 15, 7, rosaBase);
-    rect(5, 3, 10, 3, rosaClaro);
-    rect(2, 8, 4, 4, rosaOscuro);
-    rect(6, 10, 11, 3, rosaBase);
-    rect(5, 12, 3, 2, sombra);
-    rect(14, 12, 3, 2, sombra);
+        auto rect = [&](int x, int y, int w, int h, sf::Color color) {
+            for (int py = y; py < y + h; ++py) {
+                for (int px = x; px < x + w; ++px) {
+                    pixel(px, py, color);
+                }
+            }
+        };
 
-    rect(4, 2, 2, 3, rosaBase);
-    rect(13, 2, 2, 3, rosaBase);
-    rect(2, 9, 2, 2, rosaClaro);
-    rect(17, 8, 2, 2, rosaBase);
-    rect(19, 9, 1, 1, rosaClaro);
+        rect(3, 5, 15, 7, rosaBase);
+        rect(5, 3, 10, 3, rosaClaro);
+        rect(2, 8, 4, 4, rosaOscuro);
+        rect(6, 10, 11, 3, rosaBase);
+        rect(5, 12, 3, 2, sombra);
+        rect(14, 12, 3, 2, sombra);
+        rect(4, 2, 2, 3, rosaBase);
+        rect(13, 2, 2, 3, rosaBase);
+        rect(2, 9, 2, 2, rosaClaro);
+        rect(17, 8, 2, 2, rosaBase);
+        rect(19, 9, 1, 1, rosaClaro);
+        pixel(4, 7, sf::Color::Black);
+        pixel(8, 7, sf::Color::Black);
+        pixel(5, 9, rosaClaro);
+        pixel(6, 9, rosaClaro);
+        pixel(5, 10, sombra);
+        pixel(6, 10, sombra);
 
-    pixel(4, 7, sf::Color::Black);
-    pixel(8, 7, sf::Color::Black);
-    pixel(5, 9, rosaClaro);
-    pixel(6, 9, rosaClaro);
-    pixel(5, 10, sombra);
-    pixel(6, 10, sombra);
+        texturaLista = texturaCerdo.loadFromImage(imagen);
+        texturaCerdo.setSmooth(false);
+    }
+
+    if (texturaLista) {
+        sf::Sprite cerdo(texturaCerdo);
+        cerdo.setPosition({posicion.x - 2.0f, posicion.y + 4.0f});
+        cerdo.setScale({2.0f, 2.0f});
+        ventana.draw(cerdo);
+    }
 
     if (tiempoPanico > 0.0f) {
         sf::RectangleShape brillo({anchoAnimal, altoAnimal});
