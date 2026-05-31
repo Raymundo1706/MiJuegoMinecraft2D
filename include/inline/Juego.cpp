@@ -127,6 +127,8 @@ inline void Juego::ejecutar() {
     sf::Texture texturaMapaInicial;
     constexpr int TAMANIO_MAPA_INICIAL = 700;
     constexpr int RADIO_MAPA_INICIAL = TAMANIO_MAPA_INICIAL / 2;
+    std::random_device rdLoot;
+    std::mt19937 genLoot(rdLoot());
 
     auto generarMapaInicial = [&]() {
         if (!jugador || !mapaSuperficie) return;
@@ -355,7 +357,7 @@ inline void Juego::ejecutar() {
                 if (!animal->estaVivo()) {
                     if (animal->getTipo() == TipoAnimal::Cerdo) {
                         std::uniform_int_distribution<> lootCerdo(1, 3);
-                        inventarioGrid.agregarItem(ItemId::ChuletaCerdoCruda, lootCerdo(gen));
+                        inventarioGrid.agregarItem(ItemId::ChuletaCerdoCruda, lootCerdo(genLoot));
                     }
 
                     delete animal;
