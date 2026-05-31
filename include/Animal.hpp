@@ -22,6 +22,7 @@ private:
     float tiempoPanico;
     float anchoAnimal;
     float altoAnimal;
+    bool mirandoDerecha;
 
     void elegirNuevaDireccion();
     void dibujarCerdo(sf::RenderWindow& ventana);

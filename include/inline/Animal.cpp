@@ -11,7 +11,8 @@ inline Animal::Animal(float x, float y, TipoAnimal tipo)
       vida(vidaMaxima),
       tiempoPanico(0.0f),
       anchoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
-      altoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f) {
+      altoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
+      mirandoDerecha(false) {
     
     forma.setSize({anchoAnimal, altoAnimal});
     
@@ -49,6 +50,9 @@ inline void Animal::elegirNuevaDireccion() {
     else if (dir == 2) velocidad = {velocidadCaminado, 0.0f};
     else if (dir == 3) velocidad = {0.0f, -velocidadCaminado};
     else if (dir == 4) velocidad = {0.0f, velocidadCaminado};
+
+    if (velocidad.x > 0.0f) mirandoDerecha = true;
+    if (velocidad.x < 0.0f) mirandoDerecha = false;
 
     tiempoCambiandoDireccion = 0.0f;
     tiempoMaximoDireccion = disTiempo(gen);
@@ -170,8 +174,13 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
 
     if (texturaLista) {
         sf::Sprite cerdo(texturaCerdo);
-        cerdo.setPosition({posicion.x - 2.0f, posicion.y + 4.0f});
-        cerdo.setScale({2.0f, 2.0f});
+        if (mirandoDerecha) {
+            cerdo.setPosition({posicion.x - 2.0f + 40.0f, posicion.y + 4.0f});
+            cerdo.setScale({-2.0f, 2.0f});
+        } else {
+            cerdo.setPosition({posicion.x - 2.0f, posicion.y + 4.0f});
+            cerdo.setScale({2.0f, 2.0f});
+        }
         ventana.draw(cerdo);
     }
 
