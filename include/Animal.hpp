@@ -26,6 +26,7 @@ private:
     bool mirandoDerecha;
     bool muriendo;
     float tiempoMuerte;
+    float tiempoGolpe;
 
     void elegirNuevaDireccion();
     void dibujarCerdo(sf::RenderWindow& ventana);
