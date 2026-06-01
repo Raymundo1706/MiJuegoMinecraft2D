@@ -91,6 +91,10 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::Remolacha: return sf::Color(150, 38, 62);
         case ItemId::ChuletaCerdoCruda: return sf::Color(214, 103, 111);
         case ItemId::ChuletaCerdoCocinada: return sf::Color(134, 75, 42);
+        case ItemId::CarneResCruda: return sf::Color(178, 63, 70);
+        case ItemId::LanaCruda: return sf::Color(220, 220, 220);
+        case ItemId::PolloCrudo: return sf::Color(232, 180, 158);
+        case ItemId::Pluma: return sf::Color(240, 240, 230);
         case ItemId::Barreta: return sf::Color(105, 108, 112);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
@@ -132,6 +136,10 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::Remolacha: return "Re";
         case ItemId::ChuletaCerdoCruda: return "Ch";
         case ItemId::ChuletaCerdoCocinada: return "Cc";
+        case ItemId::CarneResCruda: return "Re";
+        case ItemId::LanaCruda: return "La";
+        case ItemId::PolloCrudo: return "Po";
+        case ItemId::Pluma: return "Pl";
         case ItemId::Barreta: return "Br";
         case ItemId::PicoMadera: return "Pk";
         case ItemId::PicoPiedra: return "Pp";
@@ -345,9 +353,11 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
             pixel(ventana, origen, 10, 4, sf::Color(54, 146, 63), escala);
             return;
         case ItemId::ChuletaCerdoCruda:
-        case ItemId::ChuletaCerdoCocinada: {
-            sf::Color carne = item == ItemId::ChuletaCerdoCruda ? sf::Color(217, 103, 111) : sf::Color(139, 79, 45);
-            sf::Color borde = item == ItemId::ChuletaCerdoCruda ? sf::Color(156, 58, 72) : sf::Color(89, 48, 28);
+        case ItemId::ChuletaCerdoCocinada:
+        case ItemId::CarneResCruda:
+        case ItemId::PolloCrudo: {
+            sf::Color carne = colorDeItem(item);
+            sf::Color borde(carne.r / 2, carne.g / 2, carne.b / 2);
             for (int y = 5; y < 13; ++y) {
                 for (int x = 4; x < 13; ++x) {
                     if (!((x == 4 || x == 12) && (y == 5 || y == 12))) {
@@ -360,6 +370,15 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
             pixel(ventana, origen, 11, 6, sf::Color(240, 178, 172), escala);
             return;
         }
+        case ItemId::LanaCruda:
+            dibujarBloqueSprite(ventana, origen, item, escala);
+            return;
+        case ItemId::Pluma:
+            lineaPixel(ventana, origen, 5, 13, 12, 4, sf::Color(240, 240, 230), escala);
+            lineaPixel(ventana, origen, 6, 13, 13, 4, sf::Color(180, 185, 185), escala);
+            pixel(ventana, origen, 10, 6, sf::Color::White, escala);
+            pixel(ventana, origen, 8, 9, sf::Color::White, escala);
+            return;
         default:
             dibujarBloqueSprite(ventana, origen, item, escala);
             return;
