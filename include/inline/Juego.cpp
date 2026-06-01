@@ -82,7 +82,15 @@ inline Juego::Juego()
 
         float animalX = static_cast<float>(bx * 32 + 2);
         float animalY = static_cast<float>(by * 32 + 2);
-        TipoAnimal tipo = (animalesCreados % 2 == 0) ? TipoAnimal::Cerdo : TipoAnimal::Oveja;
+        TipoAnimal tipo = TipoAnimal::Cerdo;
+        int especie = animalesCreados % 4;
+        if (especie == 1) {
+            tipo = TipoAnimal::Oveja;
+        } else if (especie == 2) {
+            tipo = TipoAnimal::Vaca;
+        } else if (especie == 3) {
+            tipo = TipoAnimal::Gallina;
+        }
         animales.push_back(new Animal(animalX, animalY, tipo));
         animalesCreados++;
     }
@@ -170,6 +178,10 @@ inline void Juego::ejecutar() {
         switch (item) {
             case ItemId::ChuletaCerdoCruda: return sf::Color(217, 103, 111);
             case ItemId::ChuletaCerdoCocinada: return sf::Color(139, 79, 45);
+            case ItemId::CarneResCruda: return sf::Color(178, 63, 70);
+            case ItemId::LanaCruda: return sf::Color(220, 220, 220);
+            case ItemId::PolloCrudo: return sf::Color(232, 180, 158);
+            case ItemId::Pluma: return sf::Color(240, 240, 230);
             case ItemId::BloqueTronco: return sf::Color(120, 72, 35);
             default: return sf::Color(230, 210, 120);
         }
@@ -381,11 +393,32 @@ inline void Juego::ejecutar() {
                 golpeoAnimal = true;
 
                 if (animal->estaMuriendo()) {
-                    if (animal->getTipo() == TipoAnimal::Cerdo) {
-                        std::uniform_int_distribution<> lootCerdo(1, 3);
-                        int cantidad = lootCerdo(genLoot);
-                        sf::Vector2f posDrop = animal->getPosicion() + sf::Vector2f(12.0f, 12.0f);
-                        itemsSuelo.push_back({ItemId::ChuletaCerdoCruda, cantidad, posDrop});
+                    sf::Vector2f posDrop = animal->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+                    switch (animal->getTipo()) {
+                        case TipoAnimal::Cerdo: {
+                            std::uniform_int_distribution<> loot(1, 3);
+                            itemsSuelo.push_back({ItemId::ChuletaCerdoCruda, loot(genLoot), posDrop});
+                            break;
+                        }
+                        case TipoAnimal::Vaca: {
+                            std::uniform_int_distribution<> loot(1, 3);
+                            itemsSuelo.push_back({ItemId::CarneResCruda, loot(genLoot), posDrop});
+                            break;
+                        }
+                        case TipoAnimal::Oveja: {
+                            std::uniform_int_distribution<> loot(1, 2);
+                            itemsSuelo.push_back({ItemId::LanaCruda, loot(genLoot), posDrop});
+                            break;
+                        }
+                        case TipoAnimal::Gallina: {
+                            std::uniform_int_distribution<> plumas(0, 2);
+                            itemsSuelo.push_back({ItemId::PolloCrudo, 1, posDrop});
+                            int cantidadPlumas = plumas(genLoot);
+                            if (cantidadPlumas > 0) {
+                                itemsSuelo.push_back({ItemId::Pluma, cantidadPlumas, posDrop + sf::Vector2f(10.0f, -6.0f)});
+                            }
+                            break;
+                        }
                     }
                 }
                 break;
