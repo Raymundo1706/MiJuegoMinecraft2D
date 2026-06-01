@@ -27,6 +27,7 @@ private:
     bool hundido;
     float tiempoEnAgua;
     float tiempoHundimiento;
+    float tiempoMojado;
 
     void dibujarPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala);
     void dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, int ancho, int alto, sf::Color color, float escala);

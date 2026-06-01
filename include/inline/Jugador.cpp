@@ -17,6 +17,7 @@ inline Jugador::Jugador(float x, float y) {
     hundido = false;
     tiempoEnAgua = 0.0f;
     tiempoHundimiento = 0.0f;
+    tiempoMojado = 0.0f;
 
     // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
@@ -67,13 +68,20 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
         }
     }
 
+    bool estabaEnAgua = enAgua;
     enAgua = jugadorTocaAgua(mundo, posicion, forma.getSize());
     if (enAgua) {
         tiempoEnAgua += dt;
+        tiempoMojado = 5.0f;
         if (tiempoEnAgua >= 20.0f) {
             hundido = true;
         }
     } else {
+        if (estabaEnAgua) {
+            tiempoMojado = 5.0f;
+        } else if (tiempoMojado > 0.0f) {
+            tiempoMojado = std::max(0.0f, tiempoMojado - dt);
+        }
         tiempoEnAgua = 0.0f;
         tiempoHundimiento = 0.0f;
         hundido = false;
@@ -329,19 +337,48 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         sprite.setColor(sf::Color(185, 220, 255, static_cast<std::uint8_t>(alpha)));
     } else if (enAgua) {
         sprite.setColor(sf::Color(215, 238, 255, 245));
+    } else if (tiempoMojado > 0.0f) {
+        std::uint8_t azul = static_cast<std::uint8_t>(std::min(255.0f, 235.0f + tiempoMojado * 4.0f));
+        sprite.setColor(sf::Color(230, 242, azul, 255));
     }
     ventana.draw(sprite);
 
     if (enAgua) {
-        sf::RectangleShape laminaAgua({30.0f, hundido ? 25.0f : 15.0f});
-        laminaAgua.setPosition({posicion.x - 3.0f, posicion.y + (hundido ? 12.0f : 19.0f)});
-        laminaAgua.setFillColor(sf::Color(55, 155, 230, hundido ? 165 : 125));
-        ventana.draw(laminaAgua);
+        sf::RectangleShape gota;
+        sf::Color agua(55, 155, 230, hundido ? 170 : 130);
+        sf::Color brillo(135, 215, 255, hundido ? 165 : 140);
+        float yLinea = posicion.y + (hundido ? 13.0f : 21.0f);
 
-        sf::RectangleShape brillo({24.0f, 2.0f});
-        brillo.setPosition({posicion.x, posicion.y + (hundido ? 12.0f : 19.0f)});
-        brillo.setFillColor(sf::Color(135, 215, 255, hundido ? 150 : 135));
-        ventana.draw(brillo);
+        gota.setFillColor(agua);
+        float segmentos[4][4] = {
+            {2.0f, 0.0f, 6.0f, 2.0f},
+            {9.0f, 1.0f, 5.0f, 2.0f},
+            {15.0f, 0.0f, 6.0f, 2.0f},
+            {22.0f, 1.0f, 4.0f, 2.0f}
+        };
+        for (auto& s : segmentos) {
+            gota.setSize({s[2], s[3]});
+            gota.setPosition({posicion.x + s[0], yLinea + s[1]});
+            ventana.draw(gota);
+        }
+
+        gota.setFillColor(brillo);
+        gota.setSize({4.0f, 1.0f});
+        gota.setPosition({posicion.x + 5.0f, yLinea});
+        ventana.draw(gota);
+        gota.setPosition({posicion.x + 17.0f, yLinea});
+        ventana.draw(gota);
+    } else if (tiempoMojado > 0.0f) {
+        sf::RectangleShape gota;
+        gota.setFillColor(sf::Color(92, 190, 245, static_cast<std::uint8_t>(45 + tiempoMojado * 35.0f)));
+        float fase = (5.0f - tiempoMojado) * 5.0f;
+        for (int i = 0; i < 4; ++i) {
+            float x = posicion.x + 4.0f + static_cast<float>((i * 6 + static_cast<int>(fase)) % 22);
+            float y = posicion.y + 10.0f + std::fmod(fase * 3.0f + static_cast<float>(i * 7), 22.0f);
+            gota.setSize({2.0f, i % 2 == 0 ? 4.0f : 3.0f});
+            gota.setPosition({x, y});
+            ventana.draw(gota);
+        }
     }
 }
 
