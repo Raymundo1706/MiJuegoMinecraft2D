@@ -375,7 +375,7 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
             }
 
             int troncos = troncosArbol(gen);
-            float vida = 60.0f * static_cast<float>(troncos);
+            float vida = 20.0f;
             cuadricula[ty][tx] = {TipoBloque::Madera, true, vida, false, 0.0f, false, troncos, vida, bioma, varianteArbol(gen)};
         }
     }

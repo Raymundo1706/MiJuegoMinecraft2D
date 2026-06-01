@@ -418,9 +418,9 @@ inline void Juego::ejecutar() {
                     if (tipoActual != TipoBloque::Aire && tipoActual != TipoBloque::Agua) {
                         ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
                         if (tipoActual == TipoBloque::Madera) {
-                            float velocidadTala = 0.35f;
-                            if (itemEnMano == ItemId::HachaMadera) velocidadTala = 1.0f;
-                            if (itemEnMano == ItemId::HachaPiedra) velocidadTala = 1.35f;
+                            float velocidadTala = 1.0f;
+                            if (itemEnMano == ItemId::HachaMadera) velocidadTala = 20.0f / 13.0f;
+                            if (itemEnMano == ItemId::HachaPiedra) velocidadTala = 2.0f;
 
                             int troncosObtenidos = 0;
                             bool soltoSemilla = false;
