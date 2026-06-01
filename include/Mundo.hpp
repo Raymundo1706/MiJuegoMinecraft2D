@@ -15,6 +15,7 @@ enum class TipoBloque {
     Horno,
     Cristal,
     MineralHierro,
+    MineralPlata,
     MineralOro,
     MineralDiamante,
     Redstone,
