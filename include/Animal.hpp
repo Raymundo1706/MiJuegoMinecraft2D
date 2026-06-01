@@ -7,7 +7,9 @@ enum class ItemId;
 
 enum class TipoAnimal {
     Cerdo,
-    Oveja
+    Oveja,
+    Vaca,
+    Gallina
 };
 
 class Animal {
@@ -29,9 +31,11 @@ private:
     float tiempoGolpe;
     bool tieneAmenaza;
     sf::Vector2f posicionAmenaza;
+    float tiempoParticulas;
 
     void elegirNuevaDireccion();
-    void dibujarCerdo(sf::RenderWindow& ventana);
+    void dibujarAnimal(sf::RenderWindow& ventana);
+    void dibujarParticulasMuerte(sf::RenderWindow& ventana);
 
 public:
     Animal(float x, float y, TipoAnimal tipo);
