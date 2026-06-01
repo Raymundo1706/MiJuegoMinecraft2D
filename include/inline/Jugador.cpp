@@ -34,18 +34,26 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     }
 
     sf::Vector2f direccion(0.0f, 0.0f);
+    bool arribaPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) ||
+                            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up);
+    bool abajoPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) ||
+                           sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down);
+    bool izquierdaPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) ||
+                               sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left);
+    bool derechaPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) ||
+                             sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right);
 
     // DetecciÃ³n de teclas (WASD y Flechas)
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
+    if (arribaPresionado) {
         direccion.y -= 1.0f;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
+    if (abajoPresionado) {
         direccion.y += 1.0f;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)) {
+    if (izquierdaPresionado) {
         direccion.x -= 1.0f;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) {
+    if (derechaPresionado) {
         direccion.x += 1.0f;
     }
 
@@ -58,8 +66,10 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     caminando = true;
     tiempoAnimacion += dt;
 
-    if (direccion.x != 0.0f) {
-        direccionMirada = direccion.x > 0.0f ? DireccionMirada::Derecha : DireccionMirada::Izquierda;
+    if (izquierdaPresionado && !derechaPresionado) {
+        direccionMirada = DireccionMirada::Izquierda;
+    } else if (derechaPresionado && !izquierdaPresionado) {
+        direccionMirada = DireccionMirada::Derecha;
     } else {
         direccionMirada = direccion.y > 0.0f ? DireccionMirada::Abajo : DireccionMirada::Arriba;
     }
@@ -223,10 +233,10 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         if (direccionMirada == DireccionMirada::Abajo) fila = baseAccion + 0;
         if (direccionMirada == DireccionMirada::Izquierda) {
             fila = baseAccion + 1;
+            espejarHorizontal = true;
         }
         if (direccionMirada == DireccionMirada::Derecha) {
             fila = baseAccion + 1;
-            espejarHorizontal = true;
         }
         if (direccionMirada == DireccionMirada::Arriba) fila = baseAccion + 2;
     } else {
@@ -235,6 +245,7 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         if (direccionMirada == DireccionMirada::Derecha) fila = caminando ? 4 : 3;
         if (direccionMirada == DireccionMirada::Izquierda) {
             fila = caminando ? 4 : 3;
+            espejarHorizontal = true;
         }
 
         columna = caminando ? static_cast<int>(tiempoAnimacion * 8.0f) % 6 : 0;
