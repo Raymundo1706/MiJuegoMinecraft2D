@@ -1,6 +1,7 @@
 ﻿#include "Mundo.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
 
 // Constructor: Recibe la posiciÃ³n aleatoria de spawn
 inline Jugador::Jugador(float x, float y) {
@@ -12,6 +13,10 @@ inline Jugador::Jugador(float x, float y) {
     accionando = false;
     tiempoAccion = 0.0f;
     itemAccion = ItemId::Ninguno;
+    enAgua = false;
+    hundido = false;
+    tiempoEnAgua = 0.0f;
+    tiempoHundimiento = 0.0f;
 
     // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
@@ -22,6 +27,22 @@ inline Jugador::Jugador(float x, float y) {
 // Destructor
 inline Jugador::~Jugador() {}
 
+inline bool jugadorTocaAgua(const Mundo& mundo, sf::Vector2f posicionJugador, sf::Vector2f tamanoJugador) {
+    const float TAMANIO_BLOQUE = 32.0f;
+    float pieY = posicionJugador.y + tamanoJugador.y - 3.0f;
+    int bloqueY = static_cast<int>(std::floor(pieY / TAMANIO_BLOQUE));
+    int bloqueIzq = static_cast<int>(std::floor((posicionJugador.x + 6.0f) / TAMANIO_BLOQUE));
+    int bloqueDer = static_cast<int>(std::floor((posicionJugador.x + tamanoJugador.x - 6.0f) / TAMANIO_BLOQUE));
+
+    for (int x = bloqueIzq; x <= bloqueDer; ++x) {
+        TipoBloque tipo = mundo.getTipoBloque(x, bloqueY);
+        if (tipo == TipoBloque::Agua || tipo == TipoBloque::AguaProfunda) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // MÃ©todo para mover al personaje detectando colisiones sÃ³lidas con el terreno
 inline void Jugador::controlar(float dt, const Mundo& mundo) {
     if (accionando) {
@@ -31,6 +52,25 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
             tiempoAccion = 0.0f;
             itemAccion = ItemId::Ninguno;
         }
+    }
+
+    enAgua = jugadorTocaAgua(mundo, posicion, forma.getSize());
+    if (enAgua) {
+        tiempoEnAgua += dt;
+        if (tiempoEnAgua >= 20.0f) {
+            hundido = true;
+        }
+    } else {
+        tiempoEnAgua = 0.0f;
+        tiempoHundimiento = 0.0f;
+        hundido = false;
+    }
+
+    if (hundido) {
+        tiempoHundimiento += dt;
+        caminando = false;
+        forma.setPosition(posicion);
+        return;
     }
 
     sf::Vector2f direccion(0.0f, 0.0f);
@@ -77,6 +117,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     // Normalizamos el vector de direcciÃ³n para evitar que camine mÃ¡s rÃ¡pido en diagonal
     float longitud = std::sqrt(direccion.x * direccion.x + direccion.y * direccion.y);
     direccion /= longitud;
+    float velocidadActual = enAgua ? velocidad / 3.0f : velocidad;
 
     const float TAMANIO_BLOQUE = 32.0f;
     float anchoJugador = forma.getSize().x;
@@ -86,7 +127,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     
     // 1. INTENTO DE MOVIMIENTO EN EJE X
     sf::Vector2f nuevaPosicionX = posicion;
-    nuevaPosicionX.x += direccion.x * velocidad * dt;
+    nuevaPosicionX.x += direccion.x * velocidadActual * dt;
 
     // Calculamos las esquinas de la caja del jugador en el eje X para ver con quÃ© bloques interseca
     int bloqueIzq = static_cast<int>(nuevaPosicionX.x / TAMANIO_BLOQUE);
@@ -108,7 +149,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
 
     // 2. INTENTO DE MOVIMIENTO EN EJE Y
     sf::Vector2f nuevaPosicionY = posicion;
-    nuevaPosicionY.y += direccion.y * velocidad * dt;
+    nuevaPosicionY.y += direccion.y * velocidadActual * dt;
 
     // Recalculamos las esquinas ahora con la nueva coordenada de Y
     bloqueIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
@@ -199,12 +240,20 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         }
     }
 
-    sf::RectangleShape sombra({24.0f, 7.0f});
-    sombra.setPosition({posicion.x, posicion.y + 20.0f});
-    sombra.setFillColor(sf::Color(8, 18, 12, 80));
-    ventana.draw(sombra);
+    float hundimientoVisual = enAgua ? 5.0f : 0.0f;
+    if (hundido) {
+        hundimientoVisual = std::min(22.0f, 5.0f + tiempoHundimiento * 10.0f);
+    }
+
+    if (!enAgua || !hundido) {
+        sf::RectangleShape sombra({24.0f, 7.0f});
+        sombra.setPosition({posicion.x, posicion.y + 20.0f});
+        sombra.setFillColor(sf::Color(8, 18, 12, enAgua ? 35 : 80));
+        ventana.draw(sombra);
+    }
 
     if (!texturaLista) {
+        forma.setPosition({posicion.x, posicion.y + hundimientoVisual});
         ventana.draw(forma);
         return;
     }
@@ -260,12 +309,42 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     sf::Sprite sprite(*texturaActiva);
     sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, altoFrame}));
     sprite.setOrigin({16.0f, 30.0f});
-    sprite.setPosition({posicion.x + 12.0f, posicion.y + 26.0f});
+    sprite.setPosition({posicion.x + 12.0f, posicion.y + 26.0f + hundimientoVisual});
     sprite.setScale({1.2f, 1.2f});
+    if (hundido) {
+        float alpha = std::max(45.0f, 255.0f - tiempoHundimiento * 90.0f);
+        sprite.setColor(sf::Color(185, 220, 255, static_cast<std::uint8_t>(alpha)));
+    } else if (enAgua) {
+        sprite.setColor(sf::Color(215, 238, 255, 245));
+    }
     ventana.draw(sprite);
+
+    if (enAgua) {
+        sf::RectangleShape laminaAgua({28.0f, hundido ? 24.0f : 12.0f});
+        laminaAgua.setPosition({posicion.x - 2.0f, posicion.y + (hundido ? 13.0f : 22.0f)});
+        laminaAgua.setFillColor(sf::Color(55, 155, 230, hundido ? 150 : 105));
+        ventana.draw(laminaAgua);
+
+        sf::RectangleShape brillo({22.0f, 2.0f});
+        brillo.setPosition({posicion.x + 1.0f, posicion.y + (hundido ? 13.0f : 22.0f)});
+        brillo.setFillColor(sf::Color(135, 215, 255, hundido ? 135 : 110));
+        ventana.draw(brillo);
+    }
 }
 
 inline sf::Vector2f Jugador::getPosicion() const {
     return posicion;
+}
+
+inline bool Jugador::estaEnAgua() const {
+    return enAgua;
+}
+
+inline bool Jugador::estaHundido() const {
+    return hundido;
+}
+
+inline float Jugador::getTiempoEnAgua() const {
+    return tiempoEnAgua;
 }
 
