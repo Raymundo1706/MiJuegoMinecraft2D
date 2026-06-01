@@ -23,7 +23,8 @@ inline Animal::Animal(float x, float y, TipoAnimal tipo)
       altoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
       mirandoDerecha(false),
       muriendo(false),
-      tiempoMuerte(0.0f) {
+      tiempoMuerte(0.0f),
+      tiempoGolpe(0.0f) {
     
     forma.setSize({anchoAnimal, altoAnimal});
     
@@ -86,6 +87,10 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
         tiempoPanico = std::max(0.0f, tiempoPanico - dt);
     }
 
+    if (tiempoGolpe > 0.0f) {
+        tiempoGolpe = std::max(0.0f, tiempoGolpe - dt);
+    }
+
     bool atraidoPorComida = false;
     if (tipo == TipoAnimal::Cerdo && tiempoPanico <= 0.0f && esComidaCerdo(itemJugador)) {
         sf::Vector2f centroAnimal = posicion + sf::Vector2f(anchoAnimal * 0.5f, altoAnimal * 0.5f);
@@ -103,7 +108,8 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
 
     if (!atraidoPorComida) {
         tiempoCambiandoDireccion += dt;
-        if (tiempoCambiandoDireccion >= tiempoMaximoDireccion) {
+        float limiteCambio = tiempoPanico > 0.0f ? 0.45f : tiempoMaximoDireccion;
+        if (tiempoCambiandoDireccion >= limiteCambio) {
             elegirNuevaDireccion();
         }
     }
@@ -212,6 +218,7 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
 
     if (texturaLista) {
         sf::Sprite cerdo(texturaCerdo);
+        float sacudida = tiempoGolpe > 0.0f ? std::sin(tiempoGolpe * 80.0f) * 2.0f : 0.0f;
         if (muriendo) {
             cerdo.setOrigin({10.0f, 8.0f});
             cerdo.setPosition({posicion.x + anchoAnimal * 0.5f, posicion.y + altoAnimal * 0.5f});
@@ -219,13 +226,23 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
             cerdo.setRotation(sf::degrees(mirandoDerecha ? -90.0f : 90.0f));
             cerdo.setColor(sf::Color(255, 70, 70, 210));
         } else if (mirandoDerecha) {
-            cerdo.setPosition({posicion.x - 2.0f + 40.0f, posicion.y + 4.0f});
+            cerdo.setPosition({posicion.x - 2.0f + 40.0f + sacudida, posicion.y + 4.0f});
             cerdo.setScale({-2.0f, 2.0f});
         } else {
-            cerdo.setPosition({posicion.x - 2.0f, posicion.y + 4.0f});
+            cerdo.setPosition({posicion.x - 2.0f + sacudida, posicion.y + 4.0f});
             cerdo.setScale({2.0f, 2.0f});
         }
+        if (tiempoGolpe > 0.0f && !muriendo) {
+            cerdo.setColor(sf::Color(255, 95, 95, 255));
+        }
         ventana.draw(cerdo);
+    }
+
+    if (tiempoGolpe > 0.0f && !muriendo) {
+        sf::RectangleShape impacto({anchoAnimal, altoAnimal});
+        impacto.setPosition(posicion);
+        impacto.setFillColor(sf::Color(255, 255, 255, 70));
+        ventana.draw(impacto);
     }
 
     if (tiempoPanico > 0.0f) {
@@ -239,6 +256,7 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
 inline void Animal::recibirDanio(float danio) {
     if (muriendo || vida <= 0.0f || danio <= 0.0f) return;
     vida = std::max(0.0f, vida - danio);
+    tiempoGolpe = 0.22f;
     if (vida <= 0.0f) {
         muriendo = true;
         tiempoMuerte = 0.0f;
