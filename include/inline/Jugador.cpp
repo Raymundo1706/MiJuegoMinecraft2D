@@ -9,6 +9,9 @@ inline Jugador::Jugador(float x, float y) {
     direccionMirada = DireccionMirada::Abajo;
     caminando = false;
     tiempoAnimacion = 0.0f;
+    accionando = false;
+    tiempoAccion = 0.0f;
+    itemAccion = ItemId::Ninguno;
 
     // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
@@ -21,6 +24,15 @@ inline Jugador::~Jugador() {}
 
 // MÃ©todo para mover al personaje detectando colisiones sÃ³lidas con el terreno
 inline void Jugador::controlar(float dt, const Mundo& mundo) {
+    if (accionando) {
+        tiempoAccion += dt;
+        if (tiempoAccion >= 0.32f) {
+            accionando = false;
+            tiempoAccion = 0.0f;
+            itemAccion = ItemId::Ninguno;
+        }
+    }
+
     sf::Vector2f direccion(0.0f, 0.0f);
 
     // DetecciÃ³n de teclas (WASD y Flechas)
@@ -112,7 +124,13 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
 
 // MÃ©todo para pintar al jugador encima del mundo
 inline void Jugador::dibujar(sf::RenderWindow& ventana) {
-    dibujarSteve(ventana);
+    dibujarSpriteJugador(ventana);
+}
+
+inline void Jugador::iniciarAccion(ItemId item) {
+    accionando = true;
+    tiempoAccion = 0.0f;
+    itemAccion = item;
 }
 
 inline void Jugador::dibujarPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
@@ -130,13 +148,19 @@ inline void Jugador::dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f or
     }
 }
 
-inline void Jugador::dibujarSteve(sf::RenderWindow& ventana) {
+inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     static bool texturaLista = false;
     static sf::Texture texturaJugador;
+    static bool accionesLista = false;
+    static sf::Texture texturaAcciones;
 
     if (!texturaLista) {
-        texturaLista = texturaJugador.loadFromFile("assets/player_sprite.png");
+        texturaLista = texturaJugador.loadFromFile("assets/player_walk.png");
         texturaJugador.setSmooth(false);
+    }
+    if (!accionesLista) {
+        accionesLista = texturaAcciones.loadFromFile("assets/player_actions.png");
+        texturaAcciones.setSmooth(false);
     }
 
     sf::RectangleShape sombra({24.0f, 7.0f});
@@ -149,25 +173,51 @@ inline void Jugador::dibujarSteve(sf::RenderWindow& ventana) {
         return;
     }
 
+    bool usarAccion = accionando && accionesLista;
     int fila = 0;
     bool espejarHorizontal = false;
-    if (direccionMirada == DireccionMirada::Izquierda) {
-        fila = 3;
-        espejarHorizontal = true;
+    int columna = 0;
+    sf::Texture* texturaActiva = &texturaJugador;
+    int altoFrame = 32;
+
+    if (usarAccion) {
+        texturaActiva = &texturaAcciones;
+        columna = std::min(2, static_cast<int>(tiempoAccion / 0.11f));
+
+        bool esHerramientaTrabajo = itemAccion == ItemId::PicoMadera ||
+                                    itemAccion == ItemId::PicoPiedra ||
+                                    itemAccion == ItemId::PicoDiamante ||
+                                    itemAccion == ItemId::HachaMadera ||
+                                    itemAccion == ItemId::HachaPiedra ||
+                                    itemAccion == ItemId::PalaMadera ||
+                                    itemAccion == ItemId::PalaPiedra ||
+                                    itemAccion == ItemId::Barreta;
+        int baseAccion = esHerramientaTrabajo ? 0 : 6;
+
+        if (direccionMirada == DireccionMirada::Abajo) fila = baseAccion + 0;
+        if (direccionMirada == DireccionMirada::Izquierda) {
+            fila = baseAccion + 1;
+            espejarHorizontal = true;
+        }
+        if (direccionMirada == DireccionMirada::Derecha) fila = baseAccion + 1;
+        if (direccionMirada == DireccionMirada::Arriba) fila = baseAccion + 2;
+    } else {
+        if (direccionMirada == DireccionMirada::Abajo) fila = caminando ? 1 : 0;
+        if (direccionMirada == DireccionMirada::Arriba) fila = caminando ? 5 : 2;
+        if (direccionMirada == DireccionMirada::Derecha) fila = caminando ? 4 : 3;
+        if (direccionMirada == DireccionMirada::Izquierda) {
+            fila = caminando ? 4 : 3;
+            espejarHorizontal = true;
+        }
+
+        columna = caminando ? static_cast<int>(tiempoAnimacion * 8.0f) % 6 : 0;
     }
-    if (direccionMirada == DireccionMirada::Arriba) fila = 1;
-    if (direccionMirada == DireccionMirada::Derecha) fila = 3;
 
-    int columna = caminando ? static_cast<int>(tiempoAnimacion * 8.0f) % 4 : 0;
-    static const int xs[4] = {1, 23, 45, 67};
-    static const int ys[4] = {1, 27, 52, 78};
-    static const int hs[4] = {25, 24, 24, 24};
-
-    sf::Sprite sprite(texturaJugador);
-    sprite.setTextureRect(sf::IntRect({xs[columna], ys[fila]}, {17, hs[fila]}));
-    sprite.setOrigin({8.5f, static_cast<float>(hs[fila])});
+    sf::Sprite sprite(*texturaActiva);
+    sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, altoFrame}));
+    sprite.setOrigin({16.0f, 30.0f});
     sprite.setPosition({posicion.x + 12.0f, posicion.y + 26.0f});
-    sprite.setScale({espejarHorizontal ? -1.35f : 1.35f, 1.35f});
+    sprite.setScale({espejarHorizontal ? -1.2f : 1.2f, 1.2f});
     ventana.draw(sprite);
 }
 

@@ -357,6 +357,10 @@ inline void Juego::ejecutar() {
         }
 
         bool usandoMina = jugadorSobreEntradaMina && tipoHerramienta(inventarioGrid.getItemEnHotbar()) == TipoHerramienta::Pico;
+        if (!uiAbierta && clickIzquierdo && !clickIzquierdoAnterior && jugador) {
+            jugador->iniciarAccion(inventarioGrid.getItemEnHotbar());
+        }
+
         bool golpeoAnimal = false;
         if (!uiAbierta && clickIzquierdo && !clickIzquierdoAnterior && jugador) {
             sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
