@@ -27,6 +27,8 @@ private:
     bool muriendo;
     float tiempoMuerte;
     float tiempoGolpe;
+    bool tieneAmenaza;
+    sf::Vector2f posicionAmenaza;
 
     void elegirNuevaDireccion();
     void dibujarCerdo(sf::RenderWindow& ventana);

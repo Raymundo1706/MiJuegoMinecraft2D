@@ -24,7 +24,9 @@ inline Animal::Animal(float x, float y, TipoAnimal tipo)
       mirandoDerecha(false),
       muriendo(false),
       tiempoMuerte(0.0f),
-      tiempoGolpe(0.0f) {
+      tiempoGolpe(0.0f),
+      tieneAmenaza(false),
+      posicionAmenaza(0.0f, 0.0f) {
     
     forma.setSize({anchoAnimal, altoAnimal});
     
@@ -91,8 +93,24 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
         tiempoGolpe = std::max(0.0f, tiempoGolpe - dt);
     }
 
+    bool huyendo = false;
+    if (tiempoPanico > 0.0f && tieneAmenaza) {
+        sf::Vector2f centroAnimal = posicion + sf::Vector2f(anchoAnimal * 0.5f, altoAnimal * 0.5f);
+        sf::Vector2f direccionHuida = centroAnimal - posicionAmenaza;
+        float distancia = std::sqrt(direccionHuida.x * direccionHuida.x + direccionHuida.y * direccionHuida.y);
+
+        if (distancia > 0.01f) {
+            direccionHuida /= distancia;
+            float velocidadHuida = (tipo == TipoAnimal::Cerdo ? 64.0f : 70.0f);
+            velocidad = direccionHuida * velocidadHuida;
+            if (velocidad.x > 0.0f) mirandoDerecha = true;
+            if (velocidad.x < 0.0f) mirandoDerecha = false;
+            huyendo = true;
+        }
+    }
+
     bool atraidoPorComida = false;
-    if (tipo == TipoAnimal::Cerdo && tiempoPanico <= 0.0f && esComidaCerdo(itemJugador)) {
+    if (!huyendo && tipo == TipoAnimal::Cerdo && tiempoPanico <= 0.0f && esComidaCerdo(itemJugador)) {
         sf::Vector2f centroAnimal = posicion + sf::Vector2f(anchoAnimal * 0.5f, altoAnimal * 0.5f);
         sf::Vector2f delta = posicionJugador - centroAnimal;
         float distancia = std::sqrt(delta.x * delta.x + delta.y * delta.y);
@@ -106,7 +124,7 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
         }
     }
 
-    if (!atraidoPorComida) {
+    if (!atraidoPorComida && !huyendo) {
         tiempoCambiandoDireccion += dt;
         float limiteCambio = tiempoPanico > 0.0f ? 0.45f : tiempoMaximoDireccion;
         if (tiempoCambiandoDireccion >= limiteCambio) {
@@ -268,13 +286,15 @@ inline void Animal::recibirDanio(float danio, sf::Vector2f origenDanio) {
         velocidad = {0.0f, 0.0f};
     } else {
         tiempoPanico = 8.0f;
+        tieneAmenaza = true;
+        posicionAmenaza = origenDanio;
         sf::Vector2f centroAnimal = posicion + sf::Vector2f(anchoAnimal * 0.5f, altoAnimal * 0.5f);
         sf::Vector2f direccionHuida = centroAnimal - origenDanio;
         float distancia = std::sqrt(direccionHuida.x * direccionHuida.x + direccionHuida.y * direccionHuida.y);
 
         if (distancia > 0.01f) {
             direccionHuida /= distancia;
-            float velocidadHuida = (tipo == TipoAnimal::Cerdo ? 8.0f : 40.0f) * 1.5f;
+            float velocidadHuida = (tipo == TipoAnimal::Cerdo ? 64.0f : 70.0f);
             velocidad = direccionHuida * velocidadHuida;
             if (velocidad.x > 0.0f) mirandoDerecha = true;
             if (velocidad.x < 0.0f) mirandoDerecha = false;
