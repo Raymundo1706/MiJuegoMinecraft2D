@@ -73,6 +73,7 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::TablonMadera: return sf::Color(185, 130, 65);
         case ItemId::BloquePiedra: return sf::Color(120, 120, 120);
         case ItemId::MineralHierro: return sf::Color(202, 172, 120);
+        case ItemId::MineralPlata: return sf::Color(205, 210, 215);
         case ItemId::MineralOro: return sf::Color(245, 204, 75);
         case ItemId::MineralDiamante: return sf::Color(70, 220, 235);
         case ItemId::Redstone: return sf::Color(190, 30, 30);
@@ -90,6 +91,7 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::Remolacha: return sf::Color(150, 38, 62);
         case ItemId::ChuletaCerdoCruda: return sf::Color(214, 103, 111);
         case ItemId::ChuletaCerdoCocinada: return sf::Color(134, 75, 42);
+        case ItemId::Barreta: return sf::Color(105, 108, 112);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
@@ -112,6 +114,7 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::TablonMadera: return "Ta";
         case ItemId::BloquePiedra: return "Pi";
         case ItemId::MineralHierro: return "Fe";
+        case ItemId::MineralPlata: return "Ag";
         case ItemId::MineralOro: return "Au";
         case ItemId::MineralDiamante: return "Di";
         case ItemId::Redstone: return "Rs";
@@ -129,6 +132,7 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::Remolacha: return "Re";
         case ItemId::ChuletaCerdoCruda: return "Ch";
         case ItemId::ChuletaCerdoCocinada: return "Cc";
+        case ItemId::Barreta: return "Br";
         case ItemId::PicoMadera: return "Pk";
         case ItemId::PicoPiedra: return "Pp";
         case ItemId::PicoDiamante: return "Pd";

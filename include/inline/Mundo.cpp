@@ -235,6 +235,28 @@ inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, co
         rect(31.0f, 12.0f, 18.0f, 7.0f, hojaClara);
     }
 }
+
+inline TipoBloque revelarSueloRaro() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> suerte(1, 1000);
+    int valor = suerte(gen);
+
+    if (valor <= 3) return TipoBloque::MineralOro;
+    if (valor <= 10) return TipoBloque::MineralPlata;
+    return TipoBloque::Tierra;
+}
+
+inline Bloque crearBloqueRevelado(TipoBioma bioma) {
+    TipoBloque revelado = revelarSueloRaro();
+    if (revelado == TipoBloque::MineralOro) {
+        return {TipoBloque::MineralOro, true, 450.0f, false, 0.0f, false, 1, 450.0f, bioma, 0};
+    }
+    if (revelado == TipoBloque::MineralPlata) {
+        return {TipoBloque::MineralPlata, true, 420.0f, false, 0.0f, false, 1, 420.0f, bioma, 0};
+    }
+    return {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+}
 }
 
 inline Mundo::Mundo(int ancho, int alto) : ancho(ancho), alto(alto) {
@@ -347,6 +369,8 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
                         TipoBioma bioma = cuadricula[y][x].bioma;
                         if (suerte < 5) {
                             cuadricula[y][x] = {TipoBloque::MineralHierro, true, 450.0f, false, 0.0f, false, 1, 450.0f, bioma, 0};
+                        } else if (suerte < 8) {
+                            cuadricula[y][x] = {TipoBloque::MineralPlata, true, 420.0f, false, 0.0f, false, 1, 420.0f, bioma, 0};
                         } else if (suerte == 99) {
                             cuadricula[y][x] = {TipoBloque::MineralDiamante, true, 600.0f, false, 0.0f, false, 1, 600.0f, bioma, 0};
                         } else {
@@ -448,6 +472,8 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 formaBlq.setFillColor(sf::Color(128, 128, 128));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
                 formaBlq.setFillColor(sf::Color(210, 180, 140));
+            } else if (cuadricula[y][x].tipo == TipoBloque::MineralPlata) {
+                formaBlq.setFillColor(sf::Color(188, 196, 202));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralDiamante) {
                 formaBlq.setFillColor(sf::Color(0, 255, 255));
             } else {
@@ -479,6 +505,7 @@ inline int Mundo::getVidaMaximaBloque(TipoBloque tipo) const {
         case TipoBloque::CuevaEntrada: return 9999;
         case TipoBloque::Piedra: return 300;
         case TipoBloque::MineralHierro: return 450;
+        case TipoBloque::MineralPlata: return 420;
         case TipoBloque::MineralDiamante: return 600;
         default: return 50;
     }
@@ -536,7 +563,7 @@ inline bool Mundo::crearEntradaMina(int x, int y) {
     }
 
     TipoBloque tipo = cuadricula[y][x].tipo;
-    if (tipo != TipoBloque::Piedra) {
+    if (tipo != TipoBloque::Tierra) {
         return false;
     }
 
