@@ -79,7 +79,7 @@ inline void dibujarBarraVida(sf::RenderWindow& ventana, const Jugador& jugador) 
     int vida = std::clamp(jugador.getVidaHP(), 0, jugador.getVidaMaximaHP());
     int corazones = jugador.getVidaMaximaHP() / 2;
     constexpr float escala = 2.4f;
-    sf::Vector2f origen(18.0f, 526.0f);
+    sf::Vector2f origen(184.0f, 476.0f);
 
     for (int i = 0; i < corazones; ++i) {
         int hpCorazon = std::clamp(vida - i * 2, 0, 2);
