@@ -343,32 +343,7 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     }
     ventana.draw(sprite);
 
-    if (enAgua) {
-        sf::RectangleShape gota;
-        sf::Color agua(55, 155, 230, hundido ? 170 : 130);
-        sf::Color brillo(135, 215, 255, hundido ? 165 : 140);
-        float yLinea = posicion.y + (hundido ? 13.0f : 21.0f);
-
-        gota.setFillColor(agua);
-        float segmentos[4][4] = {
-            {2.0f, 0.0f, 6.0f, 2.0f},
-            {9.0f, 1.0f, 5.0f, 2.0f},
-            {15.0f, 0.0f, 6.0f, 2.0f},
-            {22.0f, 1.0f, 4.0f, 2.0f}
-        };
-        for (auto& s : segmentos) {
-            gota.setSize({s[2], s[3]});
-            gota.setPosition({posicion.x + s[0], yLinea + s[1]});
-            ventana.draw(gota);
-        }
-
-        gota.setFillColor(brillo);
-        gota.setSize({4.0f, 1.0f});
-        gota.setPosition({posicion.x + 5.0f, yLinea});
-        ventana.draw(gota);
-        gota.setPosition({posicion.x + 17.0f, yLinea});
-        ventana.draw(gota);
-    } else if (tiempoMojado > 0.0f) {
+    if (!enAgua && tiempoMojado > 0.0f) {
         sf::RectangleShape gota;
         gota.setFillColor(sf::Color(92, 190, 245, static_cast<std::uint8_t>(45 + tiempoMojado * 35.0f)));
         float fase = (5.0f - tiempoMojado) * 5.0f;
