@@ -150,7 +150,11 @@ inline void Jugador::dibujarSteve(sf::RenderWindow& ventana) {
     }
 
     int fila = 0;
-    if (direccionMirada == DireccionMirada::Izquierda) fila = 1;
+    bool espejarHorizontal = false;
+    if (direccionMirada == DireccionMirada::Izquierda) {
+        fila = 3;
+        espejarHorizontal = true;
+    }
     if (direccionMirada == DireccionMirada::Arriba) fila = 2;
     if (direccionMirada == DireccionMirada::Derecha) fila = 3;
 
@@ -163,7 +167,7 @@ inline void Jugador::dibujarSteve(sf::RenderWindow& ventana) {
     sprite.setTextureRect(sf::IntRect({xs[columna], ys[fila]}, {17, hs[fila]}));
     sprite.setOrigin({8.5f, static_cast<float>(hs[fila])});
     sprite.setPosition({posicion.x + 12.0f, posicion.y + 26.0f});
-    sprite.setScale({1.35f, 1.35f});
+    sprite.setScale({espejarHorizontal ? -1.35f : 1.35f, 1.35f});
     ventana.draw(sprite);
 }
 
