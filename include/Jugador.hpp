@@ -23,6 +23,10 @@ private:
     bool accionando;
     float tiempoAccion;
     ItemId itemAccion;
+    bool enAgua;
+    bool hundido;
+    float tiempoEnAgua;
+    float tiempoHundimiento;
 
     void dibujarPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala);
     void dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, int ancho, int alto, sf::Color color, float escala);
@@ -37,6 +41,9 @@ public:
     void iniciarAccion(ItemId item);
 
     sf::Vector2f getPosicion() const;
+    bool estaEnAgua() const;
+    bool estaHundido() const;
+    float getTiempoEnAgua() const;
 };
 
 #include "inline/Jugador.cpp"
