@@ -58,7 +58,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     caminando = true;
     tiempoAnimacion += dt;
 
-    if (std::abs(direccion.x) > std::abs(direccion.y)) {
+    if (direccion.x != 0.0f) {
         direccionMirada = direccion.x > 0.0f ? DireccionMirada::Derecha : DireccionMirada::Izquierda;
     } else {
         direccionMirada = direccion.y > 0.0f ? DireccionMirada::Abajo : DireccionMirada::Arriba;
