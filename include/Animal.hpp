@@ -24,6 +24,8 @@ private:
     float anchoAnimal;
     float altoAnimal;
     bool mirandoDerecha;
+    bool muriendo;
+    float tiempoMuerte;
 
     void elegirNuevaDireccion();
     void dibujarCerdo(sf::RenderWindow& ventana);
@@ -37,6 +39,8 @@ public:
     void dibujar(sf::RenderWindow& ventana);
     void recibirDanio(float danio);
     bool estaVivo() const;
+    bool estaMuriendo() const;
+    bool muerteFinalizada() const;
     bool contienePunto(sf::Vector2f punto) const;
     TipoAnimal getTipo() const;
 
