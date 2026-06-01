@@ -87,122 +87,6 @@ inline sf::Color colorTierraPixel(int x, int y, bool arada) {
     return sf::Color(118, 75, 43);
 }
 
-enum class TileVisual {
-    Pasto,
-    Tierra,
-    Agua,
-    Arada,
-    Piedra
-};
-
-inline sf::Texture& texturaTile(TileVisual tile) {
-    static bool cargadas = false;
-    static sf::Texture pasto;
-    static sf::Texture tierra;
-    static sf::Texture agua;
-    static sf::Texture arada;
-    static sf::Texture piedra;
-
-    if (!cargadas) {
-        pasto.loadFromFile("assets/tile_grass.png");
-        tierra.loadFromFile("assets/tile_dirt.png");
-        agua.loadFromFile("assets/tile_water.png");
-        arada.loadFromFile("assets/tile_farmland.png");
-        piedra.loadFromFile("assets/tile_stone.png");
-        pasto.setSmooth(false);
-        tierra.setSmooth(false);
-        agua.setSmooth(false);
-        arada.setSmooth(false);
-        piedra.setSmooth(false);
-        cargadas = true;
-    }
-
-    switch (tile) {
-        case TileVisual::Tierra: return tierra;
-        case TileVisual::Agua: return agua;
-        case TileVisual::Arada: return arada;
-        case TileVisual::Piedra: return piedra;
-        default: return pasto;
-    }
-}
-
-inline bool dibujarTileAsset(sf::RenderWindow& ventana, int bloqueX, int bloqueY, TileVisual tile, sf::Color tinte = sf::Color::White) {
-    sf::Texture& textura = texturaTile(tile);
-    sf::Vector2u tam = textura.getSize();
-    if (tam.x < 16 || tam.y < 16) {
-        return false;
-    }
-
-    sf::Sprite sprite(textura);
-    sprite.setTextureRect(sf::IntRect({0, 0}, {16, 16}));
-    sprite.setPosition({bloqueX * 32.0f, bloqueY * 32.0f});
-    sprite.setScale({2.0f, 2.0f});
-    sprite.setColor(tinte);
-    ventana.draw(sprite);
-    return true;
-}
-
-inline unsigned int hashBloque(int x, int y) {
-    unsigned int h = static_cast<unsigned int>(x * 374761393u) ^ static_cast<unsigned int>(y * 668265263u);
-    h = (h ^ (h >> 13u)) * 1274126177u;
-    return h ^ (h >> 16u);
-}
-
-inline sf::Color tintePastoBioma(TipoBioma bioma) {
-    switch (bioma) {
-        case TipoBioma::Bosque: return sf::Color(170, 218, 178);
-        case TipoBioma::Seco: return sf::Color(224, 214, 126);
-        case TipoBioma::Montana: return sf::Color(182, 205, 195);
-        default: return sf::Color::White;
-    }
-}
-
-inline void dibujarDecoracionPasto(sf::RenderWindow& ventana, int bloqueX, int bloqueY, TipoBioma bioma) {
-    unsigned int h = hashBloque(bloqueX, bloqueY);
-    int densidad = bioma == TipoBioma::Bosque ? 46 : (bioma == TipoBioma::Seco ? 14 : 30);
-    if (static_cast<int>(h % 100) >= densidad) {
-        return;
-    }
-
-    float baseX = bloqueX * 32.0f;
-    float baseY = bloqueY * 32.0f;
-    sf::RectangleShape r;
-    sf::Color hoja = bioma == TipoBioma::Seco ? sf::Color(143, 151, 62) : sf::Color(44, 143, 56);
-    sf::Color hojaClara = bioma == TipoBioma::Seco ? sf::Color(190, 177, 74) : sf::Color(88, 190, 74);
-
-    int ox = static_cast<int>((h >> 5u) % 22u) + 4;
-    int oy = static_cast<int>((h >> 11u) % 20u) + 6;
-    r.setSize({2.0f, 7.0f});
-    r.setPosition({baseX + ox, baseY + oy});
-    r.setFillColor(hoja);
-    ventana.draw(r);
-
-    r.setSize({2.0f, 5.0f});
-    r.setPosition({baseX + ox + 4.0f, baseY + oy + 2.0f});
-    r.setFillColor(hojaClara);
-    ventana.draw(r);
-
-    if (h % 17u == 0u && bioma != TipoBioma::Seco) {
-        sf::Color flor = ((h >> 3u) % 2u == 0u) ? sf::Color(238, 231, 92) : sf::Color(225, 112, 205);
-        r.setSize({3.0f, 3.0f});
-        r.setPosition({baseX + ox + 2.0f, baseY + oy - 2.0f});
-        r.setFillColor(flor);
-        ventana.draw(r);
-    }
-}
-
-inline void dibujarMotasMineral(sf::RenderWindow& ventana, int bloqueX, int bloqueY, sf::Color color) {
-    sf::RectangleShape mota({5.0f, 5.0f});
-    unsigned int h = hashBloque(bloqueX, bloqueY);
-    for (int i = 0; i < 5; ++i) {
-        int ox = static_cast<int>((h >> (i * 4)) % 22u) + 4;
-        int oy = static_cast<int>((h >> (i * 5 + 3)) % 22u) + 4;
-        mota.setPosition({bloqueX * 32.0f + ox, bloqueY * 32.0f + oy});
-        mota.setFillColor(color);
-        ventana.draw(mota);
-    }
-}
-
 inline void dibujarTextura16(sf::RenderWindow& ventana, int bloqueX, int bloqueY, bool pasto, bool arada = false, TipoBioma bioma = TipoBioma::Pradera) {
     static bool inicializadas = false;
     static sf::Texture texturaPastoPradera;
@@ -272,6 +156,68 @@ inline void dibujarTextura16(sf::RenderWindow& ventana, int bloqueX, int bloqueY
         }
     }
     sf::Sprite sprite(*textura);
+    sprite.setPosition({bloqueX * 32.0f, bloqueY * 32.0f});
+    ventana.draw(sprite);
+}
+
+inline sf::Color colorAguaPixel(int x, int y, int frame, bool profunda) {
+    int ondaA = (x + frame * 3 + (y / 3)) % 16;
+    int ondaB = (y + frame * 2 + (x / 4)) % 13;
+    int brillo = (ondaA == 0 || ondaA == 1 || ondaB == 0) ? 1 : 0;
+    int sombra = ((x * 5 + y * 7 + frame * 4) % 19 == 0) ? 1 : 0;
+
+    if (profunda) {
+        if (brillo) return sf::Color(28, 82, 171);
+        if (sombra) return sf::Color(8, 34, 112);
+        return sf::Color(12, 55, 145);
+    }
+
+    if (brillo) return sf::Color(88, 184, 245);
+    if (sombra) return sf::Color(21, 105, 194);
+    return sf::Color(34, 144, 225);
+}
+
+inline void dibujarAguaAnimada(sf::RenderWindow& ventana, int bloqueX, int bloqueY, bool profunda) {
+    static bool inicializadas = false;
+    static sf::Texture agua[4];
+    static sf::Texture aguaProfunda[4];
+    static sf::Clock relojAgua;
+
+    if (!inicializadas) {
+        for (int frame = 0; frame < 4; ++frame) {
+            sf::Image imagenAgua({32, 32}, sf::Color::Transparent);
+            sf::Image imagenProfunda({32, 32}, sf::Color::Transparent);
+
+            for (int py = 0; py < 16; ++py) {
+                for (int px = 0; px < 16; ++px) {
+                    sf::Color clara = colorAguaPixel(px, py, frame, false);
+                    sf::Color oscura = colorAguaPixel(px, py, frame, true);
+
+                    for (int sy = 0; sy < 2; ++sy) {
+                        for (int sx = 0; sx < 2; ++sx) {
+                            sf::Vector2u destino(
+                                static_cast<unsigned int>(px * 2 + sx),
+                                static_cast<unsigned int>(py * 2 + sy)
+                            );
+                            imagenAgua.setPixel(destino, clara);
+                            imagenProfunda.setPixel(destino, oscura);
+                        }
+                    }
+                }
+            }
+
+            if (!agua[frame].loadFromImage(imagenAgua) || !aguaProfunda[frame].loadFromImage(imagenProfunda)) {
+                return;
+            }
+            agua[frame].setSmooth(false);
+            aguaProfunda[frame].setSmooth(false);
+        }
+        inicializadas = true;
+    }
+
+    int frameBase = static_cast<int>(relojAgua.getElapsedTime().asSeconds() * 4.0f) % 4;
+    int frame = (frameBase + ((bloqueX + bloqueY) & 1)) % 4;
+    sf::Sprite sprite(profunda ? aguaProfunda[frame] : agua[frame]);
     sprite.setPosition({bloqueX * 32.0f, bloqueY * 32.0f});
     ventana.draw(sprite);
 }
@@ -534,30 +480,19 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
     for (int y = inicioY; y < finY; ++y) {
         for (int x = inicioX; x < finX; ++x) {
             if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
-                if (!dibujarTileAsset(ventana, x, y, TileVisual::Pasto, tintePastoBioma(cuadricula[y][x].bioma))) {
-                    dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
-                }
-                dibujarDecoracionPasto(ventana, x, y, cuadricula[y][x].bioma);
+                dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Tierra) {
-                if (!dibujarTileAsset(ventana, x, y, TileVisual::Tierra)) {
-                    dibujarTextura16(ventana, x, y, false, false, cuadricula[y][x].bioma);
-                }
+                dibujarTextura16(ventana, x, y, false, false, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Agua) {
-                if (dibujarTileAsset(ventana, x, y, TileVisual::Agua, sf::Color(118, 190, 255))) {
-                    continue;
-                }
-                formaBlq.setFillColor(sf::Color(30, 144, 255));
+                dibujarAguaAnimada(ventana, x, y, false);
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::AguaProfunda) {
-                if (dibujarTileAsset(ventana, x, y, TileVisual::Agua, sf::Color(55, 92, 178))) {
-                    continue;
-                }
-                formaBlq.setFillColor(sf::Color(0, 0, 139));
+                dibujarAguaAnimada(ventana, x, y, true);
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Madera) {
-                if (!dibujarTileAsset(ventana, x, y, TileVisual::Pasto, tintePastoBioma(cuadricula[y][x].bioma))) {
-                    dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
-                }
+                dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MesaCrafteo) {
                 formaBlq.setFillColor(sf::Color(64, 38, 20));
@@ -584,40 +519,19 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::Cristal) {
                 formaBlq.setFillColor(sf::Color(180, 235, 255, 180));
             } else if (cuadricula[y][x].tipo == TipoBloque::TierraArada) {
-                if (!dibujarTileAsset(ventana, x, y, TileVisual::Arada)) {
-                    dibujarTextura16(ventana, x, y, false, true, cuadricula[y][x].bioma);
-                }
+                dibujarTextura16(ventana, x, y, false, true, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::CuevaEntrada) {
                 formaBlq.setFillColor(cuadricula[y][x].minaAbierta ? sf::Color(45, 25, 65) : sf::Color(18, 18, 22));
             } else if (cuadricula[y][x].tipo == TipoBloque::Piedra) {
-                if (dibujarTileAsset(ventana, x, y, TileVisual::Piedra)) {
-                    continue;
-                }
                 formaBlq.setFillColor(sf::Color(128, 128, 128));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
-                if (dibujarTileAsset(ventana, x, y, TileVisual::Piedra)) {
-                    dibujarMotasMineral(ventana, x, y, sf::Color(210, 146, 98));
-                    continue;
-                }
                 formaBlq.setFillColor(sf::Color(210, 180, 140));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralPlata) {
-                if (dibujarTileAsset(ventana, x, y, TileVisual::Piedra)) {
-                    dibujarMotasMineral(ventana, x, y, sf::Color(218, 228, 235));
-                    continue;
-                }
                 formaBlq.setFillColor(sf::Color(188, 196, 202));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralOro) {
-                if (dibujarTileAsset(ventana, x, y, TileVisual::Piedra)) {
-                    dibujarMotasMineral(ventana, x, y, sf::Color(238, 190, 52));
-                    continue;
-                }
                 formaBlq.setFillColor(sf::Color(224, 180, 58));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralDiamante) {
-                if (dibujarTileAsset(ventana, x, y, TileVisual::Piedra)) {
-                    dibujarMotasMineral(ventana, x, y, sf::Color(70, 235, 238));
-                    continue;
-                }
                 formaBlq.setFillColor(sf::Color(0, 255, 255));
             } else {
                 formaBlq.setFillColor(sf::Color(0, 100, 0));
