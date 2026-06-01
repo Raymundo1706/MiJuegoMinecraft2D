@@ -5,6 +5,7 @@ inline SistemaHerramientas::SistemaHerramientas() : herramientaActiva(0) {
     inventario[TipoBloque::Madera] = 0;
     inventario[TipoBloque::Piedra] = 0;
     inventario[TipoBloque::MineralHierro] = 0;
+    inventario[TipoBloque::MineralPlata] = 0;
     inventario[TipoBloque::MineralDiamante] = 0;
 }
 
@@ -44,6 +45,7 @@ inline float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMa
             vidaReferencia = 300.0f;
             break;
         case TipoBloque::MineralHierro:
+        case TipoBloque::MineralPlata:
         case TipoBloque::MineralOro:
             vidaReferencia = 450.0f;
             break;
@@ -80,7 +82,8 @@ inline float SistemaHerramientas::calcularTiempoMinado(TipoBloque tipo, ItemId i
         return 7.5f;
     }
 
-    if (tipo == TipoBloque::MineralHierro || tipo == TipoBloque::MineralOro || tipo == TipoBloque::Redstone) {
+    if (tipo == TipoBloque::MineralHierro || tipo == TipoBloque::MineralPlata ||
+        tipo == TipoBloque::MineralOro || tipo == TipoBloque::Redstone) {
         if (itemEnMano == ItemId::PicoMadera) return 2.25f;
         if (itemEnMano == ItemId::PicoPiedra) return 1.15f;
         if (itemEnMano == ItemId::PicoDiamante) return 0.6f;
@@ -105,6 +108,7 @@ inline float SistemaHerramientas::calcularTiempoMinado(TipoBloque tipo, ItemId i
 inline bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const {
     bool requierePico = (tipo == TipoBloque::Piedra ||
                          tipo == TipoBloque::MineralHierro ||
+                         tipo == TipoBloque::MineralPlata ||
                          tipo == TipoBloque::MineralOro ||
                          tipo == TipoBloque::MineralDiamante ||
                          tipo == TipoBloque::Redstone);
@@ -119,6 +123,7 @@ inline bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnM
 inline void SistemaHerramientas::agregarAlInventario(TipoBloque tipo, int herramientaUsada) {
     bool esMineral = (tipo == TipoBloque::Piedra ||
                       tipo == TipoBloque::MineralHierro ||
+                      tipo == TipoBloque::MineralPlata ||
                       tipo == TipoBloque::MineralDiamante);
 
     if (!esMineral || (esMineral && herramientaUsada == 1)) {

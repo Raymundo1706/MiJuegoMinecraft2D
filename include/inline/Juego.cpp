@@ -441,8 +441,8 @@ inline void Juego::ejecutar() {
                             tipoActual = TipoBloque::Aire;
                         }
 
-                        if (tipoActual == TipoBloque::Piedra &&
-                            tipoHerramienta(itemEnMano) == TipoHerramienta::Pico &&
+                        if (tipoActual == TipoBloque::Tierra &&
+                            itemEnMano == ItemId::Barreta &&
                             mapaSuperficie->crearEntradaMina(bloqueX, bloqueY)) {
                             tipoActual = TipoBloque::Aire;
                         }

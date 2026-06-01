@@ -678,6 +678,7 @@ inline sf::Color Mundo::getColorMapa(int x, int y) const {
             return sf::Color(18, 54, 145);
         case TipoBloque::Piedra:
         case TipoBloque::MineralHierro:
+        case TipoBloque::MineralPlata:
         case TipoBloque::MineralOro:
         case TipoBloque::MineralDiamante:
         case TipoBloque::Redstone:
@@ -713,9 +714,21 @@ inline bool Mundo::daniarBloque(int x, int y, float cantidadDanio) {
     if (cuadricula[y][x].tipo == TipoBloque::Aire) return false;
     if (cuadricula[y][x].tipo == TipoBloque::CuevaEntrada) return false;
 
-    cuadricula[y][x].vida -= cantidadDanio;
-    if (cuadricula[y][x].vida <= 0.0f) {
-        cuadricula[y][x] = {TipoBloque::Aire, false, 0.0f, false};
+    Bloque& bloque = cuadricula[y][x];
+    TipoBloque tipoOriginal = bloque.tipo;
+    TipoBioma bioma = bloque.bioma;
+
+    bloque.vida -= cantidadDanio;
+    if (bloque.vida <= 0.0f) {
+        if (tipoOriginal == TipoBloque::Pasto || tipoOriginal == TipoBloque::Piedra) {
+            cuadricula[y][x] = crearBloqueRevelado(bioma);
+        } else if (tipoOriginal == TipoBloque::Tierra || tipoOriginal == TipoBloque::TierraArada) {
+            cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+        } else if (tipoOriginal == TipoBloque::MineralPlata || tipoOriginal == TipoBloque::MineralOro) {
+            cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+        } else {
+            cuadricula[y][x] = {TipoBloque::Aire, false, 0.0f, false, 0.0f, false, 1, 0.0f, bioma, 0};
+        }
         return true;
     }
     return false;
