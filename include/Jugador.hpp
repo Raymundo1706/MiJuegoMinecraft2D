@@ -28,6 +28,10 @@ private:
     float tiempoEnAgua;
     float tiempoHundimiento;
     float tiempoMojado;
+    int vidaMaximaHP;
+    int vidaHP;
+    float tiempoInvulnerable;
+    int ultimoDanioHP;
 
     void dibujarPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala);
     void dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, int ancho, int alto, sf::Color color, float escala);
@@ -45,6 +49,11 @@ public:
     bool estaEnAgua() const;
     bool estaHundido() const;
     float getTiempoEnAgua() const;
+    int getVidaHP() const;
+    int getVidaMaximaHP() const;
+    bool estaMuerto() const;
+    void recibirDanio(int danioHP);
+    void curar(int puntosHP);
 };
 
 #include "inline/Jugador.cpp"

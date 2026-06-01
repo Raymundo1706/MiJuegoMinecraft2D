@@ -18,6 +18,10 @@ inline Jugador::Jugador(float x, float y) {
     tiempoEnAgua = 0.0f;
     tiempoHundimiento = 0.0f;
     tiempoMojado = 0.0f;
+    vidaMaximaHP = 20;
+    vidaHP = vidaMaximaHP;
+    tiempoInvulnerable = 0.0f;
+    ultimoDanioHP = 0;
 
     // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
@@ -59,6 +63,13 @@ inline bool jugadorTocaAgua(const Mundo& mundo, sf::Vector2f posicionJugador, sf
 
 // MÃ©todo para mover al personaje detectando colisiones sÃ³lidas con el terreno
 inline void Jugador::controlar(float dt, const Mundo& mundo) {
+    if (tiempoInvulnerable > 0.0f) {
+        tiempoInvulnerable = std::max(0.0f, tiempoInvulnerable - dt);
+        if (tiempoInvulnerable <= 0.0f) {
+            ultimoDanioHP = 0;
+        }
+    }
+
     if (accionando) {
         tiempoAccion += dt;
         if (tiempoAccion >= 0.32f) {
@@ -371,5 +382,42 @@ inline bool Jugador::estaHundido() const {
 
 inline float Jugador::getTiempoEnAgua() const {
     return tiempoEnAgua;
+}
+
+inline int Jugador::getVidaHP() const {
+    return vidaHP;
+}
+
+inline int Jugador::getVidaMaximaHP() const {
+    return vidaMaximaHP;
+}
+
+inline bool Jugador::estaMuerto() const {
+    return vidaHP <= 0;
+}
+
+inline void Jugador::recibirDanio(int danioHP) {
+    if (danioHP <= 0 || vidaHP <= 0) {
+        return;
+    }
+
+    int danioAplicado = danioHP;
+    if (tiempoInvulnerable > 0.0f) {
+        if (danioHP <= ultimoDanioHP) {
+            return;
+        }
+        danioAplicado = danioHP - ultimoDanioHP;
+    }
+
+    vidaHP = std::max(0, vidaHP - danioAplicado);
+    ultimoDanioHP = std::max(ultimoDanioHP, danioHP);
+    tiempoInvulnerable = 0.5f;
+}
+
+inline void Jugador::curar(int puntosHP) {
+    if (puntosHP <= 0 || vidaHP <= 0) {
+        return;
+    }
+    vidaHP = std::min(vidaMaximaHP, vidaHP + puntosHP);
 }
 
