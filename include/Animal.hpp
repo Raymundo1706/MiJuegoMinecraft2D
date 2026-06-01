@@ -39,6 +39,7 @@ public:
     void actualizar(float dt, const Mundo& mundo, sf::Vector2f posicionJugador, ItemId itemJugador);
     void dibujar(sf::RenderWindow& ventana);
     void recibirDanio(float danio);
+    void recibirDanio(float danio, sf::Vector2f origenDanio);
     bool estaVivo() const;
     bool estaMuriendo() const;
     bool muerteFinalizada() const;

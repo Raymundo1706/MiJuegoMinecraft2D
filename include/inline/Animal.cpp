@@ -254,6 +254,10 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
 }
 
 inline void Animal::recibirDanio(float danio) {
+    recibirDanio(danio, posicion);
+}
+
+inline void Animal::recibirDanio(float danio, sf::Vector2f origenDanio) {
     if (muriendo || vida <= 0.0f || danio <= 0.0f) return;
     vida = std::max(0.0f, vida - danio);
     tiempoGolpe = 0.22f;
@@ -263,8 +267,21 @@ inline void Animal::recibirDanio(float danio) {
         tiempoPanico = 0.0f;
         velocidad = {0.0f, 0.0f};
     } else {
-        tiempoPanico = 4.0f;
-        elegirNuevaDireccion();
+        tiempoPanico = 8.0f;
+        sf::Vector2f centroAnimal = posicion + sf::Vector2f(anchoAnimal * 0.5f, altoAnimal * 0.5f);
+        sf::Vector2f direccionHuida = centroAnimal - origenDanio;
+        float distancia = std::sqrt(direccionHuida.x * direccionHuida.x + direccionHuida.y * direccionHuida.y);
+
+        if (distancia > 0.01f) {
+            direccionHuida /= distancia;
+            float velocidadHuida = (tipo == TipoAnimal::Cerdo ? 8.0f : 40.0f) * 1.5f;
+            velocidad = direccionHuida * velocidadHuida;
+            if (velocidad.x > 0.0f) mirandoDerecha = true;
+            if (velocidad.x < 0.0f) mirandoDerecha = false;
+            tiempoCambiandoDireccion = 0.0f;
+        } else {
+            elegirNuevaDireccion();
+        }
     }
 }
 
