@@ -29,14 +29,27 @@ inline Jugador::~Jugador() {}
 
 inline bool jugadorTocaAgua(const Mundo& mundo, sf::Vector2f posicionJugador, sf::Vector2f tamanoJugador) {
     const float TAMANIO_BLOQUE = 32.0f;
-    float pieY = posicionJugador.y + tamanoJugador.y - 3.0f;
-    int bloqueY = static_cast<int>(std::floor(pieY / TAMANIO_BLOQUE));
-    int bloqueIzq = static_cast<int>(std::floor((posicionJugador.x + 6.0f) / TAMANIO_BLOQUE));
-    int bloqueDer = static_cast<int>(std::floor((posicionJugador.x + tamanoJugador.x - 6.0f) / TAMANIO_BLOQUE));
 
-    for (int x = bloqueIzq; x <= bloqueDer; ++x) {
-        TipoBloque tipo = mundo.getTipoBloque(x, bloqueY);
-        if (tipo == TipoBloque::Agua || tipo == TipoBloque::AguaProfunda) {
+    auto puntoEsAgua = [&](float px, float py) {
+        int bloqueX = static_cast<int>(std::floor(px / TAMANIO_BLOQUE));
+        int bloqueY = static_cast<int>(std::floor(py / TAMANIO_BLOQUE));
+        TipoBloque tipo = mundo.getTipoBloque(bloqueX, bloqueY);
+        return tipo == TipoBloque::Agua || tipo == TipoBloque::AguaProfunda;
+    };
+
+    float izquierda = posicionJugador.x + 4.0f;
+    float derecha = posicionJugador.x + tamanoJugador.x - 4.0f;
+    float centroX = posicionJugador.x + tamanoJugador.x * 0.5f;
+    float pechoY = posicionJugador.y + tamanoJugador.y * 0.55f;
+    float piesY = posicionJugador.y + tamanoJugador.y - 2.0f;
+
+    if (puntoEsAgua(centroX, pechoY) || puntoEsAgua(centroX, piesY)) {
+        return true;
+    }
+
+    float muestrasLaterales[2] = {izquierda, derecha};
+    for (float x : muestrasLaterales) {
+        if (puntoEsAgua(x, piesY) || puntoEsAgua(x, pechoY)) {
             return true;
         }
     }
@@ -240,9 +253,9 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         }
     }
 
-    float hundimientoVisual = enAgua ? 5.0f : 0.0f;
+    float hundimientoVisual = enAgua ? 8.0f : 0.0f;
     if (hundido) {
-        hundimientoVisual = std::min(22.0f, 5.0f + tiempoHundimiento * 10.0f);
+        hundimientoVisual = std::min(24.0f, 8.0f + tiempoHundimiento * 10.0f);
     }
 
     if (!enAgua || !hundido) {
@@ -320,14 +333,14 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     ventana.draw(sprite);
 
     if (enAgua) {
-        sf::RectangleShape laminaAgua({28.0f, hundido ? 24.0f : 12.0f});
-        laminaAgua.setPosition({posicion.x - 2.0f, posicion.y + (hundido ? 13.0f : 22.0f)});
-        laminaAgua.setFillColor(sf::Color(55, 155, 230, hundido ? 150 : 105));
+        sf::RectangleShape laminaAgua({30.0f, hundido ? 25.0f : 15.0f});
+        laminaAgua.setPosition({posicion.x - 3.0f, posicion.y + (hundido ? 12.0f : 19.0f)});
+        laminaAgua.setFillColor(sf::Color(55, 155, 230, hundido ? 165 : 125));
         ventana.draw(laminaAgua);
 
-        sf::RectangleShape brillo({22.0f, 2.0f});
-        brillo.setPosition({posicion.x + 1.0f, posicion.y + (hundido ? 13.0f : 22.0f)});
-        brillo.setFillColor(sf::Color(135, 215, 255, hundido ? 135 : 110));
+        sf::RectangleShape brillo({24.0f, 2.0f});
+        brillo.setPosition({posicion.x, posicion.y + (hundido ? 12.0f : 19.0f)});
+        brillo.setFillColor(sf::Color(135, 215, 255, hundido ? 150 : 135));
         ventana.draw(brillo);
     }
 }
