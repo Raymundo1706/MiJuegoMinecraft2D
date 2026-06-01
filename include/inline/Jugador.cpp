@@ -6,6 +6,9 @@
 inline Jugador::Jugador(float x, float y) {
     posicion = {x, y};
     velocidad = 250.0f; // PÃ­xeles por segundo
+    direccionMirada = DireccionMirada::Abajo;
+    caminando = false;
+    tiempoAnimacion = 0.0f;
 
     // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
@@ -35,7 +38,19 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     }
 
     // Si no hay teclas presionadas, no hacemos cÃ¡lculos
-    if (direccion.x == 0.0f && direccion.y == 0.0f) return;
+    if (direccion.x == 0.0f && direccion.y == 0.0f) {
+        caminando = false;
+        return;
+    }
+
+    caminando = true;
+    tiempoAnimacion += dt;
+
+    if (std::abs(direccion.x) > std::abs(direccion.y)) {
+        direccionMirada = direccion.x > 0.0f ? DireccionMirada::Derecha : DireccionMirada::Izquierda;
+    } else {
+        direccionMirada = direccion.y > 0.0f ? DireccionMirada::Abajo : DireccionMirada::Arriba;
+    }
 
     // Normalizamos el vector de direcciÃ³n para evitar que camine mÃ¡s rÃ¡pido en diagonal
     float longitud = std::sqrt(direccion.x * direccion.x + direccion.y * direccion.y);
@@ -97,7 +112,81 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
 
 // MÃ©todo para pintar al jugador encima del mundo
 inline void Jugador::dibujar(sf::RenderWindow& ventana) {
-    ventana.draw(forma);
+    dibujarSteve(ventana);
+}
+
+inline void Jugador::dibujarPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
+    sf::RectangleShape pixel({escala, escala});
+    pixel.setPosition({origen.x + static_cast<float>(x) * escala, origen.y + static_cast<float>(y) * escala});
+    pixel.setFillColor(color);
+    ventana.draw(pixel);
+}
+
+inline void Jugador::dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, int ancho, int alto, sf::Color color, float escala) {
+    for (int py = y; py < y + alto; ++py) {
+        for (int px = x; px < x + ancho; ++px) {
+            dibujarPixel(ventana, origen, px, py, color, escala);
+        }
+    }
+}
+
+inline void Jugador::dibujarSteve(sf::RenderWindow& ventana) {
+    const float escala = 2.0f;
+    sf::Vector2f origen(posicion.x - 4.0f, posicion.y - 6.0f);
+
+    sf::Color piel(239, 171, 122);
+    sf::Color pielSombra(188, 101, 62);
+    sf::Color pelo(77, 47, 25);
+    sf::Color peloClaro(114, 82, 52);
+    sf::Color camisa(22, 166, 184);
+    sf::Color camisaLuz(42, 207, 211);
+    sf::Color pantalon(63, 89, 92);
+    sf::Color zapato(35, 54, 54);
+    sf::Color ojo(64, 55, 210);
+
+    int paso = caminando ? (static_cast<int>(tiempoAnimacion * 8.0f) % 2 == 0 ? 1 : -1) : 0;
+
+    dibujarRectPixel(ventana, origen, 5, 0, 10, 9, piel, escala);
+    dibujarRectPixel(ventana, origen, 5, 0, 10, 2, pelo, escala);
+    dibujarRectPixel(ventana, origen, 5, 2, 2, 5, peloClaro, escala);
+    dibujarRectPixel(ventana, origen, 7, 2, 2, 2, pelo, escala);
+    dibujarRectPixel(ventana, origen, 12, 7, 3, 2, pelo, escala);
+
+    if (direccionMirada == DireccionMirada::Arriba) {
+        dibujarRectPixel(ventana, origen, 6, 2, 8, 5, pelo, escala);
+        dibujarRectPixel(ventana, origen, 5, 6, 10, 3, pielSombra, escala);
+    } else if (direccionMirada == DireccionMirada::Izquierda) {
+        dibujarRectPixel(ventana, origen, 6, 4, 1, 1, sf::Color::White, escala);
+        dibujarPixel(ventana, origen, 7, 4, ojo, escala);
+        dibujarRectPixel(ventana, origen, 5, 6, 3, 2, pielSombra, escala);
+    } else if (direccionMirada == DireccionMirada::Derecha) {
+        dibujarRectPixel(ventana, origen, 12, 4, 1, 1, sf::Color::White, escala);
+        dibujarPixel(ventana, origen, 13, 4, ojo, escala);
+        dibujarRectPixel(ventana, origen, 12, 6, 3, 2, pielSombra, escala);
+    } else {
+        dibujarRectPixel(ventana, origen, 8, 4, 1, 1, sf::Color::White, escala);
+        dibujarPixel(ventana, origen, 9, 4, ojo, escala);
+        dibujarRectPixel(ventana, origen, 12, 4, 1, 1, sf::Color::White, escala);
+        dibujarPixel(ventana, origen, 13, 4, ojo, escala);
+        dibujarRectPixel(ventana, origen, 10, 7, 4, 2, pelo, escala);
+    }
+
+    dibujarRectPixel(ventana, origen, 6, 9, 8, 5, camisa, escala);
+    dibujarRectPixel(ventana, origen, 7, 10, 7, 2, camisaLuz, escala);
+
+    int brazoIzqY = 10 + (direccionMirada == DireccionMirada::Izquierda ? -paso : paso);
+    int brazoDerY = 10 + (direccionMirada == DireccionMirada::Derecha ? -paso : -paso);
+    dibujarRectPixel(ventana, origen, 3, brazoIzqY, 3, 5, piel, escala);
+    dibujarRectPixel(ventana, origen, 14, brazoDerY, 3, 5, piel, escala);
+    dibujarRectPixel(ventana, origen, 3, brazoIzqY, 3, 2, camisa, escala);
+    dibujarRectPixel(ventana, origen, 14, brazoDerY, 3, 2, camisa, escala);
+
+    int piernaIzqY = 14 + paso;
+    int piernaDerY = 14 - paso;
+    dibujarRectPixel(ventana, origen, 6, piernaIzqY, 4, 5, pantalon, escala);
+    dibujarRectPixel(ventana, origen, 10, piernaDerY, 4, 5, pantalon, escala);
+    dibujarRectPixel(ventana, origen, 6, piernaIzqY + 4, 4, 1, zapato, escala);
+    dibujarRectPixel(ventana, origen, 10, piernaDerY + 4, 4, 1, zapato, escala);
 }
 
 inline sf::Vector2f Jugador::getPosicion() const {
