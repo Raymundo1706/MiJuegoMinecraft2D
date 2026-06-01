@@ -17,6 +17,7 @@ public:
 
     float calcularDanio(TipoBloque tipo) const;
     float calcularDanio(TipoBloque tipo, ItemId itemEnMano) const;
+    float calcularTiempoMinado(TipoBloque tipo, ItemId itemEnMano) const;
     bool puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const;
 
     void agregarAlInventario(TipoBloque tipo, int herramientaUsada);
