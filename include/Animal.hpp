@@ -33,6 +33,10 @@ private:
     bool tieneAmenaza;
     sf::Vector2f posicionAmenaza;
     float tiempoParticulas;
+    bool enAgua;
+    bool hundido;
+    float tiempoEnAgua;
+    float tiempoHundimiento;
 
     void elegirNuevaDireccion();
     void dibujarAnimal(sf::RenderWindow& ventana);
