@@ -261,6 +261,19 @@ inline void Juego::ejecutar() {
             }
         }
 
+        if (jugador) {
+            sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+            for (auto it = itemsSuelo.begin(); it != itemsSuelo.end();) {
+                sf::Vector2f delta = it->posicion - centroJugador;
+                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) <= 24.0f) {
+                    inventarioGrid.agregarItem(it->item, it->cantidad);
+                    it = itemsSuelo.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+
         ventana.setView(camara);
         sf::Vector2f posicionMundoMouse = ventana.mapPixelToCoords(mousePos);
         int bloqueMouseX = static_cast<int>(std::floor(posicionMundoMouse.x / 32.0f));
@@ -363,16 +376,25 @@ inline void Juego::ejecutar() {
                 animal->recibirDanio(danioContraAnimal(inventarioGrid.getItemEnHotbar()));
                 golpeoAnimal = true;
 
-                if (!animal->estaVivo()) {
+                if (animal->estaMuriendo()) {
                     if (animal->getTipo() == TipoAnimal::Cerdo) {
                         std::uniform_int_distribution<> lootCerdo(1, 3);
-                        inventarioGrid.agregarItem(ItemId::ChuletaCerdoCruda, lootCerdo(genLoot));
+                        int cantidad = lootCerdo(genLoot);
+                        sf::Vector2f posDrop = animal->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+                        itemsSuelo.push_back({ItemId::ChuletaCerdoCruda, cantidad, posDrop});
                     }
-
-                    delete animal;
-                    animales.erase(it);
                 }
                 break;
+            }
+        }
+
+        for (auto it = animales.begin(); it != animales.end();) {
+            Animal* animal = *it;
+            if (animal && animal->muerteFinalizada()) {
+                delete animal;
+                it = animales.erase(it);
+            } else {
+                ++it;
             }
         }
 
@@ -474,6 +496,34 @@ inline void Juego::ejecutar() {
             if (posAnimal.x >= dibujoIzq && posAnimal.x <= dibujoDer &&
                 posAnimal.y >= dibujoArriba && posAnimal.y <= dibujoAbajo) {
                 animal->dibujar(ventana);
+            }
+        }
+
+        for (const auto& item : itemsSuelo) {
+            if (item.posicion.x < dibujoIzq || item.posicion.x > dibujoDer ||
+                item.posicion.y < dibujoArriba || item.posicion.y > dibujoAbajo) {
+                continue;
+            }
+
+            sf::RectangleShape sombra({16.0f, 5.0f});
+            sombra.setOrigin({8.0f, 2.5f});
+            sombra.setPosition({item.posicion.x, item.posicion.y + 9.0f});
+            sombra.setFillColor(sf::Color(20, 20, 20, 80));
+            ventana.draw(sombra);
+
+            sf::RectangleShape icono({12.0f, 9.0f});
+            icono.setOrigin({6.0f, 4.5f});
+            icono.setPosition(item.posicion);
+            icono.setFillColor(colorItemSuelo(item.item));
+            icono.setOutlineColor(sf::Color(70, 35, 35));
+            icono.setOutlineThickness(1.0f);
+            ventana.draw(icono);
+
+            if (item.cantidad > 1) {
+                sf::CircleShape brillo(2.0f);
+                brillo.setPosition({item.posicion.x + 3.0f, item.posicion.y - 4.0f});
+                brillo.setFillColor(sf::Color::White);
+                ventana.draw(brillo);
             }
         }
 
