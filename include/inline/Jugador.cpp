@@ -151,16 +151,42 @@ inline void Jugador::dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f or
 inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     static bool texturaLista = false;
     static sf::Texture texturaJugador;
+    static sf::Texture texturaJugadorEspejada;
     static bool accionesLista = false;
     static sf::Texture texturaAcciones;
+    static sf::Texture texturaAccionesEspejada;
 
     if (!texturaLista) {
-        texturaLista = texturaJugador.loadFromFile("assets/player_walk.png");
-        texturaJugador.setSmooth(false);
+        sf::Image imagen;
+        if (imagen.loadFromFile("assets/player_walk.png")) {
+            sf::Image espejo(imagen.getSize(), sf::Color::Transparent);
+            sf::Vector2u tam = imagen.getSize();
+            for (unsigned int y = 0; y < tam.y; ++y) {
+                for (unsigned int x = 0; x < tam.x; ++x) {
+                    espejo.setPixel({tam.x - 1 - x, y}, imagen.getPixel({x, y}));
+                }
+            }
+            texturaLista = texturaJugador.loadFromImage(imagen) &&
+                           texturaJugadorEspejada.loadFromImage(espejo);
+            texturaJugador.setSmooth(false);
+            texturaJugadorEspejada.setSmooth(false);
+        }
     }
     if (!accionesLista) {
-        accionesLista = texturaAcciones.loadFromFile("assets/player_actions.png");
-        texturaAcciones.setSmooth(false);
+        sf::Image imagen;
+        if (imagen.loadFromFile("assets/player_actions.png")) {
+            sf::Image espejo(imagen.getSize(), sf::Color::Transparent);
+            sf::Vector2u tam = imagen.getSize();
+            for (unsigned int y = 0; y < tam.y; ++y) {
+                for (unsigned int x = 0; x < tam.x; ++x) {
+                    espejo.setPixel({tam.x - 1 - x, y}, imagen.getPixel({x, y}));
+                }
+            }
+            accionesLista = texturaAcciones.loadFromImage(imagen) &&
+                            texturaAccionesEspejada.loadFromImage(espejo);
+            texturaAcciones.setSmooth(false);
+            texturaAccionesEspejada.setSmooth(false);
+        }
     }
 
     sf::RectangleShape sombra({24.0f, 7.0f});
@@ -213,11 +239,17 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         columna = caminando ? static_cast<int>(tiempoAnimacion * 8.0f) % 6 : 0;
     }
 
+    if (espejarHorizontal) {
+        texturaActiva = usarAccion ? &texturaAccionesEspejada : &texturaJugadorEspejada;
+        int columnasTotales = usarAccion ? 3 : 6;
+        columna = columnasTotales - 1 - columna;
+    }
+
     sf::Sprite sprite(*texturaActiva);
     sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, altoFrame}));
     sprite.setOrigin({16.0f, 30.0f});
     sprite.setPosition({posicion.x + 12.0f, posicion.y + 26.0f});
-    sprite.setScale({espejarHorizontal ? -1.2f : 1.2f, 1.2f});
+    sprite.setScale({1.2f, 1.2f});
     ventana.draw(sprite);
 }
 
