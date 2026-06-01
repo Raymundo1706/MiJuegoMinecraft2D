@@ -166,6 +166,15 @@ inline void Juego::ejecutar() {
         }
     };
 
+    auto colorItemSuelo = [](ItemId item) {
+        switch (item) {
+            case ItemId::ChuletaCerdoCruda: return sf::Color(217, 103, 111);
+            case ItemId::ChuletaCerdoCocinada: return sf::Color(139, 79, 45);
+            case ItemId::BloqueTronco: return sf::Color(120, 72, 35);
+            default: return sf::Color(230, 210, 120);
+        }
+    };
+
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
         if (dt > 0.05f) {

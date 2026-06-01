@@ -7,6 +7,13 @@
 #include "Mundo.hpp"
 #include "Jugador.hpp"
 #include "Animal.hpp"
+#include "Item.hpp"
+
+struct ItemSuelo {
+    ItemId item = ItemId::Ninguno;
+    int cantidad = 1;
+    sf::Vector2f posicion;
+};
 
 class Juego {
 private:
@@ -22,6 +29,7 @@ private:
     bool fuenteCargada;
 
     std::vector<Animal*> animales;
+    std::vector<ItemSuelo> itemsSuelo;
 
 public:
     Juego();
