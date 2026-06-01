@@ -104,11 +104,16 @@ inline sf::Texture& texturaTile(TileVisual tile) {
     static sf::Texture piedra;
 
     if (!cargadas) {
-        pasto.loadFromFile("assets/tile_grass.png");
-        tierra.loadFromFile("assets/tile_dirt.png");
-        agua.loadFromFile("assets/tile_water.png");
-        arada.loadFromFile("assets/tile_farmland.png");
-        piedra.loadFromFile("assets/tile_stone.png");
+        bool cargoPasto = pasto.loadFromFile("assets/tile_grass.png");
+        bool cargoTierra = tierra.loadFromFile("assets/tile_dirt.png");
+        bool cargoAgua = agua.loadFromFile("assets/tile_water.png");
+        bool cargoArada = arada.loadFromFile("assets/tile_farmland.png");
+        bool cargoPiedra = piedra.loadFromFile("assets/tile_stone.png");
+        (void)cargoPasto;
+        (void)cargoTierra;
+        (void)cargoAgua;
+        (void)cargoArada;
+        (void)cargoPiedra;
         pasto.setSmooth(false);
         tierra.setSmooth(false);
         agua.setSmooth(false);
