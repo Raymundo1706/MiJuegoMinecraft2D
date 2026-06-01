@@ -13,85 +13,72 @@ inline void dibujarPixelHUD(sf::RenderWindow& ventana, sf::Vector2f origen, int 
     ventana.draw(pixel);
 }
 
-inline bool pixelCorazon(int x, int y) {
-    static const char* patron[10] = {
-        "..XX..XX..",
-        ".XXXX.XXXX",
-        "XXXXXXXXXX",
-        "XXXXXXXXXX",
-        ".XXXXXXXX.",
-        "..XXXXXX..",
-        "...XXXX...",
-        "....XX....",
-        ".....X....",
-        ".........."
-    };
-    return patron[y][x] == 'X';
-}
-
-inline bool pixelBordeCorazon(int x, int y) {
-    if (pixelCorazon(x, y)) {
-        return false;
-    }
-    for (int oy = -1; oy <= 1; ++oy) {
-        for (int ox = -1; ox <= 1; ++ox) {
-            int nx = x + ox;
-            int ny = y + oy;
-            if (nx >= 0 && nx < 10 && ny >= 0 && ny < 10 && pixelCorazon(nx, ny)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 inline void dibujarCorazon(sf::RenderWindow& ventana, sf::Vector2f origen, int estadoHP, float escala) {
-    sf::Color borde(18, 10, 12);
-    sf::Color vacio(63, 34, 40);
-    sf::Color vacioSombra(38, 22, 28);
-    sf::Color rojo(232, 28, 38);
-    sf::Color rojoMedio(205, 22, 35);
-    sf::Color rojoOscuro(132, 13, 25);
-    sf::Color brillo(255, 216, 224);
+    static const char* vacio[9] = {
+        ".BB...BB.",
+        "BggB.BggB",
+        "BgggBgggB",
+        "BgggggggB",
+        ".BgggggB.",
+        "..BgggB..",
+        "...BgB...",
+        "....B....",
+        "........."
+    };
+    static const char* lleno[9] = {
+        ".BB...BB.",
+        "BrrB.BrrB",
+        "BrhRBrhRB",
+        "BRRRRRRRB",
+        ".BRRRRRB.",
+        "..BRRRB..",
+        "...BRB...",
+        "....B....",
+        "........."
+    };
 
-    for (int y = 0; y < 10; ++y) {
-        for (int x = 0; x < 10; ++x) {
-            if (pixelBordeCorazon(x, y)) {
-                dibujarPixelHUD(ventana, origen, x, y, borde, escala);
-            }
-            if (!pixelCorazon(x, y)) {
+    sf::Color borde(18, 10, 12);
+    sf::Color gris(96, 88, 104);
+    sf::Color grisOscuro(42, 36, 48);
+    sf::Color rojo(234, 28, 39);
+    sf::Color rojoMedio(205, 22, 36);
+    sf::Color rojoOscuro(126, 12, 24);
+    sf::Color brillo(255, 222, 226);
+
+    for (int y = 0; y < 9; ++y) {
+        for (int x = 0; x < 9; ++x) {
+            char base = vacio[y][x];
+            if (base == '.') {
                 continue;
             }
 
-            bool ladoLleno = estadoHP == 2 || (estadoHP == 1 && x <= 4);
-            sf::Color color = ladoLleno ? rojo : vacio;
-            if (!ladoLleno && (y >= 4 || x >= 6)) {
-                color = vacioSombra;
-            } else if (ladoLleno && y >= 6) {
-                color = rojoOscuro;
-            } else if (ladoLleno && (x >= 7 || y >= 4)) {
-                color = rojoMedio;
+            bool pintarRelleno = estadoHP == 2 || (estadoHP == 1 && x <= 4);
+            char pixel = pintarRelleno ? lleno[y][x] : base;
+
+            sf::Color color = gris;
+            if (pixel == 'B') color = borde;
+            if (pixel == 'g') color = (x >= 5 || y >= 4) ? grisOscuro : gris;
+            if (pixel == 'r') color = rojo;
+            if (pixel == 'R') color = (y >= 5 || x >= 6) ? rojoOscuro : rojoMedio;
+            if (pixel == 'h') color = brillo;
+
+            if (estadoHP == 1 && x == 5 && base != 'B') {
+                color = borde;
             }
             dibujarPixelHUD(ventana, origen, x, y, color, escala);
         }
-    }
-
-    if (estadoHP > 0) {
-        dibujarPixelHUD(ventana, origen, 2, 1, brillo, escala);
-        dibujarPixelHUD(ventana, origen, 3, 1, brillo, escala);
-        dibujarPixelHUD(ventana, origen, 2, 2, sf::Color(255, 128, 142), escala);
     }
 }
 
 inline void dibujarBarraVida(sf::RenderWindow& ventana, const Jugador& jugador) {
     int vida = std::clamp(jugador.getVidaHP(), 0, jugador.getVidaMaximaHP());
     int corazones = jugador.getVidaMaximaHP() / 2;
-    constexpr float escala = 2.1f;
+    constexpr float escala = 2.2f;
     sf::Vector2f origen(184.0f, 476.0f);
 
     for (int i = 0; i < corazones; ++i) {
         int hpCorazon = std::clamp(vida - i * 2, 0, 2);
-        dibujarCorazon(ventana, {origen.x + static_cast<float>(i) * 25.0f, origen.y}, hpCorazon, escala);
+        dibujarCorazon(ventana, {origen.x + static_cast<float>(i) * 24.0f, origen.y}, hpCorazon, escala);
     }
 }
 }
