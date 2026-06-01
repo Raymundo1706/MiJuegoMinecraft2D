@@ -448,7 +448,8 @@ inline void Juego::ejecutar() {
                         }
 
                         if (tipoActual != TipoBloque::Aire) {
-                            float danioAplicado = herramientas.calcularDanio(tipoActual, itemEnMano);
+                            float danioPorSegundo = herramientas.calcularDanio(tipoActual, itemEnMano);
+                            float danioAplicado = danioPorSegundo * dt;
                             bool destruido = mapaSuperficie->daniarBloque(bloqueX, bloqueY, danioAplicado);
 
                             if (destruido) {
