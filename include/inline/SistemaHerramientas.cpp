@@ -29,45 +29,77 @@ inline float SistemaHerramientas::calcularDanio(TipoBloque tipo) const {
 }
 
 inline float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMano) const {
-    float danio = 1.0f;
-
-    if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra) {
-        danio = 2.0f;
-    } else if (tipo == TipoBloque::Madera) {
-        danio = 1.0f;
-    } else if (tipo == TipoBloque::Piedra ||
-               tipo == TipoBloque::MineralHierro ||
-               tipo == TipoBloque::MineralOro ||
-               tipo == TipoBloque::MineralDiamante ||
-               tipo == TipoBloque::Redstone) {
-        danio = 0.33f;
+    float vidaReferencia = 50.0f;
+    switch (tipo) {
+        case TipoBloque::Pasto:
+        case TipoBloque::Tierra:
+        case TipoBloque::TierraArada:
+            vidaReferencia = 30.0f;
+            break;
+        case TipoBloque::Madera:
+        case TipoBloque::MesaCrafteo:
+            vidaReferencia = 90.0f;
+            break;
+        case TipoBloque::Piedra:
+            vidaReferencia = 300.0f;
+            break;
+        case TipoBloque::MineralHierro:
+        case TipoBloque::MineralOro:
+            vidaReferencia = 450.0f;
+            break;
+        case TipoBloque::MineralDiamante:
+        case TipoBloque::Redstone:
+            vidaReferencia = 600.0f;
+            break;
+        default:
+            break;
     }
 
+    return vidaReferencia / calcularTiempoMinado(tipo, itemEnMano);
+}
+
+inline float SistemaHerramientas::calcularTiempoMinado(TipoBloque tipo, ItemId itemEnMano) const {
     TipoHerramienta herramienta = tipoHerramienta(itemEnMano);
 
-    if (herramienta == TipoHerramienta::Pico) {
-        if (tipo == TipoBloque::Piedra ||
-            tipo == TipoBloque::MineralHierro ||
-            tipo == TipoBloque::MineralOro ||
-            tipo == TipoBloque::MineralDiamante ||
-            tipo == TipoBloque::Redstone) {
-            danio = 2.5f;
-            if (itemEnMano == ItemId::PicoPiedra) danio = 3.25f;
-            if (itemEnMano == ItemId::PicoDiamante) danio = 5.0f;
-        } else if (tipo == TipoBloque::Madera) {
-            danio = 0.38f;
-        }
-    } else if (herramienta == TipoHerramienta::Pala) {
-        if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra) {
-            danio = 5.0f;
-        }
-    } else if (herramienta == TipoHerramienta::Hacha) {
-        if (tipo == TipoBloque::Madera) {
-            danio = 4.0f;
-        }
+    if (tipo == TipoBloque::Pasto || tipo == TipoBloque::Tierra || tipo == TipoBloque::TierraArada) {
+        if (itemEnMano == ItemId::PalaMadera) return 0.4f;
+        if (itemEnMano == ItemId::PalaPiedra) return 0.2f;
+        return 0.75f;
     }
 
-    return danio;
+    if (tipo == TipoBloque::Madera || tipo == TipoBloque::MesaCrafteo) {
+        if (itemEnMano == ItemId::HachaMadera) return 1.5f;
+        if (itemEnMano == ItemId::HachaPiedra) return 0.75f;
+        return 3.0f;
+    }
+
+    if (tipo == TipoBloque::Piedra) {
+        if (itemEnMano == ItemId::PicoMadera) return 1.15f;
+        if (itemEnMano == ItemId::PicoPiedra) return 0.6f;
+        if (itemEnMano == ItemId::PicoDiamante) return 0.3f;
+        return 7.5f;
+    }
+
+    if (tipo == TipoBloque::MineralHierro || tipo == TipoBloque::MineralOro || tipo == TipoBloque::Redstone) {
+        if (itemEnMano == ItemId::PicoMadera) return 2.25f;
+        if (itemEnMano == ItemId::PicoPiedra) return 1.15f;
+        if (itemEnMano == ItemId::PicoDiamante) return 0.6f;
+        return 15.0f;
+    }
+
+    if (tipo == TipoBloque::MineralDiamante) {
+        if (itemEnMano == ItemId::PicoMadera || itemEnMano == ItemId::PicoPiedra) return 2.25f;
+        if (itemEnMano == ItemId::PicoDiamante) return 0.6f;
+        return 15.0f;
+    }
+
+    if (herramienta == TipoHerramienta::Pico ||
+        herramienta == TipoHerramienta::Pala ||
+        herramienta == TipoHerramienta::Hacha) {
+        return 2.0f;
+    }
+
+    return 1.0f;
 }
 
 inline bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const {
