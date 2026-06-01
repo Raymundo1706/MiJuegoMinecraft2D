@@ -373,7 +373,7 @@ inline void Juego::ejecutar() {
                     continue;
                 }
 
-                animal->recibirDanio(danioContraAnimal(inventarioGrid.getItemEnHotbar()));
+                animal->recibirDanio(danioContraAnimal(inventarioGrid.getItemEnHotbar()), centroJugador);
                 golpeoAnimal = true;
 
                 if (animal->estaMuriendo()) {
