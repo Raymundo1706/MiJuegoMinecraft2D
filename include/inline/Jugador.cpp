@@ -155,7 +155,7 @@ inline void Jugador::dibujarSteve(sf::RenderWindow& ventana) {
         fila = 3;
         espejarHorizontal = true;
     }
-    if (direccionMirada == DireccionMirada::Arriba) fila = 2;
+    if (direccionMirada == DireccionMirada::Arriba) fila = 1;
     if (direccionMirada == DireccionMirada::Derecha) fila = 3;
 
     int columna = caminando ? static_cast<int>(tiempoAnimacion * 8.0f) % 4 : 0;
