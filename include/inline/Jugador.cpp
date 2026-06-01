@@ -132,61 +132,125 @@ inline void Jugador::dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f or
 
 inline void Jugador::dibujarSteve(sf::RenderWindow& ventana) {
     const float escala = 2.0f;
-    sf::Vector2f origen(posicion.x - 4.0f, posicion.y - 6.0f);
+    int fase = caminando ? (static_cast<int>(tiempoAnimacion * 8.0f) % 4) : 0;
+    int paso = (fase == 0 || fase == 3) ? 1 : (fase == 1 ? 0 : -1);
+    float bob = caminando ? (fase == 1 || fase == 3 ? -1.0f : 0.0f) : 0.0f;
+    sf::Vector2f origen(posicion.x - 6.0f, posicion.y - 8.0f + bob);
 
     sf::Color piel(239, 171, 122);
+    sf::Color pielLuz(255, 194, 146);
     sf::Color pielSombra(188, 101, 62);
+    sf::Color pielOscura(139, 72, 45);
     sf::Color pelo(77, 47, 25);
+    sf::Color peloOscuro(53, 31, 18);
     sf::Color peloClaro(114, 82, 52);
-    sf::Color camisa(22, 166, 184);
+    sf::Color camisa(21, 151, 174);
     sf::Color camisaLuz(42, 207, 211);
-    sf::Color pantalon(63, 89, 92);
+    sf::Color camisaSombra(12, 101, 128);
+    sf::Color pantalon(56, 82, 88);
+    sf::Color pantalonLuz(95, 126, 129);
     sf::Color zapato(35, 54, 54);
     sf::Color ojo(64, 55, 210);
 
-    int paso = caminando ? (static_cast<int>(tiempoAnimacion * 8.0f) % 2 == 0 ? 1 : -1) : 0;
+    auto sombraSuelo = [&]() {
+        sf::RectangleShape sombra({28.0f, 8.0f});
+        sombra.setPosition({posicion.x - 2.0f, posicion.y + 21.0f});
+        sombra.setFillColor(sf::Color(8, 18, 12, 80));
+        ventana.draw(sombra);
+    };
 
-    dibujarRectPixel(ventana, origen, 5, 0, 10, 9, piel, escala);
-    dibujarRectPixel(ventana, origen, 5, 0, 10, 2, pelo, escala);
-    dibujarRectPixel(ventana, origen, 5, 2, 2, 5, peloClaro, escala);
-    dibujarRectPixel(ventana, origen, 7, 2, 2, 2, pelo, escala);
-    dibujarRectPixel(ventana, origen, 12, 7, 3, 2, pelo, escala);
+    auto dibujarCabezaFrente = [&]() {
+        dibujarRectPixel(ventana, origen, 5, 0, 12, 10, piel, escala);
+        dibujarRectPixel(ventana, origen, 5, 0, 12, 2, peloOscuro, escala);
+        dibujarRectPixel(ventana, origen, 5, 2, 2, 5, pelo, escala);
+        dibujarRectPixel(ventana, origen, 7, 2, 3, 2, peloClaro, escala);
+        dibujarRectPixel(ventana, origen, 14, 2, 3, 6, pelo, escala);
+        dibujarRectPixel(ventana, origen, 6, 3, 3, 3, pielLuz, escala);
+        dibujarRectPixel(ventana, origen, 9, 5, 2, 1, sf::Color::White, escala);
+        dibujarPixel(ventana, origen, 10, 5, ojo, escala);
+        dibujarRectPixel(ventana, origen, 13, 5, 2, 1, sf::Color::White, escala);
+        dibujarPixel(ventana, origen, 14, 5, ojo, escala);
+        dibujarRectPixel(ventana, origen, 11, 7, 5, 2, pelo, escala);
+        dibujarRectPixel(ventana, origen, 8, 8, 3, 1, pielSombra, escala);
+        dibujarRectPixel(ventana, origen, 5, 8, 12, 2, pielOscura, escala);
+        dibujarRectPixel(ventana, origen, 8, 8, 3, 1, piel, escala);
+    };
+
+    auto dibujarCabezaEspalda = [&]() {
+        dibujarRectPixel(ventana, origen, 5, 0, 12, 10, pelo, escala);
+        dibujarRectPixel(ventana, origen, 5, 0, 12, 2, peloOscuro, escala);
+        dibujarRectPixel(ventana, origen, 5, 2, 2, 8, peloOscuro, escala);
+        dibujarRectPixel(ventana, origen, 14, 2, 3, 8, peloOscuro, escala);
+        dibujarRectPixel(ventana, origen, 8, 3, 6, 3, peloClaro, escala);
+        dibujarRectPixel(ventana, origen, 7, 7, 8, 3, peloOscuro, escala);
+    };
+
+    auto dibujarCabezaLado = [&](bool derecha) {
+        dibujarRectPixel(ventana, origen, 6, 1, 10, 9, piel, escala);
+        dibujarRectPixel(ventana, origen, 6, 1, 10, 2, peloOscuro, escala);
+        dibujarRectPixel(ventana, origen, derecha ? 6 : 14, 3, 2, 5, pelo, escala);
+        dibujarRectPixel(ventana, origen, derecha ? 8 : 7, 3, 4, 2, peloClaro, escala);
+        dibujarRectPixel(ventana, origen, derecha ? 13 : 8, 5, 2, 1, sf::Color::White, escala);
+        dibujarPixel(ventana, origen, derecha ? 14 : 8, 5, ojo, escala);
+        dibujarRectPixel(ventana, origen, derecha ? 12 : 8, 7, 4, 2, pelo, escala);
+        dibujarRectPixel(ventana, origen, derecha ? 15 : 6, 4, 1, 4, pielLuz, escala);
+        dibujarRectPixel(ventana, origen, derecha ? 6 : 15, 8, 3, 2, pielOscura, escala);
+    };
+
+    auto dibujarCuerpo = [&]() {
+        int brazoFrente = 10 + paso;
+        int brazoAtras = 10 - paso;
+        int piernaFrente = 15 - paso;
+        int piernaAtras = 15 + paso;
+
+        if (direccionMirada == DireccionMirada::Arriba) {
+            dibujarRectPixel(ventana, origen, 5, brazoAtras, 3, 6, pielSombra, escala);
+            dibujarRectPixel(ventana, origen, 15, brazoFrente, 3, 6, pielSombra, escala);
+            dibujarRectPixel(ventana, origen, 7, 10, 9, 6, camisaSombra, escala);
+            dibujarRectPixel(ventana, origen, 8, 10, 8, 2, camisa, escala);
+        } else if (direccionMirada == DireccionMirada::Izquierda) {
+            dibujarRectPixel(ventana, origen, 5, brazoFrente, 3, 6, piel, escala);
+            dibujarRectPixel(ventana, origen, 14, brazoAtras, 3, 6, pielSombra, escala);
+            dibujarRectPixel(ventana, origen, 7, 10, 9, 6, camisa, escala);
+            dibujarRectPixel(ventana, origen, 7, 11, 5, 2, camisaLuz, escala);
+        } else if (direccionMirada == DireccionMirada::Derecha) {
+            dibujarRectPixel(ventana, origen, 5, brazoAtras, 3, 6, pielSombra, escala);
+            dibujarRectPixel(ventana, origen, 14, brazoFrente, 3, 6, piel, escala);
+            dibujarRectPixel(ventana, origen, 7, 10, 9, 6, camisa, escala);
+            dibujarRectPixel(ventana, origen, 10, 11, 6, 2, camisaLuz, escala);
+        } else {
+            dibujarRectPixel(ventana, origen, 5, brazoFrente, 3, 6, piel, escala);
+            dibujarRectPixel(ventana, origen, 15, brazoAtras, 3, 6, piel, escala);
+            dibujarRectPixel(ventana, origen, 7, 10, 9, 6, camisa, escala);
+            dibujarRectPixel(ventana, origen, 8, 11, 8, 2, camisaLuz, escala);
+        }
+
+        dibujarRectPixel(ventana, origen, 5, brazoFrente, 3, 2, camisaSombra, escala);
+        dibujarRectPixel(ventana, origen, 15, brazoAtras, 3, 2, camisaSombra, escala);
+
+        dibujarRectPixel(ventana, origen, 7, piernaFrente, 4, 6, pantalon, escala);
+        dibujarRectPixel(ventana, origen, 12, piernaAtras, 4, 6, pantalon, escala);
+        dibujarRectPixel(ventana, origen, 8, piernaFrente, 2, 2, pantalonLuz, escala);
+        dibujarRectPixel(ventana, origen, 13, piernaAtras, 2, 2, pantalonLuz, escala);
+        dibujarRectPixel(ventana, origen, 7, piernaFrente + 5, 4, 1, zapato, escala);
+        dibujarRectPixel(ventana, origen, 12, piernaAtras + 5, 4, 1, zapato, escala);
+    };
+
+    sombraSuelo();
 
     if (direccionMirada == DireccionMirada::Arriba) {
-        dibujarRectPixel(ventana, origen, 6, 2, 8, 5, pelo, escala);
-        dibujarRectPixel(ventana, origen, 5, 6, 10, 3, pielSombra, escala);
+        dibujarCuerpo();
+        dibujarCabezaEspalda();
     } else if (direccionMirada == DireccionMirada::Izquierda) {
-        dibujarRectPixel(ventana, origen, 6, 4, 1, 1, sf::Color::White, escala);
-        dibujarPixel(ventana, origen, 7, 4, ojo, escala);
-        dibujarRectPixel(ventana, origen, 5, 6, 3, 2, pielSombra, escala);
+        dibujarCuerpo();
+        dibujarCabezaLado(false);
     } else if (direccionMirada == DireccionMirada::Derecha) {
-        dibujarRectPixel(ventana, origen, 12, 4, 1, 1, sf::Color::White, escala);
-        dibujarPixel(ventana, origen, 13, 4, ojo, escala);
-        dibujarRectPixel(ventana, origen, 12, 6, 3, 2, pielSombra, escala);
+        dibujarCuerpo();
+        dibujarCabezaLado(true);
     } else {
-        dibujarRectPixel(ventana, origen, 8, 4, 1, 1, sf::Color::White, escala);
-        dibujarPixel(ventana, origen, 9, 4, ojo, escala);
-        dibujarRectPixel(ventana, origen, 12, 4, 1, 1, sf::Color::White, escala);
-        dibujarPixel(ventana, origen, 13, 4, ojo, escala);
-        dibujarRectPixel(ventana, origen, 10, 7, 4, 2, pelo, escala);
+        dibujarCuerpo();
+        dibujarCabezaFrente();
     }
-
-    dibujarRectPixel(ventana, origen, 6, 9, 8, 5, camisa, escala);
-    dibujarRectPixel(ventana, origen, 7, 10, 7, 2, camisaLuz, escala);
-
-    int brazoIzqY = 10 + (direccionMirada == DireccionMirada::Izquierda ? -paso : paso);
-    int brazoDerY = 10 + (direccionMirada == DireccionMirada::Derecha ? -paso : -paso);
-    dibujarRectPixel(ventana, origen, 3, brazoIzqY, 3, 5, piel, escala);
-    dibujarRectPixel(ventana, origen, 14, brazoDerY, 3, 5, piel, escala);
-    dibujarRectPixel(ventana, origen, 3, brazoIzqY, 3, 2, camisa, escala);
-    dibujarRectPixel(ventana, origen, 14, brazoDerY, 3, 2, camisa, escala);
-
-    int piernaIzqY = 14 + paso;
-    int piernaDerY = 14 - paso;
-    dibujarRectPixel(ventana, origen, 6, piernaIzqY, 4, 5, pantalon, escala);
-    dibujarRectPixel(ventana, origen, 10, piernaDerY, 4, 5, pantalon, escala);
-    dibujarRectPixel(ventana, origen, 6, piernaIzqY + 4, 4, 1, zapato, escala);
-    dibujarRectPixel(ventana, origen, 10, piernaDerY + 4, 4, 1, zapato, escala);
 }
 
 inline sf::Vector2f Jugador::getPosicion() const {
