@@ -365,17 +365,8 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
                     float dy = y - centroY;
                     if (std::sqrt(dx * dx + dy * dy) <= radio &&
                         cuadricula[y][x].tipo == TipoBloque::Pasto) {
-                        int suerte = gen() % 100;
                         TipoBioma bioma = cuadricula[y][x].bioma;
-                        if (suerte < 5) {
-                            cuadricula[y][x] = {TipoBloque::MineralHierro, true, 450.0f, false, 0.0f, false, 1, 450.0f, bioma, 0};
-                        } else if (suerte < 8) {
-                            cuadricula[y][x] = {TipoBloque::MineralPlata, true, 420.0f, false, 0.0f, false, 1, 420.0f, bioma, 0};
-                        } else if (suerte == 99) {
-                            cuadricula[y][x] = {TipoBloque::MineralDiamante, true, 600.0f, false, 0.0f, false, 1, 600.0f, bioma, 0};
-                        } else {
-                            cuadricula[y][x] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
-                        }
+                        cuadricula[y][x] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
                     }
                 }
             }
@@ -474,6 +465,8 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 formaBlq.setFillColor(sf::Color(210, 180, 140));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralPlata) {
                 formaBlq.setFillColor(sf::Color(188, 196, 202));
+            } else if (cuadricula[y][x].tipo == TipoBloque::MineralOro) {
+                formaBlq.setFillColor(sf::Color(224, 180, 58));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralDiamante) {
                 formaBlq.setFillColor(sf::Color(0, 255, 255));
             } else {
