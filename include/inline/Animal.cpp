@@ -49,6 +49,36 @@ inline float tamAnimal(TipoAnimal tipo) {
 inline float velocidadBaseAnimal(TipoAnimal tipo) {
     return tipo == TipoAnimal::Gallina ? 18.0f : 10.0f;
 }
+
+inline bool animalTocaAgua(const Mundo& mundo, sf::Vector2f posicionAnimal, float ancho, float alto) {
+    const float TAMANIO_BLOQUE = 32.0f;
+
+    auto puntoEsAgua = [&](float px, float py) {
+        int bloqueX = static_cast<int>(std::floor(px / TAMANIO_BLOQUE));
+        int bloqueY = static_cast<int>(std::floor(py / TAMANIO_BLOQUE));
+        TipoBloque tipo = mundo.getTipoBloque(bloqueX, bloqueY);
+        return tipo == TipoBloque::Agua || tipo == TipoBloque::AguaProfunda;
+    };
+
+    float margenX = std::max(2.0f, ancho * 0.18f);
+    float izquierda = posicionAnimal.x + margenX;
+    float derecha = posicionAnimal.x + ancho - margenX;
+    float centroX = posicionAnimal.x + ancho * 0.5f;
+    float centroY = posicionAnimal.y + alto * 0.55f;
+    float patasY = posicionAnimal.y + alto - 2.0f;
+
+    if (puntoEsAgua(centroX, centroY) || puntoEsAgua(centroX, patasY)) {
+        return true;
+    }
+
+    float muestrasLaterales[2] = {izquierda, derecha};
+    for (float x : muestrasLaterales) {
+        if (puntoEsAgua(x, centroY) || puntoEsAgua(x, patasY)) {
+            return true;
+        }
+    }
+    return false;
+}
 }
 
 inline Animal::Animal(float x, float y, TipoAnimal tipo) 
@@ -67,7 +97,11 @@ inline Animal::Animal(float x, float y, TipoAnimal tipo)
       tiempoGolpe(0.0f),
       tieneAmenaza(false),
       posicionAmenaza(0.0f, 0.0f),
-      tiempoParticulas(0.0f) {
+      tiempoParticulas(0.0f),
+      enAgua(false),
+      hundido(false),
+      tiempoEnAgua(0.0f),
+      tiempoHundimiento(0.0f) {
     
     forma.setSize({anchoAnimal, altoAnimal});
     
@@ -121,6 +155,25 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
     }
 
     if (vida <= 0.0f) return;
+
+    enAgua = animalTocaAgua(mundo, posicion, anchoAnimal, altoAnimal);
+    if (enAgua) {
+        tiempoEnAgua += dt;
+        if (tiempoEnAgua >= 20.0f) {
+            hundido = true;
+        }
+    } else {
+        tiempoEnAgua = 0.0f;
+        tiempoHundimiento = 0.0f;
+        hundido = false;
+    }
+
+    if (hundido) {
+        tiempoHundimiento += dt;
+        velocidad = {0.0f, 0.0f};
+        tiempoAnimacion = 0.0f;
+        return;
+    }
 
     if (tiempoPanico > 0.0f) {
         tiempoPanico = std::max(0.0f, tiempoPanico - dt);
@@ -176,21 +229,23 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
     }
 
     const float TAMANIO_BLOQUE = 32.0f;
+    float factorAgua = enAgua ? 0.33f : 1.0f;
+    sf::Vector2f velocidadMovimiento = velocidad * factorAgua;
 
     // --- COLISIÃ“N EN EJE X ---
-    posicion.x += velocidad.x * dt;
+    posicion.x += velocidadMovimiento.x * dt;
     
     int blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
     int blqDer = static_cast<int>((posicion.x + anchoAnimal - 1.0f) / TAMANIO_BLOQUE);
     int blqArribaY = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
     int blqAbajoY = static_cast<int>((posicion.y + altoAnimal - 1.0f) / TAMANIO_BLOQUE);
 
-    if (velocidad.x > 0) { // MoviÃ©ndose a la derecha
+    if (velocidadMovimiento.x > 0) { // MoviÃ©ndose a la derecha
         if (mundo.esBloqueSolido(blqDer, blqArribaY) || mundo.esBloqueSolido(blqDer, blqAbajoY)) {
             posicion.x = blqDer * TAMANIO_BLOQUE - anchoAnimal - 0.1f;
             elegirNuevaDireccion(); // Cambia de rumbo si choca
         }
-    } else if (velocidad.x < 0) { // MoviÃ©ndose a la izquierda
+    } else if (velocidadMovimiento.x < 0) { // MoviÃ©ndose a la izquierda
         if (mundo.esBloqueSolido(blqIzq, blqArribaY) || mundo.esBloqueSolido(blqIzq, blqAbajoY)) {
             posicion.x = (blqIzq + 1) * TAMANIO_BLOQUE + 0.1f;
             elegirNuevaDireccion();
@@ -198,19 +253,19 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
     }
 
     // --- COLISIÃ“N EN EJE Y ---
-    posicion.y += velocidad.y * dt;
+    posicion.y += velocidadMovimiento.y * dt;
     
     blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
     blqDer = static_cast<int>((posicion.x + anchoAnimal - 1.0f) / TAMANIO_BLOQUE);
     int blqArriba = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
     int blqAbajo = static_cast<int>((posicion.y + altoAnimal - 1.0f) / TAMANIO_BLOQUE);
 
-    if (velocidad.y > 0) { // MoviÃ©ndose hacia abajo
+    if (velocidadMovimiento.y > 0) { // MoviÃ©ndose hacia abajo
         if (mundo.esBloqueSolido(blqIzq, blqAbajo) || mundo.esBloqueSolido(blqDer, blqAbajo)) {
             posicion.y = blqAbajo * TAMANIO_BLOQUE - altoAnimal - 0.1f;
             elegirNuevaDireccion();
         }
-    } else if (velocidad.y < 0) { // MoviÃ©ndose hacia arriba
+    } else if (velocidadMovimiento.y < 0) { // MoviÃ©ndose hacia arriba
         if (mundo.esBloqueSolido(blqIzq, blqArriba) || mundo.esBloqueSolido(blqDer, blqArriba)) {
             posicion.y = (blqArriba + 1) * TAMANIO_BLOQUE + 0.1f;
             elegirNuevaDireccion();
@@ -244,11 +299,15 @@ inline void Animal::dibujarAnimal(sf::RenderWindow& ventana) {
         bool moviendose = std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f;
         int columna = moviendose ? static_cast<int>(tiempoAnimacion * 8.0f) % 2 : 0;
         int fila = moviendose ? 1 : 0;
+        float hundimientoVisual = enAgua ? altoAnimal * 0.18f : 0.0f;
+        if (hundido) {
+            hundimientoVisual = std::min(altoAnimal * 0.85f, altoAnimal * 0.18f + tiempoHundimiento * 10.0f);
+        }
 
         sf::Sprite sprite(texturas[idx]);
         sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, 32}));
         sprite.setOrigin({16.0f, 24.0f});
-        sprite.setPosition({posicion.x + anchoAnimal * 0.5f, posicion.y + altoAnimal});
+        sprite.setPosition({posicion.x + anchoAnimal * 0.5f, posicion.y + altoAnimal + hundimientoVisual});
         float escala = tipo == TipoAnimal::Gallina ? 0.95f : 1.15f;
         sprite.setScale({mirandoDerecha ? -escala : escala, escala});
 
@@ -258,13 +317,32 @@ inline void Animal::dibujarAnimal(sf::RenderWindow& ventana) {
         if (muriendo) {
             sprite.setRotation(sf::degrees(mirandoDerecha ? -85.0f : 85.0f));
             sprite.setColor(sf::Color(255, 85, 85, 220));
+        } else if (hundido) {
+            float alpha = std::max(45.0f, 255.0f - tiempoHundimiento * 90.0f);
+            sprite.setColor(sf::Color(185, 220, 255, static_cast<std::uint8_t>(alpha)));
+        } else if (enAgua) {
+            sprite.setColor(sf::Color(215, 238, 255, 245));
         } else if (tiempoGolpe > 0.0f) {
             sprite.setColor(sf::Color(255, 120, 120, 255));
         }
 
         ventana.draw(sprite);
+
+        if (enAgua && !muriendo) {
+            float alturaAgua = hundido ? altoAnimal * 0.72f : altoAnimal * 0.35f;
+            float yAgua = posicion.y + (hundido ? altoAnimal * 0.22f : altoAnimal * 0.58f);
+            sf::RectangleShape laminaAgua({anchoAnimal + 4.0f, alturaAgua});
+            laminaAgua.setPosition({posicion.x - 2.0f, yAgua});
+            laminaAgua.setFillColor(sf::Color(55, 155, 230, hundido ? 155 : 115));
+            ventana.draw(laminaAgua);
+
+            sf::RectangleShape brillo({anchoAnimal - 2.0f, 2.0f});
+            brillo.setPosition({posicion.x + 1.0f, yAgua});
+            brillo.setFillColor(sf::Color(135, 215, 255, hundido ? 145 : 125));
+            ventana.draw(brillo);
+        }
     } else {
-        forma.setPosition(posicion);
+        forma.setPosition({posicion.x, posicion.y + (enAgua ? altoAnimal * 0.18f : 0.0f)});
         ventana.draw(forma);
     }
 
