@@ -21,7 +21,9 @@ inline Animal::Animal(float x, float y, TipoAnimal tipo)
       tiempoPanico(0.0f),
       anchoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
       altoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
-      mirandoDerecha(false) {
+      mirandoDerecha(false),
+      muriendo(false),
+      tiempoMuerte(0.0f) {
     
     forma.setSize({anchoAnimal, altoAnimal});
     
@@ -72,6 +74,12 @@ inline void Animal::actualizar(float dt, const Mundo& mundo) {
 }
 
 inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posicionJugador, ItemId itemJugador) {
+    if (muriendo) {
+        tiempoMuerte += dt;
+        velocidad = {0.0f, 0.0f};
+        return;
+    }
+
     if (vida <= 0.0f) return;
 
     if (tiempoPanico > 0.0f) {
@@ -144,7 +152,7 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
 }
 
 inline void Animal::dibujar(sf::RenderWindow& ventana) {
-    if (vida <= 0.0f) return;
+    if (vida <= 0.0f && !muriendo) return;
 
     if (tipo == TipoAnimal::Cerdo) {
         dibujarCerdo(ventana);
@@ -204,7 +212,13 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
 
     if (texturaLista) {
         sf::Sprite cerdo(texturaCerdo);
-        if (mirandoDerecha) {
+        if (muriendo) {
+            cerdo.setOrigin({10.0f, 8.0f});
+            cerdo.setPosition({posicion.x + anchoAnimal * 0.5f, posicion.y + altoAnimal * 0.5f});
+            cerdo.setScale({2.0f, 2.0f});
+            cerdo.setRotation(sf::degrees(mirandoDerecha ? -90.0f : 90.0f));
+            cerdo.setColor(sf::Color(255, 70, 70, 210));
+        } else if (mirandoDerecha) {
             cerdo.setPosition({posicion.x - 2.0f + 40.0f, posicion.y + 4.0f});
             cerdo.setScale({-2.0f, 2.0f});
         } else {
@@ -223,14 +237,29 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
 }
 
 inline void Animal::recibirDanio(float danio) {
-    if (vida <= 0.0f || danio <= 0.0f) return;
+    if (muriendo || vida <= 0.0f || danio <= 0.0f) return;
     vida = std::max(0.0f, vida - danio);
-    tiempoPanico = 4.0f;
-    elegirNuevaDireccion();
+    if (vida <= 0.0f) {
+        muriendo = true;
+        tiempoMuerte = 0.0f;
+        tiempoPanico = 0.0f;
+        velocidad = {0.0f, 0.0f};
+    } else {
+        tiempoPanico = 4.0f;
+        elegirNuevaDireccion();
+    }
 }
 
 inline bool Animal::estaVivo() const {
-    return vida > 0.0f;
+    return vida > 0.0f && !muriendo;
+}
+
+inline bool Animal::estaMuriendo() const {
+    return muriendo;
+}
+
+inline bool Animal::muerteFinalizada() const {
+    return muriendo && tiempoMuerte >= 0.85f;
 }
 
 inline bool Animal::contienePunto(sf::Vector2f punto) const {
