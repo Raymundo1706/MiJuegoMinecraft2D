@@ -55,6 +55,7 @@ inline Animal::Animal(float x, float y, TipoAnimal tipo)
     : posicion(x, y),
       tipo(tipo),
       tiempoCambiandoDireccion(0.0f),
+      tiempoAnimacion(0.0f),
       vidaMaxima(vidaAnimal(tipo)),
       vida(vidaMaxima),
       tiempoPanico(0.0f),
@@ -127,6 +128,12 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
 
     if (tiempoGolpe > 0.0f) {
         tiempoGolpe = std::max(0.0f, tiempoGolpe - dt);
+    }
+
+    if (std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f) {
+        tiempoAnimacion += dt * (tiempoPanico > 0.0f ? 2.4f : 1.0f);
+    } else {
+        tiempoAnimacion = 0.0f;
     }
 
     bool huyendo = false;
@@ -234,10 +241,9 @@ inline void Animal::dibujarAnimal(sf::RenderWindow& ventana) {
 
     bool usandoTextura = texturasListas[idx];
     if (usandoTextura) {
-        int columna = (std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f)
-            ? static_cast<int>(tiempoCambiandoDireccion * 6.0f) % 2
-            : 0;
-        int fila = (std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f) ? 1 : 0;
+        bool moviendose = std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f;
+        int columna = moviendose ? static_cast<int>(tiempoAnimacion * 8.0f) % 2 : 0;
+        int fila = moviendose ? 1 : 0;
 
         sf::Sprite sprite(texturas[idx]);
         sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, 32}));

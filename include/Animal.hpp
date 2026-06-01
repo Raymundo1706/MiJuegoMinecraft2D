@@ -19,6 +19,7 @@ private:
     sf::RectangleShape forma;
     TipoAnimal tipo;
     float tiempoCambiandoDireccion;
+    float tiempoAnimacion;
     float tiempoMaximoDireccion;
     float vidaMaxima;
     float vida;
