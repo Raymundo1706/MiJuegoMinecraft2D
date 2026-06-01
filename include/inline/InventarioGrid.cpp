@@ -200,6 +200,58 @@ inline sf::Color materialHerramienta(ItemId item) {
     }
 }
 
+inline bool coordenadaItemXbox(ItemId item, int& columna, int& fila) {
+    switch (item) {
+        case ItemId::EspadaMadera: columna = 1; fila = 4; return true;
+        case ItemId::EspadaPiedra: columna = 2; fila = 4; return true;
+        case ItemId::PicoMadera: columna = 1; fila = 5; return true;
+        case ItemId::PicoPiedra: columna = 2; fila = 5; return true;
+        case ItemId::PicoDiamante: columna = 4; fila = 5; return true;
+        case ItemId::HachaMadera: columna = 1; fila = 6; return true;
+        case ItemId::HachaPiedra: columna = 2; fila = 6; return true;
+        case ItemId::PalaMadera: columna = 1; fila = 7; return true;
+        case ItemId::PalaPiedra: columna = 2; fila = 7; return true;
+        case ItemId::PaloMadera: columna = 7; fila = 2; return true;
+        case ItemId::Cama: columna = 10; fila = 3; return true;
+        case ItemId::MesaCrafteo: columna = 13; fila = 3; return true;
+        case ItemId::Horno: columna = 5; fila = 9; return true;
+        case ItemId::ChuletaCerdoCruda: columna = 10; fila = 5; return true;
+        case ItemId::ChuletaCerdoCocinada: columna = 11; fila = 5; return true;
+        case ItemId::Pluma: columna = 13; fila = 0; return true;
+        case ItemId::MineralOro: columna = 14; fila = 13; return true;
+        case ItemId::MineralDiamante: columna = 14; fila = 10; return true;
+        default: return false;
+    }
+}
+
+inline bool dibujarItemXbox(sf::RenderWindow& ventana, ItemId item, sf::Vector2f origen, float escala) {
+    static bool intentoCarga = false;
+    static bool texturaLista = false;
+    static sf::Texture texturaItems;
+
+    if (!intentoCarga) {
+        texturaLista = texturaItems.loadFromFile("assets/minecraft_items_xbox360.png");
+        texturaItems.setSmooth(false);
+        intentoCarga = true;
+    }
+    if (!texturaLista) {
+        return false;
+    }
+
+    int columna = 0;
+    int fila = 0;
+    if (!coordenadaItemXbox(item, columna, fila)) {
+        return false;
+    }
+
+    sf::Sprite sprite(texturaItems);
+    sprite.setTextureRect(sf::IntRect({columna * 16, fila * 16}, {16, 16}));
+    sprite.setPosition(origen);
+    sprite.setScale({escala, escala});
+    ventana.draw(sprite);
+    return true;
+}
+
 inline void dibujarBloqueSprite(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala) {
     sf::Color base = colorDeItem(item);
     sf::Color luz(std::min(255, base.r + 35), std::min(255, base.g + 35), std::min(255, base.b + 35), base.a);
@@ -286,6 +338,10 @@ inline void dibujarHerramientaSprite(sf::RenderWindow& ventana, sf::Vector2f ori
 }
 
 inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector2f origen, float escala) {
+    if (dibujarItemXbox(ventana, item, origen, escala)) {
+        return;
+    }
+
     switch (item) {
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
