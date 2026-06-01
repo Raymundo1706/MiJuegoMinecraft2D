@@ -87,6 +87,14 @@ inline sf::Color colorTierraPixel(int x, int y, bool arada) {
     return sf::Color(118, 75, 43);
 }
 
+inline unsigned int ruidoDecoracion(int x, int y) {
+    unsigned int h = static_cast<unsigned int>(x * 73856093u) ^
+                     static_cast<unsigned int>(y * 19349663u);
+    h ^= h >> 13u;
+    h *= 1274126177u;
+    return h ^ (h >> 16u);
+}
+
 inline void dibujarTextura16(sf::RenderWindow& ventana, int bloqueX, int bloqueY, bool pasto, bool arada = false, TipoBioma bioma = TipoBioma::Pradera) {
     static bool inicializadas = false;
     static sf::Texture texturaPastoPradera;
@@ -158,6 +166,62 @@ inline void dibujarTextura16(sf::RenderWindow& ventana, int bloqueX, int bloqueY
     sf::Sprite sprite(*textura);
     sprite.setPosition({bloqueX * 32.0f, bloqueY * 32.0f});
     ventana.draw(sprite);
+}
+
+inline void dibujarPlantasDecorativas(sf::RenderWindow& ventana, int bloqueX, int bloqueY, TipoBioma bioma) {
+    unsigned int h = ruidoDecoracion(bloqueX, bloqueY);
+    int densidad = 22;
+    if (bioma == TipoBioma::Bosque) densidad = 36;
+    if (bioma == TipoBioma::Seco) densidad = 10;
+    if (bioma == TipoBioma::Montana) densidad = 18;
+
+    if (static_cast<int>(h % 100u) >= densidad) {
+        return;
+    }
+
+    float baseX = bloqueX * 32.0f;
+    float baseY = bloqueY * 32.0f;
+    float ox = static_cast<float>((h >> 4u) % 21u) + 5.0f;
+    float oy = static_cast<float>((h >> 9u) % 18u) + 8.0f;
+
+    sf::RectangleShape pixel;
+    auto rect = [&](float x, float y, float w, float hgt, sf::Color color) {
+        pixel.setSize({w, hgt});
+        pixel.setPosition({baseX + x, baseY + y});
+        pixel.setFillColor(color);
+        ventana.draw(pixel);
+    };
+
+    sf::Color tallo = bioma == TipoBioma::Seco ? sf::Color(118, 132, 51) : sf::Color(37, 125, 53);
+    sf::Color hoja = bioma == TipoBioma::Seco ? sf::Color(161, 151, 58) : sf::Color(71, 174, 68);
+
+    int tipo = static_cast<int>((h >> 15u) % 5u);
+    if (tipo <= 1) {
+        rect(ox, oy, 2.0f, 8.0f, tallo);
+        rect(ox - 3.0f, oy + 3.0f, 4.0f, 2.0f, hoja);
+        rect(ox + 1.0f, oy + 5.0f, 4.0f, 2.0f, hoja);
+        return;
+    }
+
+    if (tipo == 2 && bioma != TipoBioma::Seco) {
+        sf::Color flor = ((h >> 20u) & 1u) ? sf::Color(235, 223, 92) : sf::Color(226, 104, 190);
+        rect(ox + 1.0f, oy + 4.0f, 2.0f, 7.0f, tallo);
+        rect(ox, oy + 1.0f, 4.0f, 4.0f, flor);
+        rect(ox + 1.0f, oy + 2.0f, 2.0f, 2.0f, sf::Color(255, 245, 180));
+        return;
+    }
+
+    if (tipo == 3) {
+        rect(ox - 2.0f, oy + 3.0f, 2.0f, 7.0f, tallo);
+        rect(ox + 2.0f, oy + 1.0f, 2.0f, 9.0f, tallo);
+        rect(ox + 6.0f, oy + 4.0f, 2.0f, 6.0f, hoja);
+        return;
+    }
+
+    if (bioma == TipoBioma::Bosque) {
+        rect(ox, oy + 5.0f, 8.0f, 4.0f, sf::Color(38, 105, 45));
+        rect(ox + 2.0f, oy + 2.0f, 5.0f, 5.0f, sf::Color(55, 146, 62));
+    }
 }
 
 inline sf::Color colorAguaPixel(int x, int y, int frame, bool profunda) {
@@ -437,16 +501,16 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
 
     std::uniform_int_distribution<> troncosArbol(2, 5);
     std::uniform_int_distribution<> varianteArbol(0, 2);
-    for (int i = 0; i < 5200; ++i) {
+    for (int i = 0; i < 8200; ++i) {
         int tx = disX(gen);
         int ty = disY(gen);
 
         if (cuadricula[ty][tx].tipo == TipoBloque::Pasto) {
             TipoBioma bioma = cuadricula[ty][tx].bioma;
-            int probabilidad = 86;
+            int probabilidad = 92;
             if (bioma == TipoBioma::Bosque) probabilidad = 99;
-            if (bioma == TipoBioma::Seco) probabilidad = 55;
-            if (bioma == TipoBioma::Montana) probabilidad = 76;
+            if (bioma == TipoBioma::Seco) probabilidad = 66;
+            if (bioma == TipoBioma::Montana) probabilidad = 84;
             if (static_cast<int>(gen() % 100) >= probabilidad) {
                 continue;
             }
@@ -481,6 +545,7 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
         for (int x = inicioX; x < finX; ++x) {
             if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
                 dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
+                dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Tierra) {
                 dibujarTextura16(ventana, x, y, false, false, cuadricula[y][x].bioma);
@@ -493,6 +558,7 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Madera) {
                 dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
+                dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MesaCrafteo) {
                 formaBlq.setFillColor(sf::Color(64, 38, 20));

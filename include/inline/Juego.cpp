@@ -61,7 +61,7 @@ inline Juego::Juego()
     float posY = static_cast<float>(bloqueSpawnY * 32 + 4);
 
     jugador = std::make_unique<Jugador>(posX, posY);
-    camara.setSize({800.0f, 600.0f});
+    camara.setSize({560.0f, 420.0f});
 
     std::uniform_int_distribution<> animalBloqueX(30, mapaSuperficie->getAncho() - 31);
     std::uniform_int_distribution<> animalBloqueY(30, mapaSuperficie->getAlto() - 31);
