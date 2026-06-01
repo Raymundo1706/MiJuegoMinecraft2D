@@ -232,7 +232,8 @@ inline void Animal::dibujarAnimal(sf::RenderWindow& ventana) {
         return;
     }
 
-    if (texturasListas[idx]) {
+    bool usandoTextura = texturasListas[idx];
+    if (usandoTextura) {
         int columna = (std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f)
             ? static_cast<int>(tiempoCambiandoDireccion * 6.0f) % 2
             : 0;
@@ -261,14 +262,14 @@ inline void Animal::dibujarAnimal(sf::RenderWindow& ventana) {
         ventana.draw(forma);
     }
 
-    if (tiempoGolpe > 0.0f && !muriendo) {
+    if (!usandoTextura && tiempoGolpe > 0.0f && !muriendo) {
         sf::RectangleShape impacto({anchoAnimal, altoAnimal});
         impacto.setPosition(posicion);
         impacto.setFillColor(sf::Color(255, 255, 255, 70));
         ventana.draw(impacto);
     }
 
-    if (tiempoPanico > 0.0f) {
+    if (!usandoTextura && tiempoPanico > 0.0f) {
         sf::RectangleShape brillo({anchoAnimal, altoAnimal});
         brillo.setPosition(posicion);
         brillo.setFillColor(sf::Color(255, 60, 60, 55));
