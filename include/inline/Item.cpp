@@ -10,6 +10,7 @@ inline bool esHerramienta(ItemId item) {
            item == ItemId::PalaPiedra ||
            item == ItemId::HachaMadera ||
            item == ItemId::HachaPiedra ||
+           item == ItemId::Barreta ||
            item == ItemId::EspadaMadera ||
            item == ItemId::EspadaPiedra;
 }
@@ -50,6 +51,7 @@ inline ItemId itemDesdeBloque(TipoBloque bloque) {
         case TipoBloque::Horno: return ItemId::Horno;
         case TipoBloque::Cristal: return ItemId::Cristal;
         case TipoBloque::MineralHierro: return ItemId::MineralHierro;
+        case TipoBloque::MineralPlata: return ItemId::MineralPlata;
         case TipoBloque::MineralOro: return ItemId::MineralOro;
         case TipoBloque::MineralDiamante: return ItemId::MineralDiamante;
         case TipoBloque::Redstone: return ItemId::Redstone;
@@ -68,6 +70,7 @@ inline TipoBloque bloqueDesdeItem(ItemId item) {
         case ItemId::Horno: return TipoBloque::Horno;
         case ItemId::Cristal: return TipoBloque::Cristal;
         case ItemId::MineralHierro: return TipoBloque::MineralHierro;
+        case ItemId::MineralPlata: return TipoBloque::MineralPlata;
         case ItemId::MineralOro: return TipoBloque::MineralOro;
         case ItemId::MineralDiamante: return TipoBloque::MineralDiamante;
         case ItemId::Redstone: return TipoBloque::Redstone;
@@ -89,6 +92,7 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::BloqueTronco: return "Tronco";
         case ItemId::TablonMadera: return "Tablon";
         case ItemId::MineralHierro: return "Hierro";
+        case ItemId::MineralPlata: return "Plata";
         case ItemId::MineralOro: return "Oro";
         case ItemId::MineralDiamante: return "Diamante";
         case ItemId::Redstone: return "Redstone";
@@ -106,6 +110,7 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::Remolacha: return "Remolacha";
         case ItemId::ChuletaCerdoCruda: return "Chuleta cruda";
         case ItemId::ChuletaCerdoCocinada: return "Chuleta cocinada";
+        case ItemId::Barreta: return "Barreta";
         case ItemId::PicoMadera: return "Pico madera";
         case ItemId::PicoPiedra: return "Pico piedra";
         case ItemId::PicoDiamante: return "Pico diamante";
