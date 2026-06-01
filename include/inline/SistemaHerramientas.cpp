@@ -68,9 +68,9 @@ inline float SistemaHerramientas::calcularTiempoMinado(TipoBloque tipo, ItemId i
     }
 
     if (tipo == TipoBloque::Madera || tipo == TipoBloque::MesaCrafteo) {
-        if (itemEnMano == ItemId::HachaMadera) return 1.5f;
-        if (itemEnMano == ItemId::HachaPiedra) return 0.75f;
-        return 3.0f;
+        if (itemEnMano == ItemId::HachaMadera) return 13.0f;
+        if (itemEnMano == ItemId::HachaPiedra) return 10.0f;
+        return 20.0f;
     }
 
     if (tipo == TipoBloque::Piedra) {
