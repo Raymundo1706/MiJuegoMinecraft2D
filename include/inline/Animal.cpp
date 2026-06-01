@@ -1,6 +1,7 @@
 ﻿#include "Mundo.hpp"
 #include "Item.hpp"
 #include <algorithm>
+#include <cstdint>
 #include <random>
 #include <cmath>
 
@@ -10,32 +11,66 @@ inline bool esComidaCerdo(ItemId item) {
            item == ItemId::Patata ||
            item == ItemId::Remolacha;
 }
+
+inline int indiceAnimal(TipoAnimal tipo) {
+    switch (tipo) {
+        case TipoAnimal::Cerdo: return 0;
+        case TipoAnimal::Vaca: return 1;
+        case TipoAnimal::Oveja: return 2;
+        case TipoAnimal::Gallina: return 3;
+    }
+    return 0;
+}
+
+inline const char* rutaAnimal(TipoAnimal tipo) {
+    switch (tipo) {
+        case TipoAnimal::Cerdo: return "assets/animal_pig.png";
+        case TipoAnimal::Vaca: return "assets/animal_cow.png";
+        case TipoAnimal::Oveja: return "assets/animal_sheep.png";
+        case TipoAnimal::Gallina: return "assets/animal_chicken.png";
+    }
+    return "assets/animal_pig.png";
+}
+
+inline float vidaAnimal(TipoAnimal tipo) {
+    switch (tipo) {
+        case TipoAnimal::Cerdo: return 10.0f;
+        case TipoAnimal::Vaca: return 10.0f;
+        case TipoAnimal::Oveja: return 8.0f;
+        case TipoAnimal::Gallina: return 4.0f;
+    }
+    return 8.0f;
+}
+
+inline float tamAnimal(TipoAnimal tipo) {
+    return tipo == TipoAnimal::Gallina ? 18.0f : 28.8f;
+}
+
+inline float velocidadBaseAnimal(TipoAnimal tipo) {
+    return tipo == TipoAnimal::Gallina ? 18.0f : 10.0f;
+}
 }
 
 inline Animal::Animal(float x, float y, TipoAnimal tipo) 
     : posicion(x, y),
       tipo(tipo),
       tiempoCambiandoDireccion(0.0f),
-      vidaMaxima(tipo == TipoAnimal::Cerdo ? 10.0f : 8.0f),
+      vidaMaxima(vidaAnimal(tipo)),
       vida(vidaMaxima),
       tiempoPanico(0.0f),
-      anchoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
-      altoAnimal(tipo == TipoAnimal::Cerdo ? 28.8f : 20.0f),
+      anchoAnimal(tamAnimal(tipo)),
+      altoAnimal(tamAnimal(tipo)),
       mirandoDerecha(false),
       muriendo(false),
       tiempoMuerte(0.0f),
       tiempoGolpe(0.0f),
       tieneAmenaza(false),
-      posicionAmenaza(0.0f, 0.0f) {
+      posicionAmenaza(0.0f, 0.0f),
+      tiempoParticulas(0.0f) {
     
     forma.setSize({anchoAnimal, altoAnimal});
     
-    // Color segÃºn la criatura estilo Minecraft
-    if (tipo == TipoAnimal::Cerdo) {
-        forma.setFillColor(sf::Color(255, 105, 180)); // Rosa Cerdito
-    } else {
-        forma.setFillColor(sf::Color(240, 240, 240)); // Blanco Oveja
-    }
+    forma.setFillColor(sf::Color(240, 240, 240));
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -54,7 +89,7 @@ inline void Animal::elegirNuevaDireccion() {
     std::uniform_real_distribution<> disTiempo(2.0f, 5.0f);
 
     int dir = disDir(gen);
-    float velocidadCaminado = (tipo == TipoAnimal::Cerdo) ? 8.0f : 40.0f;
+    float velocidadCaminado = velocidadBaseAnimal(tipo);
     if (tiempoPanico > 0.0f) {
         velocidadCaminado *= 1.5f;
     }
@@ -79,6 +114,7 @@ inline void Animal::actualizar(float dt, const Mundo& mundo) {
 inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posicionJugador, ItemId itemJugador) {
     if (muriendo) {
         tiempoMuerte += dt;
+        tiempoParticulas += dt;
         velocidad = {0.0f, 0.0f};
         return;
     }
@@ -101,7 +137,7 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
 
         if (distancia > 0.01f) {
             direccionHuida /= distancia;
-            float velocidadHuida = (tipo == TipoAnimal::Cerdo ? 64.0f : 70.0f);
+            float velocidadHuida = velocidadBaseAnimal(tipo) * 7.0f;
             velocidad = direccionHuida * velocidadHuida;
             if (velocidad.x > 0.0f) mirandoDerecha = true;
             if (velocidad.x < 0.0f) mirandoDerecha = false;
@@ -178,82 +214,51 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
 inline void Animal::dibujar(sf::RenderWindow& ventana) {
     if (vida <= 0.0f && !muriendo) return;
 
-    if (tipo == TipoAnimal::Cerdo) {
-        dibujarCerdo(ventana);
+    dibujarAnimal(ventana);
+}
+
+inline void Animal::dibujarAnimal(sf::RenderWindow& ventana) {
+    static bool texturasListas[4] = {false, false, false, false};
+    static sf::Texture texturas[4];
+    int idx = indiceAnimal(tipo);
+
+    if (!texturasListas[idx]) {
+        texturasListas[idx] = texturas[idx].loadFromFile(rutaAnimal(tipo));
+        texturas[idx].setSmooth(false);
+    }
+
+    if (muriendo && tiempoMuerte >= 0.72f) {
+        dibujarParticulasMuerte(ventana);
         return;
     }
 
-    forma.setPosition(posicion);
-    ventana.draw(forma);
-}
+    if (texturasListas[idx]) {
+        int columna = (std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f)
+            ? static_cast<int>(tiempoCambiandoDireccion * 6.0f) % 2
+            : 0;
+        int fila = (std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f) ? 1 : 0;
 
-inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
-    static bool texturaLista = false;
-    static sf::Texture texturaCerdo;
+        sf::Sprite sprite(texturas[idx]);
+        sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, 32}));
+        sprite.setOrigin({16.0f, 24.0f});
+        sprite.setPosition({posicion.x + anchoAnimal * 0.5f, posicion.y + altoAnimal});
+        float escala = tipo == TipoAnimal::Gallina ? 0.95f : 1.15f;
+        sprite.setScale({mirandoDerecha ? -escala : escala, escala});
 
-    if (!texturaLista) {
-        sf::Image imagen({20, 16}, sf::Color::Transparent);
-        const sf::Color rosaBase(226, 121, 119);
-        const sf::Color rosaClaro(247, 157, 157);
-        const sf::Color rosaOscuro(206, 92, 96);
-        const sf::Color sombra(176, 73, 81);
-
-        auto pixel = [&](int x, int y, sf::Color color) {
-            if (x >= 0 && x < 20 && y >= 0 && y < 16) {
-                imagen.setPixel(sf::Vector2u(static_cast<unsigned int>(x), static_cast<unsigned int>(y)), color);
-            }
-        };
-
-        auto rect = [&](int x, int y, int w, int h, sf::Color color) {
-            for (int py = y; py < y + h; ++py) {
-                for (int px = x; px < x + w; ++px) {
-                    pixel(px, py, color);
-                }
-            }
-        };
-
-        rect(3, 5, 15, 7, rosaBase);
-        rect(5, 3, 10, 3, rosaClaro);
-        rect(2, 8, 4, 4, rosaOscuro);
-        rect(6, 10, 11, 3, rosaBase);
-        rect(5, 12, 3, 2, sombra);
-        rect(14, 12, 3, 2, sombra);
-        rect(4, 2, 2, 3, rosaBase);
-        rect(13, 2, 2, 3, rosaBase);
-        rect(2, 9, 2, 2, rosaClaro);
-        rect(17, 8, 2, 2, rosaBase);
-        rect(19, 9, 1, 1, rosaClaro);
-        pixel(4, 7, sf::Color::Black);
-        pixel(8, 7, sf::Color::Black);
-        pixel(5, 9, rosaClaro);
-        pixel(6, 9, rosaClaro);
-        pixel(5, 10, sombra);
-        pixel(6, 10, sombra);
-
-        texturaLista = texturaCerdo.loadFromImage(imagen);
-        texturaCerdo.setSmooth(false);
-    }
-
-    if (texturaLista) {
-        sf::Sprite cerdo(texturaCerdo);
         float sacudida = tiempoGolpe > 0.0f ? std::sin(tiempoGolpe * 80.0f) * 2.0f : 0.0f;
+        sprite.move({sacudida, 0.0f});
+
         if (muriendo) {
-            cerdo.setOrigin({10.0f, 8.0f});
-            cerdo.setPosition({posicion.x + anchoAnimal * 0.5f, posicion.y + altoAnimal * 0.5f});
-            cerdo.setScale({2.0f, 2.0f});
-            cerdo.setRotation(sf::degrees(mirandoDerecha ? -90.0f : 90.0f));
-            cerdo.setColor(sf::Color(255, 70, 70, 210));
-        } else if (mirandoDerecha) {
-            cerdo.setPosition({posicion.x - 2.0f + 40.0f + sacudida, posicion.y + 4.0f});
-            cerdo.setScale({-2.0f, 2.0f});
-        } else {
-            cerdo.setPosition({posicion.x - 2.0f + sacudida, posicion.y + 4.0f});
-            cerdo.setScale({2.0f, 2.0f});
+            sprite.setRotation(sf::degrees(mirandoDerecha ? -85.0f : 85.0f));
+            sprite.setColor(sf::Color(255, 85, 85, 220));
+        } else if (tiempoGolpe > 0.0f) {
+            sprite.setColor(sf::Color(255, 120, 120, 255));
         }
-        if (tiempoGolpe > 0.0f && !muriendo) {
-            cerdo.setColor(sf::Color(255, 95, 95, 255));
-        }
-        ventana.draw(cerdo);
+
+        ventana.draw(sprite);
+    } else {
+        forma.setPosition(posicion);
+        ventana.draw(forma);
     }
 
     if (tiempoGolpe > 0.0f && !muriendo) {
@@ -268,6 +273,28 @@ inline void Animal::dibujarCerdo(sf::RenderWindow& ventana) {
         brillo.setPosition(posicion);
         brillo.setFillColor(sf::Color(255, 60, 60, 55));
         ventana.draw(brillo);
+    }
+}
+
+inline void Animal::dibujarParticulasMuerte(sf::RenderWindow& ventana) {
+    float t = std::min(1.0f, (tiempoMuerte - 0.72f) / 0.42f);
+    sf::Vector2f centro = posicion + sf::Vector2f(anchoAnimal * 0.5f, altoAnimal * 0.5f);
+    sf::Color colores[3] = {
+        sf::Color(255, 95, 95, static_cast<std::uint8_t>(220 * (1.0f - t))),
+        sf::Color(255, 210, 160, static_cast<std::uint8_t>(200 * (1.0f - t))),
+        sf::Color(235, 235, 235, static_cast<std::uint8_t>(170 * (1.0f - t)))
+    };
+
+    for (int i = 0; i < 9; ++i) {
+        float angulo = static_cast<float>(i) * 0.698f;
+        float distancia = 4.0f + t * 18.0f + static_cast<float>(i % 3) * 2.0f;
+        sf::RectangleShape p({3.0f, 3.0f});
+        p.setPosition({
+            centro.x + std::cos(angulo) * distancia,
+            centro.y + std::sin(angulo) * distancia - t * 8.0f
+        });
+        p.setFillColor(colores[i % 3]);
+        ventana.draw(p);
     }
 }
 
@@ -294,7 +321,7 @@ inline void Animal::recibirDanio(float danio, sf::Vector2f origenDanio) {
 
         if (distancia > 0.01f) {
             direccionHuida /= distancia;
-            float velocidadHuida = (tipo == TipoAnimal::Cerdo ? 64.0f : 70.0f);
+            float velocidadHuida = velocidadBaseAnimal(tipo) * 7.0f;
             velocidad = direccionHuida * velocidadHuida;
             if (velocidad.x > 0.0f) mirandoDerecha = true;
             if (velocidad.x < 0.0f) mirandoDerecha = false;
@@ -314,7 +341,7 @@ inline bool Animal::estaMuriendo() const {
 }
 
 inline bool Animal::muerteFinalizada() const {
-    return muriendo && tiempoMuerte >= 0.85f;
+    return muriendo && tiempoMuerte >= 1.2f;
 }
 
 inline bool Animal::contienePunto(sf::Vector2f punto) const {
