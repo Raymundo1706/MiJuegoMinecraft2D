@@ -223,9 +223,11 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         if (direccionMirada == DireccionMirada::Abajo) fila = baseAccion + 0;
         if (direccionMirada == DireccionMirada::Izquierda) {
             fila = baseAccion + 1;
+        }
+        if (direccionMirada == DireccionMirada::Derecha) {
+            fila = baseAccion + 1;
             espejarHorizontal = true;
         }
-        if (direccionMirada == DireccionMirada::Derecha) fila = baseAccion + 1;
         if (direccionMirada == DireccionMirada::Arriba) fila = baseAccion + 2;
     } else {
         if (direccionMirada == DireccionMirada::Abajo) fila = caminando ? 1 : 0;
@@ -233,7 +235,6 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         if (direccionMirada == DireccionMirada::Derecha) fila = caminando ? 4 : 3;
         if (direccionMirada == DireccionMirada::Izquierda) {
             fila = caminando ? 4 : 3;
-            espejarHorizontal = true;
         }
 
         columna = caminando ? static_cast<int>(tiempoAnimacion * 8.0f) % 6 : 0;
