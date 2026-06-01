@@ -23,6 +23,7 @@ inline TipoHerramienta tipoHerramienta(ItemId item) {
             return TipoHerramienta::Pico;
         case ItemId::PalaMadera:
         case ItemId::PalaPiedra:
+        case ItemId::Barreta:
             return TipoHerramienta::Pala;
         case ItemId::HachaMadera:
         case ItemId::HachaPiedra:
