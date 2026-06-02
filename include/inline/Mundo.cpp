@@ -228,6 +228,36 @@ inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int blo
     if (!vecinoAbajo) marca(borde, TAMANIO_BLOQUE_JUEGO - borde, centro, 1.0f, sf::Color(48, 50, 51, 105));
 }
 
+inline void dibujarRelieveMuro(sf::RenderWindow& ventana, int bloqueX, int bloqueY,
+                               bool vecinoArriba, bool vecinoAbajo,
+                               bool vecinoIzquierda, bool vecinoDerecha,
+                               sf::Color luz, sf::Color sombra) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+
+    auto rect = [&](float rx, float ry, float rw, float rh, sf::Color color) {
+        sf::RectangleShape r({rw, rh});
+        r.setPosition({x + rx, y + ry});
+        r.setFillColor(color);
+        ventana.draw(r);
+    };
+
+    if (!vecinoAbajo) {
+        rect(2.0f, TAMANIO_BLOQUE_JUEGO - 1.0f, TAMANIO_BLOQUE_JUEGO + 2.0f, 5.0f, sf::Color(10, 10, 10, 70));
+        rect(0.0f, TAMANIO_BLOQUE_JUEGO - 6.0f, TAMANIO_BLOQUE_JUEGO, 6.0f, sombra);
+    }
+    if (!vecinoDerecha) {
+        rect(TAMANIO_BLOQUE_JUEGO - 4.0f, 4.0f, 4.0f, TAMANIO_BLOQUE_JUEGO - 5.0f, sf::Color(sombra.r, sombra.g, sombra.b, 115));
+    }
+    if (!vecinoIzquierda) {
+        rect(0.0f, 3.0f, 2.0f, TAMANIO_BLOQUE_JUEGO - 5.0f, sf::Color(luz.r, luz.g, luz.b, 65));
+    }
+    if (!vecinoArriba) {
+        rect(2.0f, 0.0f, TAMANIO_BLOQUE_JUEGO - 4.0f, 2.0f, luz);
+        rect(3.0f, 3.0f, TAMANIO_BLOQUE_JUEGO - 6.0f, 1.0f, sf::Color(255, 255, 255, 35));
+    }
+}
+
 inline unsigned int ruidoDecoracion(int x, int y) {
     unsigned int h = static_cast<unsigned int>(x * 73856093u) ^
                      static_cast<unsigned int>(y * 19349663u);
@@ -760,6 +790,24 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                tipo == TipoBloque::MineralOro ||
                tipo == TipoBloque::MineralDiamante;
     };
+    auto esMuroVisual = [&](int bx, int by) {
+        if (bx < 0 || bx >= ancho || by < 0 || by >= alto) {
+            return false;
+        }
+        const Bloque& bloque = cuadricula[by][bx];
+        if (!bloque.esSolido) {
+            return false;
+        }
+        return bloque.tipo == TipoBloque::Tierra ||
+               bloque.tipo == TipoBloque::Piedra ||
+               bloque.tipo == TipoBloque::MineralHierro ||
+               bloque.tipo == TipoBloque::MineralPlata ||
+               bloque.tipo == TipoBloque::MineralOro ||
+               bloque.tipo == TipoBloque::MineralDiamante ||
+               bloque.tipo == TipoBloque::Horno ||
+               bloque.tipo == TipoBloque::Cristal ||
+               bloque.tipo == TipoBloque::MesaCrafteo;
+    };
 
     for (int y = inicioY; y < finY; ++y) {
         for (int x = inicioX; x < finX; ++x) {
@@ -770,6 +818,14 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Tierra) {
                 dibujarTextura16(ventana, x, y, false, false, cuadricula[y][x].bioma);
+                if (cuadricula[y][x].esSolido) {
+                    dibujarRelieveMuro(
+                        ventana, x, y,
+                        esMuroVisual(x, y - 1), esMuroVisual(x, y + 1),
+                        esMuroVisual(x - 1, y), esMuroVisual(x + 1, y),
+                        sf::Color(194, 128, 74, 95), sf::Color(62, 38, 24, 125)
+                    );
+                }
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Agua) {
                 dibujarAguaAnimada(ventana, x, y, false);
@@ -805,6 +861,12 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 lineaHorizontal.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE * 0.5f - 2.0f});
                 lineaHorizontal.setFillColor(sf::Color::Black);
                 ventana.draw(lineaHorizontal);
+                dibujarRelieveMuro(
+                    ventana, x, y,
+                    esMuroVisual(x, y - 1), esMuroVisual(x, y + 1),
+                    esMuroVisual(x - 1, y), esMuroVisual(x + 1, y),
+                    sf::Color(224, 170, 94, 95), sf::Color(58, 34, 19, 115)
+                );
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Horno) {
                 formaBlq.setFillColor(sf::Color(85, 85, 85));
@@ -825,6 +887,12 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                     esPiedraVisual(x, y + 1),
                     esPiedraVisual(x - 1, y),
                     esPiedraVisual(x + 1, y)
+                );
+                dibujarRelieveMuro(
+                    ventana, x, y,
+                    esMuroVisual(x, y - 1), esMuroVisual(x, y + 1),
+                    esMuroVisual(x - 1, y), esMuroVisual(x + 1, y),
+                    sf::Color(210, 214, 210, 90), sf::Color(50, 52, 53, 115)
                 );
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
@@ -859,6 +927,27 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 sombraInf.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE - 2.0f});
                 sombraInf.setFillColor(sf::Color(0, 0, 0, 65));
                 ventana.draw(sombraInf);
+            }
+
+            if (esMuroVisual(x, y)) {
+                sf::Color luz(230, 232, 230, 70);
+                sf::Color sombra(42, 42, 42, 105);
+                if (cuadricula[y][x].tipo == TipoBloque::Cristal) {
+                    luz = sf::Color(235, 255, 255, 105);
+                    sombra = sf::Color(42, 86, 100, 85);
+                } else if (cuadricula[y][x].tipo == TipoBloque::MineralOro) {
+                    luz = sf::Color(255, 230, 120, 90);
+                    sombra = sf::Color(120, 82, 22, 115);
+                } else if (cuadricula[y][x].tipo == TipoBloque::MineralPlata) {
+                    luz = sf::Color(245, 250, 250, 90);
+                    sombra = sf::Color(76, 84, 88, 105);
+                }
+                dibujarRelieveMuro(
+                    ventana, x, y,
+                    esMuroVisual(x, y - 1), esMuroVisual(x, y + 1),
+                    esMuroVisual(x - 1, y), esMuroVisual(x + 1, y),
+                    luz, sombra
+                );
             }
         }
     }
