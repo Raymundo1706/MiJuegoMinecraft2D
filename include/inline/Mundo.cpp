@@ -164,7 +164,8 @@ inline void dibujarTextura16(sf::RenderWindow& ventana, int bloqueX, int bloqueY
         }
     }
     sf::Sprite sprite(*textura);
-    sprite.setPosition({bloqueX * 32.0f, bloqueY * 32.0f});
+    sprite.setPosition({bloqueX * TAMANIO_BLOQUE_JUEGO, bloqueY * TAMANIO_BLOQUE_JUEGO});
+    sprite.setScale({ESCALA_BLOQUE_JUEGO, ESCALA_BLOQUE_JUEGO});
     ventana.draw(sprite);
 }
 
@@ -179,10 +180,10 @@ inline void dibujarPlantasDecorativas(sf::RenderWindow& ventana, int bloqueX, in
         return;
     }
 
-    float baseX = bloqueX * 32.0f;
-    float baseY = bloqueY * 32.0f;
-    float ox = static_cast<float>((h >> 4u) % 21u) + 5.0f;
-    float oy = static_cast<float>((h >> 9u) % 18u) + 8.0f;
+    float baseX = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    float baseY = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    float ox = static_cast<float>((h >> 4u) % 15u) + 4.0f;
+    float oy = static_cast<float>((h >> 9u) % 12u) + 7.0f;
 
     sf::RectangleShape pixel;
     auto rect = [&](float x, float y, float w, float hgt, sf::Color color) {
@@ -197,30 +198,30 @@ inline void dibujarPlantasDecorativas(sf::RenderWindow& ventana, int bloqueX, in
 
     int tipo = static_cast<int>((h >> 15u) % 5u);
     if (tipo <= 1) {
-        rect(ox, oy, 2.0f, 8.0f, tallo);
-        rect(ox - 3.0f, oy + 3.0f, 4.0f, 2.0f, hoja);
-        rect(ox + 1.0f, oy + 5.0f, 4.0f, 2.0f, hoja);
+        rect(ox, oy, 1.5f, 6.0f, tallo);
+        rect(ox - 2.0f, oy + 2.0f, 3.0f, 1.5f, hoja);
+        rect(ox + 1.0f, oy + 4.0f, 3.0f, 1.5f, hoja);
         return;
     }
 
     if (tipo == 2 && bioma != TipoBioma::Seco) {
         sf::Color flor = ((h >> 20u) & 1u) ? sf::Color(235, 223, 92) : sf::Color(226, 104, 190);
-        rect(ox + 1.0f, oy + 4.0f, 2.0f, 7.0f, tallo);
-        rect(ox, oy + 1.0f, 4.0f, 4.0f, flor);
-        rect(ox + 1.0f, oy + 2.0f, 2.0f, 2.0f, sf::Color(255, 245, 180));
+        rect(ox + 1.0f, oy + 3.0f, 1.5f, 6.0f, tallo);
+        rect(ox, oy + 1.0f, 3.0f, 3.0f, flor);
+        rect(ox + 1.0f, oy + 2.0f, 1.0f, 1.0f, sf::Color(255, 245, 180));
         return;
     }
 
     if (tipo == 3) {
-        rect(ox - 2.0f, oy + 3.0f, 2.0f, 7.0f, tallo);
-        rect(ox + 2.0f, oy + 1.0f, 2.0f, 9.0f, tallo);
-        rect(ox + 6.0f, oy + 4.0f, 2.0f, 6.0f, hoja);
+        rect(ox - 2.0f, oy + 3.0f, 1.5f, 6.0f, tallo);
+        rect(ox + 2.0f, oy + 1.0f, 1.5f, 7.0f, tallo);
+        rect(ox + 5.0f, oy + 4.0f, 1.5f, 5.0f, hoja);
         return;
     }
 
     if (bioma == TipoBioma::Bosque) {
-        rect(ox, oy + 5.0f, 8.0f, 4.0f, sf::Color(38, 105, 45));
-        rect(ox + 2.0f, oy + 2.0f, 5.0f, 5.0f, sf::Color(55, 146, 62));
+        rect(ox, oy + 5.0f, 6.0f, 3.0f, sf::Color(38, 105, 45));
+        rect(ox + 1.0f, oy + 2.0f, 4.0f, 4.0f, sf::Color(55, 146, 62));
     }
 }
 
@@ -282,7 +283,8 @@ inline void dibujarAguaAnimada(sf::RenderWindow& ventana, int bloqueX, int bloqu
     int frameBase = static_cast<int>(relojAgua.getElapsedTime().asSeconds() * 4.0f) % 4;
     int frame = (frameBase + ((bloqueX + bloqueY) & 1)) % 4;
     sf::Sprite sprite(profunda ? aguaProfunda[frame] : agua[frame]);
-    sprite.setPosition({bloqueX * 32.0f, bloqueY * 32.0f});
+    sprite.setPosition({bloqueX * TAMANIO_BLOQUE_JUEGO, bloqueY * TAMANIO_BLOQUE_JUEGO});
+    sprite.setScale({ESCALA_BLOQUE_JUEGO, ESCALA_BLOQUE_JUEGO});
     ventana.draw(sprite);
 }
 
@@ -291,7 +293,7 @@ inline void dibujarTextura16Lenta(sf::RenderWindow& ventana, int bloqueX, int bl
     sf::RectangleShape cuadro({pixel, pixel});
     for (int py = 0; py < 16; ++py) {
         for (int px = 0; px < 16; ++px) {
-            cuadro.setPosition({bloqueX * 32.0f + px * pixel, bloqueY * 32.0f + py * pixel});
+            cuadro.setPosition({bloqueX * TAMANIO_BLOQUE_JUEGO + px * pixel, bloqueY * TAMANIO_BLOQUE_JUEGO + py * pixel});
             cuadro.setFillColor(pasto ? colorPastoPixel(px, py, TipoBioma::Pradera) : colorTierraPixel(px, py, arada));
             ventana.draw(cuadro);
         }
@@ -299,8 +301,8 @@ inline void dibujarTextura16Lenta(sf::RenderWindow& ventana, int bloqueX, int bl
 }
 
 inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, const Bloque& bloque) {
-    const float baseX = bloqueX * 32.0f - 20.0f;
-    const float baseY = bloqueY * 32.0f - 46.0f;
+    const float baseX = bloqueX * TAMANIO_BLOQUE_JUEGO - 20.0f;
+    const float baseY = bloqueY * TAMANIO_BLOQUE_JUEGO - 46.0f;
     const int variante = bloque.varianteArbol % 3;
 
     sf::Color hojaOscura(31, 92, 47);
@@ -524,7 +526,7 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
 }
 
 inline void Mundo::dibujar(sf::RenderWindow& ventana) {
-    const float TAMANIO_BLOQUE = 32.0f;
+    const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
     sf::RectangleShape formaBlq({TAMANIO_BLOQUE, TAMANIO_BLOQUE});
 
     sf::View vistaActual = ventana.getView();
@@ -565,18 +567,18 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 formaBlq.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
                 ventana.draw(formaBlq);
 
-                sf::RectangleShape centroMesa({24.0f, 24.0f});
-                centroMesa.setPosition({x * TAMANIO_BLOQUE + 4.0f, y * TAMANIO_BLOQUE + 4.0f});
+                sf::RectangleShape centroMesa({TAMANIO_BLOQUE - 6.0f, TAMANIO_BLOQUE - 6.0f});
+                centroMesa.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + 3.0f});
                 centroMesa.setFillColor(sf::Color(145, 92, 42));
                 ventana.draw(centroMesa);
 
-                sf::RectangleShape lineaVertical({1.0f, 24.0f});
-                lineaVertical.setPosition({x * TAMANIO_BLOQUE + 16.0f, y * TAMANIO_BLOQUE + 4.0f});
+                sf::RectangleShape lineaVertical({1.0f, TAMANIO_BLOQUE - 6.0f});
+                lineaVertical.setPosition({x * TAMANIO_BLOQUE + TAMANIO_BLOQUE * 0.5f, y * TAMANIO_BLOQUE + 3.0f});
                 lineaVertical.setFillColor(sf::Color::Black);
                 ventana.draw(lineaVertical);
 
-                sf::RectangleShape lineaHorizontal({24.0f, 1.0f});
-                lineaHorizontal.setPosition({x * TAMANIO_BLOQUE + 4.0f, y * TAMANIO_BLOQUE + 16.0f});
+                sf::RectangleShape lineaHorizontal({TAMANIO_BLOQUE - 6.0f, 1.0f});
+                lineaHorizontal.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE * 0.5f});
                 lineaHorizontal.setFillColor(sf::Color::Black);
                 ventana.draw(lineaHorizontal);
                 continue;

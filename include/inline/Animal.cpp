@@ -51,7 +51,7 @@ inline float velocidadBaseAnimal(TipoAnimal tipo) {
 }
 
 inline bool animalTocaAgua(const Mundo& mundo, sf::Vector2f posicionAnimal, float ancho, float alto) {
-    const float TAMANIO_BLOQUE = 32.0f;
+    const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
 
     auto puntoEsAgua = [&](float px, float py) {
         int bloqueX = static_cast<int>(std::floor(px / TAMANIO_BLOQUE));
@@ -211,7 +211,7 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
         sf::Vector2f delta = posicionJugador - centroAnimal;
         float distancia = std::sqrt(delta.x * delta.x + delta.y * delta.y);
 
-        if (distancia < 8.0f * 32.0f && distancia > 1.0f) {
+        if (distancia < 8.0f * TAMANIO_BLOQUE_JUEGO && distancia > 1.0f) {
             sf::Vector2f direccion = delta / distancia;
             velocidad = direccion * 8.0f;
             if (velocidad.x > 0.0f) mirandoDerecha = true;
@@ -228,7 +228,7 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
         }
     }
 
-    const float TAMANIO_BLOQUE = 32.0f;
+    const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
     float factorAgua = enAgua ? 0.33f : 1.0f;
     sf::Vector2f velocidadMovimiento = velocidad * factorAgua;
 

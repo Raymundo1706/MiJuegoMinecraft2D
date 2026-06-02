@@ -135,8 +135,8 @@ inline Juego::Juego()
         }
     }
 
-    float posX = static_cast<float>(bloqueSpawnX * 32 + 4);
-    float posY = static_cast<float>(bloqueSpawnY * 32 + 4);
+    float posX = static_cast<float>(bloqueSpawnX) * TAMANIO_BLOQUE_JUEGO;
+    float posY = static_cast<float>(bloqueSpawnY) * TAMANIO_BLOQUE_JUEGO;
 
     jugador = std::make_unique<Jugador>(posX, posY);
     camara.setSize({680.0f, 510.0f});
@@ -158,8 +158,8 @@ inline Juego::Juego()
             continue;
         }
 
-        float animalX = static_cast<float>(bx * 32 + 2);
-        float animalY = static_cast<float>(by * 32 + 2);
+        float animalX = static_cast<float>(bx) * TAMANIO_BLOQUE_JUEGO;
+        float animalY = static_cast<float>(by) * TAMANIO_BLOQUE_JUEGO;
         TipoAnimal tipo = TipoAnimal::Cerdo;
         int especie = animalesCreados % 4;
         if (especie == 1) {
@@ -185,8 +185,8 @@ inline Juego::Juego()
         std::cout << "[Error] No se pudo cargar assets/fonts/Minecraft.ttf" << std::endl;
     }
 
-    std::cout << "Spawn aleatorio fijado en X: " << (posX / 32)
-              << " Y: " << (posY / 32) << "." << std::endl;
+    std::cout << "Spawn aleatorio fijado en X: " << (posX / TAMANIO_BLOQUE_JUEGO)
+              << " Y: " << (posY / TAMANIO_BLOQUE_JUEGO) << "." << std::endl;
 }
 
 inline Juego::~Juego() {
@@ -220,8 +220,8 @@ inline void Juego::ejecutar() {
         if (!jugador || !mapaSuperficie) return;
 
         sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
-        mapaCentroX = static_cast<int>(std::floor(centroJugador.x / 32.0f));
-        mapaCentroY = static_cast<int>(std::floor(centroJugador.y / 32.0f));
+        mapaCentroX = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO));
+        mapaCentroY = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
 
         sf::Image imagenMapa({TAMANIO_MAPA_INICIAL, TAMANIO_MAPA_INICIAL}, sf::Color(20, 28, 42));
         int inicioX = mapaCentroX - RADIO_MAPA_INICIAL;
@@ -366,8 +366,8 @@ inline void Juego::ejecutar() {
 
         ventana.setView(camara);
         sf::Vector2f posicionMundoMouse = ventana.mapPixelToCoords(mousePos);
-        int bloqueMouseX = static_cast<int>(std::floor(posicionMundoMouse.x / 32.0f));
-        int bloqueMouseY = static_cast<int>(std::floor(posicionMundoMouse.y / 32.0f));
+        int bloqueMouseX = static_cast<int>(std::floor(posicionMundoMouse.x / TAMANIO_BLOQUE_JUEGO));
+        int bloqueMouseY = static_cast<int>(std::floor(posicionMundoMouse.y / TAMANIO_BLOQUE_JUEGO));
 
         int bloqueJugadorX = -1;
         int bloqueJugadorY = -1;
@@ -385,8 +385,8 @@ inline void Juego::ejecutar() {
 
         if (jugador && mapaSuperficie) {
             sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
-            bloqueJugadorX = static_cast<int>(std::floor(centroJugador.x / 32.0f));
-            bloqueJugadorY = static_cast<int>(std::floor(centroJugador.y / 32.0f));
+            bloqueJugadorX = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO));
+            bloqueJugadorY = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
             jugadorSobreEntradaMina = mapaSuperficie->getTipoBloque(bloqueJugadorX, bloqueJugadorY) == TipoBloque::CuevaEntrada;
 
             if (jugadorSobreEntradaMina) {
@@ -413,10 +413,10 @@ inline void Juego::ejecutar() {
             if (tipoHover == TipoBloque::MesaCrafteo) {
                 sf::Vector2f posJugador = jugador->getPosicion();
                 sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
-                sf::Vector2f centroBloque((bloqueMouseX * 32.0f) + 16.0f, (bloqueMouseY * 32.0f) + 16.0f);
+                sf::Vector2f centroBloque((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
                 float dx = centroBloque.x - centroJugador.x;
                 float dy = centroBloque.y - centroJugador.y;
-                mesaHoverCercana = std::sqrt(dx * dx + dy * dy) <= 64.0f;
+                mesaHoverCercana = std::sqrt(dx * dx + dy * dy) <= TAMANIO_BLOQUE_JUEGO * 2.0f;
                 clickSobreMesa = mesaHoverCercana && clickIzquierdo && !clickIzquierdoAnterior;
             }
         }
@@ -428,7 +428,7 @@ inline void Juego::ejecutar() {
             if (jugador && mapaSuperficie) {
                 sf::Vector2f posJugador = jugador->getPosicion();
                 sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
-                sf::Vector2f centroBloque((bloqueMouseX * 32.0f) + 16.0f, (bloqueMouseY * 32.0f) + 16.0f);
+                sf::Vector2f centroBloque((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
                 float dx = centroBloque.x - centroJugador.x;
                 float dy = centroBloque.y - centroJugador.y;
                 float distancia = std::sqrt(dx * dx + dy * dy);
@@ -521,7 +521,7 @@ inline void Juego::ejecutar() {
             if (jugador && mapaSuperficie) {
                 sf::Vector2f posJugador = jugador->getPosicion();
                 sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
-                sf::Vector2f centroBloque((bloqueX * 32.0f) + 16.0f, (bloqueY * 32.0f) + 16.0f);
+                sf::Vector2f centroBloque((bloqueX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
 
                 float dx = centroBloque.x - centroJugador.x;
                 float dy = centroBloque.y - centroJugador.y;
@@ -583,7 +583,7 @@ inline void Juego::ejecutar() {
             if (tipoHover == TipoBloque::Madera) {
                 sf::Vector2f posJugador = jugador->getPosicion();
                 sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
-                sf::Vector2f centroBloque((bloqueMouseX * 32.0f) + 16.0f, (bloqueMouseY * 32.0f) + 16.0f);
+                sf::Vector2f centroBloque((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
                 float dx = centroBloque.x - centroJugador.x;
                 float dy = centroBloque.y - centroJugador.y;
                 if (std::sqrt(dx * dx + dy * dy) <= 115.0f) {
@@ -658,8 +658,8 @@ inline void Juego::ejecutar() {
             std::string nombreEnMano = nombreItem(inventarioGrid.getItemEnHotbar());
 
             ss << "FPS: " << fpsActuales << "\n"
-               << "Bloque Coords -> X: " << static_cast<int>(pos.x / 32.0f)
-               << " Y: " << static_cast<int>(pos.y / 32.0f) << "\n"
+               << "Bloque Coords -> X: " << static_cast<int>(pos.x / TAMANIO_BLOQUE_JUEGO)
+               << " Y: " << static_cast<int>(pos.y / TAMANIO_BLOQUE_JUEGO) << "\n"
                << "Item en Mano: " << nombreEnMano;
 
             if (jugadorSobreEntradaMina) {
@@ -694,8 +694,8 @@ inline void Juego::ejecutar() {
                 ventana.draw(spriteMapa);
 
                 sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
-                int jugadorMapaX = static_cast<int>(std::floor(centroJugador.x / 32.0f)) - (mapaCentroX - RADIO_MAPA_INICIAL);
-                int jugadorMapaY = static_cast<int>(std::floor(centroJugador.y / 32.0f)) - (mapaCentroY - RADIO_MAPA_INICIAL);
+                int jugadorMapaX = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO)) - (mapaCentroX - RADIO_MAPA_INICIAL);
+                int jugadorMapaY = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO)) - (mapaCentroY - RADIO_MAPA_INICIAL);
                 jugadorMapaX = std::clamp(jugadorMapaX, 0, TAMANIO_MAPA_INICIAL - 1);
                 jugadorMapaY = std::clamp(jugadorMapaY, 0, TAMANIO_MAPA_INICIAL - 1);
 

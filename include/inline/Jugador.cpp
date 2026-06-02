@@ -33,7 +33,7 @@ inline Jugador::Jugador(float x, float y) {
 inline Jugador::~Jugador() {}
 
 inline bool jugadorTocaAgua(const Mundo& mundo, sf::Vector2f posicionJugador, sf::Vector2f tamanoJugador) {
-    const float TAMANIO_BLOQUE = 32.0f;
+    const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
 
     auto puntoEsAgua = [&](float px, float py) {
         int bloqueX = static_cast<int>(std::floor(px / TAMANIO_BLOQUE));
@@ -151,7 +151,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     direccion /= longitud;
     float velocidadActual = enAgua ? velocidad / 3.0f : velocidad;
 
-    const float TAMANIO_BLOQUE = 32.0f;
+    const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
     float anchoJugador = forma.getSize().x;
     float altoJugador = forma.getSize().y;
 

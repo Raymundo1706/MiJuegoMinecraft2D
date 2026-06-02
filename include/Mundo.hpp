@@ -3,6 +3,9 @@
 #include <vector>
 #include <SFML/Graphics.hpp>
 
+constexpr float TAMANIO_BLOQUE_JUEGO = 24.0f;
+constexpr float ESCALA_BLOQUE_JUEGO = TAMANIO_BLOQUE_JUEGO / 32.0f;
+
 enum class TipoBloque {
     Aire,
     Pasto,
