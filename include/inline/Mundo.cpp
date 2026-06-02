@@ -7,18 +7,63 @@
 namespace {
 constexpr float TIEMPO_MINA_BASE_SEGUNDOS = 900.0f;
 
-inline TipoBioma calcularBioma(int x, int y, unsigned int semilla) {
-    float sx = static_cast<float>(x) + static_cast<float>(semilla % 4096);
-    float sy = static_cast<float>(y) + static_cast<float>((semilla / 7) % 4096);
-    float valor = std::sin(sx * 0.018f) +
-                  std::sin(sy * 0.015f) +
-                  std::sin((sx + sy) * 0.008f) +
-                  std::sin((sx - sy) * 0.012f);
+inline float suavizar(float t) {
+    return t * t * (3.0f - 2.0f * t);
+}
 
-    if (valor < -1.05f) return TipoBioma::Seco;
-    if (valor < 0.35f) return TipoBioma::Pradera;
-    if (valor < 1.65f) return TipoBioma::Bosque;
-    return TipoBioma::Montana;
+inline float mezclar(float a, float b, float t) {
+    return a + (b - a) * t;
+}
+
+inline float hash01(int x, int y, unsigned int semilla) {
+    std::uint32_t h = static_cast<std::uint32_t>(x) * 374761393u +
+                      static_cast<std::uint32_t>(y) * 668265263u +
+                      semilla * 1442695041u;
+    h = (h ^ (h >> 13u)) * 1274126177u;
+    h ^= h >> 16u;
+    return static_cast<float>(h & 0x00FFFFFFu) / static_cast<float>(0x01000000u);
+}
+
+inline float ruidoValor(float x, float y, float escala, unsigned int semilla) {
+    float nx = x * escala;
+    float ny = y * escala;
+    int x0 = static_cast<int>(std::floor(nx));
+    int y0 = static_cast<int>(std::floor(ny));
+    float fx = suavizar(nx - static_cast<float>(x0));
+    float fy = suavizar(ny - static_cast<float>(y0));
+
+    float a = hash01(x0, y0, semilla);
+    float b = hash01(x0 + 1, y0, semilla);
+    float c = hash01(x0, y0 + 1, semilla);
+    float d = hash01(x0 + 1, y0 + 1, semilla);
+
+    return mezclar(mezclar(a, b, fx), mezclar(c, d, fx), fy);
+}
+
+inline float ruidoFractal(float x, float y, float escala, unsigned int semilla) {
+    float valor = 0.0f;
+    float amplitud = 0.55f;
+    float total = 0.0f;
+
+    for (int octava = 0; octava < 4; ++octava) {
+        valor += ruidoValor(x, y, escala, semilla + static_cast<unsigned int>(octava * 9176)) * amplitud;
+        total += amplitud;
+        escala *= 2.0f;
+        amplitud *= 0.5f;
+    }
+
+    return valor / total;
+}
+
+inline TipoBioma calcularBioma(int x, int y, unsigned int semilla) {
+    float elevacion = ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.0045f, semilla + 11u);
+    float humedad = ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.0060f, semilla + 97u);
+    float temperatura = ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.0038f, semilla + 211u);
+
+    if (elevacion > 0.68f) return TipoBioma::Montana;
+    if (humedad < 0.34f && temperatura > 0.42f) return TipoBioma::Seco;
+    if (humedad > 0.58f) return TipoBioma::Bosque;
+    return TipoBioma::Pradera;
 }
 
 inline sf::Color ajustarPastoPorBioma(sf::Color base, TipoBioma bioma) {
@@ -454,11 +499,34 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
         return;
     }
 
+    for (int y = MARGEN_OCEANO; y < alto - MARGEN_OCEANO; ++y) {
+        for (int x = MARGEN_OCEANO; x < ancho - MARGEN_OCEANO; ++x) {
+            if (cuadricula[y][x].tipo != TipoBloque::Pasto) {
+                continue;
+            }
+
+            float rioA = std::abs(ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.0075f, semillaBiomas + 701u) - 0.5f);
+            float rioB = std::abs(ruidoFractal(static_cast<float>(x + 240), static_cast<float>(y - 130), 0.0060f, semillaBiomas + 1601u) - 0.5f);
+            bool esRio = rioA < 0.018f || (rioB < 0.012f && cuadricula[y][x].bioma != TipoBioma::Seco);
+            if (esRio) {
+                TipoBioma bioma = cuadricula[y][x].bioma;
+                cuadricula[y][x] = {TipoBloque::Agua, false, 50.0f, false, 0.0f, false, 1, 50.0f, bioma, 0};
+                continue;
+            }
+
+            float claroSeco = ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.025f, semillaBiomas + 911u);
+            if (cuadricula[y][x].bioma == TipoBioma::Seco && claroSeco > 0.70f) {
+                TipoBioma bioma = cuadricula[y][x].bioma;
+                cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+            }
+        }
+    }
+
     std::uniform_int_distribution<> disX(MARGEN_OCEANO + 40, ancho - MARGEN_OCEANO - 40);
     std::uniform_int_distribution<> disY(MARGEN_OCEANO + 40, alto - MARGEN_OCEANO - 40);
-    std::uniform_int_distribution<> disRadioBase(7, 12);
+    std::uniform_int_distribution<> disRadioBase(6, 15);
 
-    for (int i = 0; i < 150; ++i) {
+    for (int i = 0; i < 95; ++i) {
         int centroX = disX(gen);
         int centroY = disY(gen);
         int radioBase = disRadioBase(gen);
@@ -470,7 +538,9 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
                 if (x >= 0 && x < ancho && y >= 0 && y < alto) {
                     float dx = (x - centroX) / estiramientoX;
                     float dy = (y - centroY) / estiramientoY;
-                    if (std::sqrt(dx * dx + dy * dy) <= radioBase &&
+                    float forma = std::sqrt(dx * dx + dy * dy);
+                    float bordeIrregular = ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.075f, semillaBiomas + 331u) * 2.5f;
+                    if (forma <= radioBase + bordeIrregular &&
                         cuadricula[y][x].tipo == TipoBloque::Pasto) {
                         TipoBioma bioma = cuadricula[y][x].bioma;
                         cuadricula[y][x] = {TipoBloque::Agua, false, 50.0f, false, 0.0f, false, 1, 50.0f, bioma, 0};
@@ -480,8 +550,24 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
         }
     }
 
-    std::uniform_int_distribution<> disRadioPiedra(5, 9);
-    for (int i = 0; i < 80; ++i) {
+    for (int y = MARGEN_OCEANO; y < alto - MARGEN_OCEANO; ++y) {
+        for (int x = MARGEN_OCEANO; x < ancho - MARGEN_OCEANO; ++x) {
+            if (cuadricula[y][x].tipo != TipoBloque::Pasto) {
+                continue;
+            }
+
+            float roca = ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.020f, semillaBiomas + 503u);
+            bool rocaMontana = cuadricula[y][x].bioma == TipoBioma::Montana && roca > 0.55f;
+            bool rocaSeca = cuadricula[y][x].bioma == TipoBioma::Seco && roca > 0.78f;
+            if (rocaMontana || rocaSeca) {
+                TipoBioma bioma = cuadricula[y][x].bioma;
+                cuadricula[y][x] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
+            }
+        }
+    }
+
+    std::uniform_int_distribution<> disRadioPiedra(4, 10);
+    for (int i = 0; i < 55; ++i) {
         int centroX = disX(gen);
         int centroY = disY(gen);
         int radio = disRadioPiedra(gen);
@@ -491,7 +577,8 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
                 if (x >= 0 && x < ancho && y >= 0 && y < alto) {
                     float dx = x - centroX;
                     float dy = y - centroY;
-                    if (std::sqrt(dx * dx + dy * dy) <= radio &&
+                    float irregular = ruidoFractal(static_cast<float>(x), static_cast<float>(y), 0.060f, semillaBiomas + 809u) * 2.0f;
+                    if (std::sqrt(dx * dx + dy * dy) <= radio + irregular &&
                         cuadricula[y][x].tipo == TipoBloque::Pasto) {
                         TipoBioma bioma = cuadricula[y][x].bioma;
                         cuadricula[y][x] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
@@ -503,24 +590,42 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
 
     std::uniform_int_distribution<> troncosArbol(2, 5);
     std::uniform_int_distribution<> varianteArbol(0, 2);
-    for (int i = 0; i < 8200; ++i) {
+    auto hayArbolCerca = [&](int tx, int ty) {
+        for (int yy = ty - 2; yy <= ty + 2; ++yy) {
+            for (int xx = tx - 2; xx <= tx + 2; ++xx) {
+                if (xx < 0 || xx >= ancho || yy < 0 || yy >= alto) {
+                    continue;
+                }
+                if (cuadricula[yy][xx].tipo == TipoBloque::Madera) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    for (int i = 0; i < 16000; ++i) {
         int tx = disX(gen);
         int ty = disY(gen);
 
-        if (cuadricula[ty][tx].tipo == TipoBloque::Pasto) {
-            TipoBioma bioma = cuadricula[ty][tx].bioma;
-            int probabilidad = 92;
-            if (bioma == TipoBioma::Bosque) probabilidad = 99;
-            if (bioma == TipoBioma::Seco) probabilidad = 66;
-            if (bioma == TipoBioma::Montana) probabilidad = 84;
-            if (static_cast<int>(gen() % 100) >= probabilidad) {
-                continue;
-            }
-
-            int troncos = troncosArbol(gen);
-            float vida = 20.0f;
-            cuadricula[ty][tx] = {TipoBloque::Madera, true, vida, false, 0.0f, false, troncos, vida, bioma, varianteArbol(gen)};
+        if (cuadricula[ty][tx].tipo != TipoBloque::Pasto || hayArbolCerca(tx, ty)) {
+            continue;
         }
+
+        TipoBioma bioma = cuadricula[ty][tx].bioma;
+        float bosqueLocal = ruidoFractal(static_cast<float>(tx), static_cast<float>(ty), 0.018f, semillaBiomas + 1201u);
+        int probabilidad = 16;
+        if (bioma == TipoBioma::Bosque) probabilidad = bosqueLocal > 0.42f ? 82 : 38;
+        if (bioma == TipoBioma::Pradera) probabilidad = bosqueLocal > 0.68f ? 42 : 8;
+        if (bioma == TipoBioma::Seco) probabilidad = bosqueLocal > 0.76f ? 18 : 3;
+        if (bioma == TipoBioma::Montana) probabilidad = bosqueLocal > 0.62f ? 26 : 6;
+        if (static_cast<int>(gen() % 100) >= probabilidad) {
+            continue;
+        }
+
+        int troncos = troncosArbol(gen);
+        float vida = 20.0f;
+        cuadricula[ty][tx] = {TipoBloque::Madera, true, vida, false, 0.0f, false, troncos, vida, bioma, varianteArbol(gen)};
     }
     std::cout << "Superficie generada completamente." << std::endl;
 }
