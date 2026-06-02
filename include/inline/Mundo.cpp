@@ -619,6 +619,35 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
     }
 }
 
+inline void Mundo::dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY) {
+    sf::View vistaActual = ventana.getView();
+    sf::Vector2f centro = vistaActual.getCenter();
+    sf::Vector2f tamanio = vistaActual.getSize();
+
+    float izq = centro.x - (tamanio.x / 2.0f);
+    float der = centro.x + (tamanio.x / 2.0f);
+    float arriba = centro.y - (tamanio.y / 2.0f);
+    float abajo = centro.y + (tamanio.y / 2.0f);
+
+    int inicioX = std::max(0, static_cast<int>(izq / TAMANIO_BLOQUE_JUEGO) - 4);
+    int finX = std::min(ancho, static_cast<int>(der / TAMANIO_BLOQUE_JUEGO) + 5);
+    int inicioY = std::max(0, static_cast<int>(arriba / TAMANIO_BLOQUE_JUEGO) - 4);
+    int finY = std::min(alto, static_cast<int>(abajo / TAMANIO_BLOQUE_JUEGO) + 5);
+
+    for (int y = inicioY; y < finY; ++y) {
+        for (int x = inicioX; x < finX; ++x) {
+            if (cuadricula[y][x].tipo != TipoBloque::Madera) {
+                continue;
+            }
+
+            float profundidadArbol = y * TAMANIO_BLOQUE_JUEGO + TAMANIO_BLOQUE_JUEGO * 0.8f;
+            if (piesJugadorY < profundidadArbol) {
+                dibujarArbol(ventana, x, y, cuadricula[y][x]);
+            }
+        }
+    }
+}
+
 inline int Mundo::getVidaMaximaBloque(TipoBloque tipo) const {
     switch (tipo) {
         case TipoBloque::Pasto: return 30;

@@ -58,6 +58,7 @@ public:
 
     void generarMundo(bool esSubterraneo);
     void dibujar(sf::RenderWindow& ventana);
+    void dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY);
 
     bool esBloqueSolido(int x, int y) const;
     bool puedeColocarBloque(int x, int y) const;

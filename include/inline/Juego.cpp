@@ -643,7 +643,12 @@ inline void Juego::ejecutar() {
             }
         }
 
-        if (jugador) jugador->dibujar(ventana);
+        if (jugador) {
+            jugador->dibujar(ventana);
+            if (mapaSuperficie) {
+                mapaSuperficie->dibujarArbolesSobreJugador(ventana, jugador->getPosicion().y + 24.0f);
+            }
+        }
 
         ventana.setView(ventana.getDefaultView());
 
