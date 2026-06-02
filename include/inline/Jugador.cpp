@@ -180,8 +180,10 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     float velocidadActual = enAgua ? velocidad / 3.0f : velocidad;
 
     const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
-    float anchoJugador = forma.getSize().x;
-    float altoJugador = forma.getSize().y;
+    const float hitboxOffsetX = 6.0f;
+    const float hitboxOffsetY = 14.0f;
+    const float hitboxAncho = 12.0f;
+    const float hitboxAlto = 10.0f;
 
     // --- COMIENZA EL PASO POR EJES INDEPENDIENTES ---
     
@@ -189,11 +191,11 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     sf::Vector2f nuevaPosicionX = posicion;
     nuevaPosicionX.x += direccion.x * velocidadActual * dt;
 
-    // Calculamos las esquinas de la caja del jugador en el eje X para ver con quÃ© bloques interseca
-    int bloqueIzq = static_cast<int>(nuevaPosicionX.x / TAMANIO_BLOQUE);
-    int bloqueDer = static_cast<int>((nuevaPosicionX.x + anchoJugador - 1.0f) / TAMANIO_BLOQUE);
-    int bloqueArriba = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
-    int bloqueAbajo = static_cast<int>((posicion.y + altoJugador - 1.0f) / TAMANIO_BLOQUE);
+    // En vista cenital solo los pies deben colisionar; el torso/cabeza pueden pasar visualmente frente a objetos.
+    int bloqueIzq = static_cast<int>((nuevaPosicionX.x + hitboxOffsetX) / TAMANIO_BLOQUE);
+    int bloqueDer = static_cast<int>((nuevaPosicionX.x + hitboxOffsetX + hitboxAncho - 1.0f) / TAMANIO_BLOQUE);
+    int bloqueArriba = static_cast<int>((posicion.y + hitboxOffsetY) / TAMANIO_BLOQUE);
+    int bloqueAbajo = static_cast<int>((posicion.y + hitboxOffsetY + hitboxAlto - 1.0f) / TAMANIO_BLOQUE);
 
     bool colisionX = false;
     // Revisamos la solidez de los bloques que toca el cuerpo del jugador en X
@@ -212,10 +214,10 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     nuevaPosicionY.y += direccion.y * velocidadActual * dt;
 
     // Recalculamos las esquinas ahora con la nueva coordenada de Y
-    bloqueIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
-    bloqueDer = static_cast<int>((posicion.x + anchoJugador - 1.0f) / TAMANIO_BLOQUE);
-    bloqueArriba = static_cast<int>(nuevaPosicionY.y / TAMANIO_BLOQUE);
-    bloqueAbajo = static_cast<int>((nuevaPosicionY.y + altoJugador - 1.0f) / TAMANIO_BLOQUE);
+    bloqueIzq = static_cast<int>((posicion.x + hitboxOffsetX) / TAMANIO_BLOQUE);
+    bloqueDer = static_cast<int>((posicion.x + hitboxOffsetX + hitboxAncho - 1.0f) / TAMANIO_BLOQUE);
+    bloqueArriba = static_cast<int>((nuevaPosicionY.y + hitboxOffsetY) / TAMANIO_BLOQUE);
+    bloqueAbajo = static_cast<int>((nuevaPosicionY.y + hitboxOffsetY + hitboxAlto - 1.0f) / TAMANIO_BLOQUE);
 
     bool colisionY = false;
     // Revisamos la solidez de los bloques que toca el cuerpo del jugador en Y

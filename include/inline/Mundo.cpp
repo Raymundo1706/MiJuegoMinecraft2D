@@ -261,7 +261,7 @@ inline void dibujarRelieveMuro(sf::RenderWindow& ventana, int bloqueX, int bloqu
 inline void dibujarBloqueTierraElevado(sf::RenderWindow& ventana, int bloqueX, int bloqueY,
                                        bool vecinoArriba, bool vecinoAbajo,
                                        bool vecinoIzquierda, bool vecinoDerecha,
-                                       TipoBioma bioma) {
+                                       TipoBioma bioma, bool conPasto = false) {
     const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
     const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
 
@@ -272,26 +272,37 @@ inline void dibujarBloqueTierraElevado(sf::RenderWindow& ventana, int bloqueX, i
         ventana.draw(r);
     };
 
-    if (!vecinoAbajo) rect(3.0f, 22.0f, 25.0f, 6.0f, sf::Color(12, 10, 8, 95));
-    if (!vecinoDerecha) rect(22.0f, 2.0f, 5.0f, 21.0f, sf::Color(12, 10, 8, 55));
+    if (!vecinoAbajo) rect(3.0f, 22.0f, 27.0f, 7.0f, sf::Color(8, 7, 6, 125));
+    if (!vecinoDerecha) rect(22.0f, 1.0f, 6.0f, 23.0f, sf::Color(8, 7, 6, 80));
 
-    if (!vecinoAbajo) rect(0.0f, 16.0f, 24.0f, 8.0f, sf::Color(67, 40, 24));
-    if (!vecinoDerecha) rect(20.0f, 0.0f, 4.0f, 22.0f, sf::Color(78, 47, 28));
-    if (!vecinoIzquierda) rect(0.0f, 0.0f, 2.0f, 20.0f, sf::Color(151, 94, 53, 165));
+    if (!vecinoAbajo) rect(0.0f, 15.0f, 24.0f, 9.0f, sf::Color(58, 35, 22));
+    if (!vecinoDerecha) rect(19.0f, -2.0f, 5.0f, 23.0f, sf::Color(71, 43, 26));
+    if (!vecinoIzquierda) rect(0.0f, -2.0f, 2.0f, 22.0f, sf::Color(162, 101, 57, 180));
 
-    sf::RectangleShape tapa({24.0f, 18.0f});
-    tapa.setPosition({x, y - 4.0f});
-    tapa.setFillColor(sf::Color(118, 75, 43));
+    rect(0.0f, -6.0f, 24.0f, 2.0f, sf::Color(35, 24, 17, 170));
+    rect(0.0f, -6.0f, 2.0f, 21.0f, sf::Color(35, 24, 17, 130));
+    rect(22.0f, -6.0f, 2.0f, 21.0f, sf::Color(35, 24, 17, 150));
+    rect(0.0f, 14.0f, 24.0f, 2.0f, sf::Color(35, 24, 17, 170));
+
+    sf::RectangleShape tapa({24.0f, 20.0f});
+    tapa.setPosition({x, y - 6.0f});
+    tapa.setFillColor(conPasto ? ajustarPastoPorBioma(sf::Color(54, 154, 61), bioma) : sf::Color(128, 81, 46));
     ventana.draw(tapa);
 
     sf::RectangleShape bordeSuperior({24.0f, 2.0f});
-    bordeSuperior.setPosition({x, y - 4.0f});
-    bordeSuperior.setFillColor(sf::Color(182, 113, 61));
+    bordeSuperior.setPosition({x, y - 6.0f});
+    bordeSuperior.setFillColor(conPasto ? ajustarPastoPorBioma(sf::Color(104, 202, 84), bioma) : sf::Color(198, 124, 67));
     ventana.draw(bordeSuperior);
 
-    sf::RectangleShape bordeFrontal({24.0f, 2.0f});
-    bordeFrontal.setPosition({x, y + 14.0f});
-    bordeFrontal.setFillColor(sf::Color(78, 47, 28));
+    if (conPasto) {
+        rect(0.0f, 10.0f, 24.0f, 4.0f, sf::Color(75, 126, 45));
+        rect(2.0f, 10.0f, 4.0f, 2.0f, sf::Color(105, 173, 58));
+        rect(13.0f, 11.0f, 5.0f, 2.0f, sf::Color(41, 100, 40));
+    }
+
+    sf::RectangleShape bordeFrontal({24.0f, 3.0f});
+    bordeFrontal.setPosition({x, y + 13.0f});
+    bordeFrontal.setFillColor(conPasto ? sf::Color(48, 78, 32) : sf::Color(64, 38, 24));
     ventana.draw(bordeFrontal);
 
     unsigned int h = static_cast<unsigned int>(bloqueX * 73856093u) ^
@@ -302,10 +313,12 @@ inline void dibujarBloqueTierraElevado(sf::RenderWindow& ventana, int bloqueX, i
 
     for (int i = 0; i < 7; ++i) {
         float px = 3.0f + static_cast<float>((h >> (i * 3)) % 18u);
-        float py = -1.0f + static_cast<float>((h >> (i * 2)) % 12u);
+        float py = -3.0f + static_cast<float>((h >> (i * 2)) % 12u);
         sf::RectangleShape mota({2.0f, 2.0f});
         mota.setPosition({x + px, y + py});
-        mota.setFillColor(i % 2 == 0 ? sf::Color(86, 52, 31) : sf::Color(151, 94, 53));
+        mota.setFillColor(conPasto
+            ? (i % 2 == 0 ? ajustarPastoPorBioma(sf::Color(35, 112, 48), bioma) : ajustarPastoPorBioma(sf::Color(92, 184, 72), bioma))
+            : (i % 2 == 0 ? sf::Color(86, 52, 31) : sf::Color(151, 94, 53)));
         ventana.draw(mota);
     }
 
@@ -874,7 +887,8 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
         if (!bloque.esSolido) {
             return false;
         }
-        return bloque.tipo == TipoBloque::Tierra ||
+        return bloque.tipo == TipoBloque::Pasto ||
+               bloque.tipo == TipoBloque::Tierra ||
                bloque.tipo == TipoBloque::Piedra ||
                bloque.tipo == TipoBloque::MineralHierro ||
                bloque.tipo == TipoBloque::MineralPlata ||
@@ -890,7 +904,16 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             bool bloqueConAltura = false;
             if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
                 dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
-                dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
+                if (cuadricula[y][x].esSolido) {
+                    dibujarBloqueTierraElevado(
+                        ventana, x, y,
+                        esMuroVisual(x, y - 1), esMuroVisual(x, y + 1),
+                        esMuroVisual(x - 1, y), esMuroVisual(x + 1, y),
+                        cuadricula[y][x].bioma, true
+                    );
+                } else {
+                    dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
+                }
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Tierra) {
                 dibujarTextura16(ventana, x, y, false, false, cuadricula[y][x].bioma);
