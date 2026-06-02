@@ -132,6 +132,55 @@ inline sf::Color colorTierraPixel(int x, int y, bool arada) {
     return sf::Color(118, 75, 43);
 }
 
+inline sf::Color colorPiedraPixel(int x, int y) {
+    int ruido = (x * 19 + y * 11 + x * y * 3 + (x - y) * 5) % 17;
+    bool grietaPrincipal = (x == y / 2 + 3 && y > 2 && y < 13) ||
+                           (x == 12 - y / 3 && y > 5 && y < 15);
+    bool grietaSecundaria = (y == 4 && x > 8 && x < 13) ||
+                            (y == 11 && x > 2 && x < 7) ||
+                            (x == 5 && y > 9 && y < 13);
+
+    if (grietaPrincipal) return sf::Color(70, 72, 72);
+    if (grietaSecundaria) return sf::Color(83, 85, 85);
+    if (ruido <= 2) return sf::Color(94, 96, 96);
+    if (ruido >= 14) return sf::Color(158, 160, 157);
+    if ((x + y) % 7 == 0) return sf::Color(132, 134, 132);
+    return sf::Color(118, 120, 119);
+}
+
+inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+    static bool inicializada = false;
+    static sf::Texture texturaPiedra;
+
+    if (!inicializada) {
+        sf::Image imagen({32, 32}, sf::Color::Transparent);
+        for (int py = 0; py < 16; ++py) {
+            for (int px = 0; px < 16; ++px) {
+                sf::Color color = colorPiedraPixel(px, py);
+                for (int sy = 0; sy < 2; ++sy) {
+                    for (int sx = 0; sx < 2; ++sx) {
+                        imagen.setPixel(
+                            {static_cast<unsigned int>(px * 2 + sx), static_cast<unsigned int>(py * 2 + sy)},
+                            color
+                        );
+                    }
+                }
+            }
+        }
+
+        if (!texturaPiedra.loadFromImage(imagen)) {
+            return;
+        }
+        texturaPiedra.setRepeated(false);
+        inicializada = true;
+    }
+
+    sf::Sprite sprite(texturaPiedra);
+    sprite.setPosition({bloqueX * TAMANIO_BLOQUE_JUEGO, bloqueY * TAMANIO_BLOQUE_JUEGO});
+    sprite.setScale({ESCALA_BLOQUE_JUEGO, ESCALA_BLOQUE_JUEGO});
+    ventana.draw(sprite);
+}
+
 inline unsigned int ruidoDecoracion(int x, int y) {
     unsigned int h = static_cast<unsigned int>(x * 73856093u) ^
                      static_cast<unsigned int>(y * 19349663u);
@@ -697,7 +746,8 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::CuevaEntrada) {
                 formaBlq.setFillColor(cuadricula[y][x].minaAbierta ? sf::Color(45, 25, 65) : sf::Color(18, 18, 22));
             } else if (cuadricula[y][x].tipo == TipoBloque::Piedra) {
-                formaBlq.setFillColor(sf::Color(128, 128, 128));
+                dibujarTexturaPiedra(ventana, x, y);
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
                 formaBlq.setFillColor(sf::Color(210, 180, 140));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralPlata) {
