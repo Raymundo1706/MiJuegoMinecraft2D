@@ -258,6 +258,82 @@ inline void dibujarRelieveMuro(sf::RenderWindow& ventana, int bloqueX, int bloqu
     }
 }
 
+inline void dibujarBloqueTierraElevado(sf::RenderWindow& ventana, int bloqueX, int bloqueY,
+                                       bool vecinoArriba, bool vecinoAbajo,
+                                       bool vecinoIzquierda, bool vecinoDerecha,
+                                       TipoBioma bioma) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+
+    auto rect = [&](float rx, float ry, float rw, float rh, sf::Color color) {
+        sf::RectangleShape r({rw, rh});
+        r.setPosition({x + rx, y + ry});
+        r.setFillColor(color);
+        ventana.draw(r);
+    };
+
+    if (!vecinoAbajo) rect(3.0f, 22.0f, 25.0f, 6.0f, sf::Color(12, 10, 8, 95));
+    if (!vecinoDerecha) rect(22.0f, 2.0f, 5.0f, 21.0f, sf::Color(12, 10, 8, 55));
+
+    if (!vecinoAbajo) rect(0.0f, 16.0f, 24.0f, 8.0f, sf::Color(67, 40, 24));
+    if (!vecinoDerecha) rect(20.0f, 0.0f, 4.0f, 22.0f, sf::Color(78, 47, 28));
+    if (!vecinoIzquierda) rect(0.0f, 0.0f, 2.0f, 20.0f, sf::Color(151, 94, 53, 165));
+
+    sf::RectangleShape tapa({24.0f, 18.0f});
+    tapa.setPosition({x, y - 4.0f});
+    tapa.setFillColor(sf::Color(118, 75, 43));
+    ventana.draw(tapa);
+
+    sf::RectangleShape bordeSuperior({24.0f, 2.0f});
+    bordeSuperior.setPosition({x, y - 4.0f});
+    bordeSuperior.setFillColor(sf::Color(182, 113, 61));
+    ventana.draw(bordeSuperior);
+
+    sf::RectangleShape bordeFrontal({24.0f, 2.0f});
+    bordeFrontal.setPosition({x, y + 14.0f});
+    bordeFrontal.setFillColor(sf::Color(78, 47, 28));
+    ventana.draw(bordeFrontal);
+
+    unsigned int h = static_cast<unsigned int>(bloqueX * 73856093u) ^
+                     static_cast<unsigned int>(bloqueY * 19349663u);
+    h ^= h >> 13u;
+    h *= 1274126177u;
+    h ^= h >> 16u;
+
+    for (int i = 0; i < 7; ++i) {
+        float px = 3.0f + static_cast<float>((h >> (i * 3)) % 18u);
+        float py = -1.0f + static_cast<float>((h >> (i * 2)) % 12u);
+        sf::RectangleShape mota({2.0f, 2.0f});
+        mota.setPosition({x + px, y + py});
+        mota.setFillColor(i % 2 == 0 ? sf::Color(86, 52, 31) : sf::Color(151, 94, 53));
+        ventana.draw(mota);
+    }
+
+    if (bioma == TipoBioma::Seco) {
+        rect(2.0f, -2.0f, 20.0f, 1.0f, sf::Color(196, 156, 74, 90));
+    }
+}
+
+inline void dibujarTierraRebajada(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+
+    sf::RectangleShape sombraInterior({20.0f, 20.0f});
+    sombraInterior.setPosition({x + 2.0f, y + 2.0f});
+    sombraInterior.setFillColor(sf::Color(55, 34, 22, 70));
+    ventana.draw(sombraInterior);
+
+    sf::RectangleShape luzSup({20.0f, 2.0f});
+    luzSup.setPosition({x + 2.0f, y + 2.0f});
+    luzSup.setFillColor(sf::Color(172, 108, 59, 90));
+    ventana.draw(luzSup);
+
+    sf::RectangleShape sombraInf({20.0f, 3.0f});
+    sombraInf.setPosition({x + 2.0f, y + 19.0f});
+    sombraInf.setFillColor(sf::Color(44, 27, 18, 95));
+    ventana.draw(sombraInf);
+}
+
 inline unsigned int ruidoDecoracion(int x, int y) {
     unsigned int h = static_cast<unsigned int>(x * 73856093u) ^
                      static_cast<unsigned int>(y * 19349663u);
@@ -819,12 +895,14 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::Tierra) {
                 dibujarTextura16(ventana, x, y, false, false, cuadricula[y][x].bioma);
                 if (cuadricula[y][x].esSolido) {
-                    dibujarRelieveMuro(
+                    dibujarBloqueTierraElevado(
                         ventana, x, y,
                         esMuroVisual(x, y - 1), esMuroVisual(x, y + 1),
                         esMuroVisual(x - 1, y), esMuroVisual(x + 1, y),
-                        sf::Color(194, 128, 74, 95), sf::Color(62, 38, 24, 125)
+                        cuadricula[y][x].bioma
                     );
+                } else {
+                    dibujarTierraRebajada(ventana, x, y);
                 }
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Agua) {
