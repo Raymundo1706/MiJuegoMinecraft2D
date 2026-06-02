@@ -61,6 +61,33 @@ inline bool jugadorTocaAgua(const Mundo& mundo, sf::Vector2f posicionJugador, sf
     return false;
 }
 
+inline bool jugadorEstaDentroDelAgua(const Mundo& mundo, sf::Vector2f posicionJugador, sf::Vector2f tamanoJugador) {
+    const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
+
+    auto puntoEsAgua = [&](float px, float py) {
+        int bloqueX = static_cast<int>(std::floor(px / TAMANIO_BLOQUE));
+        int bloqueY = static_cast<int>(std::floor(py / TAMANIO_BLOQUE));
+        TipoBloque tipo = mundo.getTipoBloque(bloqueX, bloqueY);
+        return tipo == TipoBloque::Agua || tipo == TipoBloque::AguaProfunda;
+    };
+
+    float xs[3] = {
+        posicionJugador.x + 7.0f,
+        posicionJugador.x + tamanoJugador.x * 0.5f,
+        posicionJugador.x + tamanoJugador.x - 7.0f
+    };
+    float yCintura = posicionJugador.y + tamanoJugador.y * 0.68f;
+    float yPies = posicionJugador.y + tamanoJugador.y - 3.0f;
+
+    int puntosEnAgua = 0;
+    for (float x : xs) {
+        if (puntoEsAgua(x, yCintura)) ++puntosEnAgua;
+        if (puntoEsAgua(x, yPies)) ++puntosEnAgua;
+    }
+
+    return puntoEsAgua(xs[1], yPies) && puntosEnAgua >= 4;
+}
+
 // MÃ©todo para mover al personaje detectando colisiones sÃ³lidas con el terreno
 inline void Jugador::controlar(float dt, const Mundo& mundo) {
     if (tiempoInvulnerable > 0.0f) {
@@ -80,7 +107,8 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     }
 
     bool estabaEnAgua = enAgua;
-    enAgua = jugadorTocaAgua(mundo, posicion, forma.getSize());
+    bool tocandoAgua = jugadorTocaAgua(mundo, posicion, forma.getSize());
+    enAgua = jugadorEstaDentroDelAgua(mundo, posicion, forma.getSize());
     if (enAgua) {
         tiempoEnAgua += dt;
         tiempoMojado = 5.0f;
@@ -88,7 +116,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
             hundido = true;
         }
     } else {
-        if (estabaEnAgua) {
+        if (estabaEnAgua || tocandoAgua) {
             tiempoMojado = 5.0f;
         } else if (tiempoMojado > 0.0f) {
             tiempoMojado = std::max(0.0f, tiempoMojado - dt);
