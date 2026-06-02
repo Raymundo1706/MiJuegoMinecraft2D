@@ -441,7 +441,8 @@ inline void dibujarTextura16Lenta(sf::RenderWindow& ventana, int bloqueX, int bl
     }
 }
 
-inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, const Bloque& bloque) {
+inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, const Bloque& bloque,
+                         bool dibujarBase, bool dibujarCopa) {
     const float baseX = bloqueX * TAMANIO_BLOQUE_JUEGO - 20.0f;
     const float baseY = bloqueY * TAMANIO_BLOQUE_JUEGO - 46.0f;
     const int variante = bloque.varianteArbol % 3;
@@ -464,11 +465,6 @@ inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, co
         hojaClara = sf::Color(58, 139, 112);
     }
 
-    sf::RectangleShape sombra({44.0f, 11.0f});
-    sombra.setPosition({baseX + 14.0f, baseY + 70.0f});
-    sombra.setFillColor(sf::Color(18, 35, 22, 95));
-    ventana.draw(sombra);
-
     auto rect = [&](float x, float y, float w, float h, sf::Color color) {
         sf::RectangleShape r({w, h});
         r.setPosition({baseX + x, baseY + y});
@@ -476,32 +472,41 @@ inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, co
         ventana.draw(r);
     };
 
-    rect(30.0f, 43.0f, 12.0f, 35.0f, sf::Color(92, 54, 31));
-    rect(34.0f, 44.0f, 4.0f, 30.0f, sf::Color(143, 85, 43));
-    rect(28.0f, 62.0f, 5.0f, 9.0f, sf::Color(70, 41, 25));
-    rect(39.0f, 58.0f, 5.0f, 12.0f, sf::Color(70, 41, 25));
+    if (dibujarBase) {
+        sf::RectangleShape sombra({44.0f, 11.0f});
+        sombra.setPosition({baseX + 14.0f, baseY + 70.0f});
+        sombra.setFillColor(sf::Color(18, 35, 22, 95));
+        ventana.draw(sombra);
 
-    rect(18.0f, variante == 1 ? 2.0f : 7.0f, 36.0f, 7.0f, hojaOscura);
-    rect(variante == 2 ? 7.0f : 10.0f, 14.0f, variante == 2 ? 58.0f : 52.0f, 9.0f, sf::Color(43, 125, 61));
-    rect(4.0f, 23.0f, 64.0f, 12.0f, sf::Color(50, 149, 69));
-    rect(variante == 1 ? 4.0f : 0.0f, 35.0f, variante == 1 ? 64.0f : 72.0f, 12.0f, hojaBase);
-    rect(7.0f, 47.0f, 58.0f, 11.0f, sf::Color(38, 111, 55));
-    rect(17.0f, 58.0f, 38.0f, 8.0f, sf::Color(30, 88, 46));
+        rect(30.0f, 43.0f, 12.0f, 35.0f, sf::Color(92, 54, 31));
+        rect(34.0f, 44.0f, 4.0f, 30.0f, sf::Color(143, 85, 43));
+        rect(28.0f, 62.0f, 5.0f, 9.0f, sf::Color(70, 41, 25));
+        rect(39.0f, 58.0f, 5.0f, 12.0f, sf::Color(70, 41, 25));
+    }
 
-    rect(24.0f, variante == 1 ? 5.0f : 10.0f, 12.0f, 6.0f, hojaClara);
-    rect(42.0f, 20.0f, 12.0f, 7.0f, sf::Color(73, 166, 73));
-    rect(13.0f, 28.0f, 10.0f, 7.0f, sf::Color(75, 169, 75));
-    rect(26.0f, 35.0f, 9.0f, 8.0f, sf::Color(30, 88, 46));
-    rect(52.0f, 37.0f, 8.0f, 7.0f, sf::Color(31, 95, 48));
-    rect(13.0f, 48.0f, 9.0f, 6.0f, sf::Color(29, 82, 44));
+    if (dibujarCopa) {
+        rect(18.0f, variante == 1 ? 2.0f : 7.0f, 36.0f, 7.0f, hojaOscura);
+        rect(variante == 2 ? 7.0f : 10.0f, 14.0f, variante == 2 ? 58.0f : 52.0f, 9.0f, sf::Color(43, 125, 61));
+        rect(4.0f, 23.0f, 64.0f, 12.0f, sf::Color(50, 149, 69));
+        rect(variante == 1 ? 4.0f : 0.0f, 35.0f, variante == 1 ? 64.0f : 72.0f, 12.0f, hojaBase);
+        rect(7.0f, 47.0f, 58.0f, 11.0f, sf::Color(38, 111, 55));
+        rect(17.0f, 58.0f, 38.0f, 8.0f, sf::Color(30, 88, 46));
 
-    if (variante == 1) {
-        rect(27.0f, -2.0f, 18.0f, 6.0f, hojaOscura);
-        rect(14.0f, 54.0f, 44.0f, 7.0f, hojaOscura);
-    } else if (variante == 2) {
-        rect(-4.0f, 39.0f, 10.0f, 8.0f, hojaBase);
-        rect(66.0f, 36.0f, 10.0f, 8.0f, hojaBase);
-        rect(31.0f, 12.0f, 18.0f, 7.0f, hojaClara);
+        rect(24.0f, variante == 1 ? 5.0f : 10.0f, 12.0f, 6.0f, hojaClara);
+        rect(42.0f, 20.0f, 12.0f, 7.0f, sf::Color(73, 166, 73));
+        rect(13.0f, 28.0f, 10.0f, 7.0f, sf::Color(75, 169, 75));
+        rect(26.0f, 35.0f, 9.0f, 8.0f, sf::Color(30, 88, 46));
+        rect(52.0f, 37.0f, 8.0f, 7.0f, sf::Color(31, 95, 48));
+        rect(13.0f, 48.0f, 9.0f, 6.0f, sf::Color(29, 82, 44));
+
+        if (variante == 1) {
+            rect(27.0f, -2.0f, 18.0f, 6.0f, hojaOscura);
+            rect(14.0f, 54.0f, 44.0f, 7.0f, hojaOscura);
+        } else if (variante == 2) {
+            rect(-4.0f, 39.0f, 10.0f, 8.0f, hojaBase);
+            rect(66.0f, 36.0f, 10.0f, 8.0f, hojaBase);
+            rect(31.0f, 12.0f, 18.0f, 7.0f, hojaClara);
+        }
     }
 }
 
@@ -758,6 +763,7 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
 
     for (int y = inicioY; y < finY; ++y) {
         for (int x = inicioX; x < finX; ++x) {
+            bool bloqueConAltura = false;
             if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
                 dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
                 dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
@@ -776,29 +782,36 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MesaCrafteo) {
+                sf::RectangleShape sombraObjeto({TAMANIO_BLOQUE + 3.0f, 6.0f});
+                sombraObjeto.setPosition({x * TAMANIO_BLOQUE + 2.0f, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE - 2.0f});
+                sombraObjeto.setFillColor(sf::Color(18, 16, 12, 85));
+                ventana.draw(sombraObjeto);
+
                 formaBlq.setFillColor(sf::Color(64, 38, 20));
-                formaBlq.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
+                formaBlq.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE - 2.0f});
                 ventana.draw(formaBlq);
 
                 sf::RectangleShape centroMesa({TAMANIO_BLOQUE - 6.0f, TAMANIO_BLOQUE - 6.0f});
-                centroMesa.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + 3.0f});
+                centroMesa.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + 1.0f});
                 centroMesa.setFillColor(sf::Color(145, 92, 42));
                 ventana.draw(centroMesa);
 
                 sf::RectangleShape lineaVertical({1.0f, TAMANIO_BLOQUE - 6.0f});
-                lineaVertical.setPosition({x * TAMANIO_BLOQUE + TAMANIO_BLOQUE * 0.5f, y * TAMANIO_BLOQUE + 3.0f});
+                lineaVertical.setPosition({x * TAMANIO_BLOQUE + TAMANIO_BLOQUE * 0.5f, y * TAMANIO_BLOQUE + 1.0f});
                 lineaVertical.setFillColor(sf::Color::Black);
                 ventana.draw(lineaVertical);
 
                 sf::RectangleShape lineaHorizontal({TAMANIO_BLOQUE - 6.0f, 1.0f});
-                lineaHorizontal.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE * 0.5f});
+                lineaHorizontal.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE * 0.5f - 2.0f});
                 lineaHorizontal.setFillColor(sf::Color::Black);
                 ventana.draw(lineaHorizontal);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Horno) {
                 formaBlq.setFillColor(sf::Color(85, 85, 85));
+                bloqueConAltura = true;
             } else if (cuadricula[y][x].tipo == TipoBloque::Cristal) {
                 formaBlq.setFillColor(sf::Color(180, 235, 255, 180));
+                bloqueConAltura = true;
             } else if (cuadricula[y][x].tipo == TipoBloque::TierraArada) {
                 dibujarTextura16(ventana, x, y, false, true, cuadricula[y][x].bioma);
                 continue;
@@ -826,15 +839,42 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 formaBlq.setFillColor(sf::Color(0, 100, 0));
             }
 
+            if (bloqueConAltura) {
+                sf::RectangleShape sombraObjeto({TAMANIO_BLOQUE + 2.0f, 5.0f});
+                sombraObjeto.setPosition({x * TAMANIO_BLOQUE + 2.0f, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE - 1.0f});
+                sombraObjeto.setFillColor(sf::Color(18, 18, 18, 75));
+                ventana.draw(sombraObjeto);
+            }
+
             formaBlq.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
             ventana.draw(formaBlq);
+
+            if (bloqueConAltura) {
+                sf::RectangleShape brilloSup({TAMANIO_BLOQUE, 2.0f});
+                brilloSup.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
+                brilloSup.setFillColor(sf::Color(255, 255, 255, 45));
+                ventana.draw(brilloSup);
+
+                sf::RectangleShape sombraInf({TAMANIO_BLOQUE, 2.0f});
+                sombraInf.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE - 2.0f});
+                sombraInf.setFillColor(sf::Color(0, 0, 0, 65));
+                ventana.draw(sombraInf);
+            }
         }
     }
 
     for (int y = inicioY; y < finY; ++y) {
         for (int x = inicioX; x < finX; ++x) {
             if (cuadricula[y][x].tipo == TipoBloque::Madera) {
-                dibujarArbol(ventana, x, y, cuadricula[y][x]);
+                dibujarArbol(ventana, x, y, cuadricula[y][x], true, false);
+            }
+        }
+    }
+
+    for (int y = inicioY; y < finY; ++y) {
+        for (int x = inicioX; x < finX; ++x) {
+            if (cuadricula[y][x].tipo == TipoBloque::Madera) {
+                dibujarArbol(ventana, x, y, cuadricula[y][x], false, true);
             }
         }
     }
@@ -863,7 +903,7 @@ inline void Mundo::dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float p
 
             float profundidadArbol = y * TAMANIO_BLOQUE_JUEGO + TAMANIO_BLOQUE_JUEGO * 0.8f;
             if (piesJugadorY < profundidadArbol) {
-                dibujarArbol(ventana, x, y, cuadricula[y][x]);
+                dibujarArbol(ventana, x, y, cuadricula[y][x], false, true);
             }
         }
     }
