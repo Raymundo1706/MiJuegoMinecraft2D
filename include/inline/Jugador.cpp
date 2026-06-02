@@ -272,15 +272,15 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         }
     }
 
-    float hundimientoVisual = enAgua ? 8.0f : 0.0f;
+    float hundimientoVisual = 0.0f;
     if (hundido) {
         hundimientoVisual = std::min(24.0f, 8.0f + tiempoHundimiento * 10.0f);
     }
 
-    if (!enAgua || !hundido) {
+    if (!enAgua) {
         sf::RectangleShape sombra({24.0f, 7.0f});
         sombra.setPosition({posicion.x, posicion.y + 20.0f});
-        sombra.setFillColor(sf::Color(8, 18, 12, enAgua ? 35 : 80));
+        sombra.setFillColor(sf::Color(8, 18, 12, 80));
         ventana.draw(sombra);
     }
 
@@ -338,8 +338,15 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         columna = columnasTotales - 1 - columna;
     }
 
+    int altoVisible = altoFrame;
+    if (enAgua) {
+        altoVisible = hundido
+            ? std::max(6, 18 - static_cast<int>(tiempoHundimiento * 7.0f))
+            : 18;
+    }
+
     sf::Sprite sprite(*texturaActiva);
-    sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, altoFrame}));
+    sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, altoVisible}));
     sprite.setOrigin({16.0f, 30.0f});
     sprite.setPosition({posicion.x + 12.0f, posicion.y + 26.0f + hundimientoVisual});
     sprite.setScale({1.2f, 1.2f});

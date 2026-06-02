@@ -148,7 +148,9 @@ inline sf::Color colorPiedraPixel(int x, int y) {
     return sf::Color(112, 115, 114);
 }
 
-inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int bloqueY,
+                                 bool vecinoArriba, bool vecinoAbajo,
+                                 bool vecinoIzquierda, bool vecinoDerecha) {
     static bool inicializada = false;
     static sf::Texture texturaPiedra;
 
@@ -175,38 +177,36 @@ inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int blo
         inicializada = true;
     }
 
-    sf::Sprite sprite(texturaPiedra);
-    sprite.setPosition({bloqueX * TAMANIO_BLOQUE_JUEGO, bloqueY * TAMANIO_BLOQUE_JUEGO});
-    sprite.setScale({ESCALA_BLOQUE_JUEGO, ESCALA_BLOQUE_JUEGO});
-    ventana.draw(sprite);
-
     const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
     const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    const float borde = 3.0f;
+    const float centro = TAMANIO_BLOQUE_JUEGO - borde * 2.0f;
+
+    auto pieza = [&](int sx, int sy, int sw, int sh, float dx, float dy, float dw, float dh) {
+        sf::Sprite sprite(texturaPiedra);
+        sprite.setTextureRect(sf::IntRect({sx, sy}, {sw, sh}));
+        sprite.setPosition({x + dx, y + dy});
+        sprite.setScale({dw / static_cast<float>(sw), dh / static_cast<float>(sh)});
+        ventana.draw(sprite);
+    };
+
+    pieza(4, 4, 24, 24, borde, borde, centro, centro);
+
+    if (vecinoArriba) pieza(4, 0, 24, 4, borde, 0.0f, centro, borde);
+    if (vecinoAbajo) pieza(4, 28, 24, 4, borde, TAMANIO_BLOQUE_JUEGO - borde, centro, borde);
+    if (vecinoIzquierda) pieza(0, 4, 4, 24, 0.0f, borde, borde, centro);
+    if (vecinoDerecha) pieza(28, 4, 4, 24, TAMANIO_BLOQUE_JUEGO - borde, borde, borde, centro);
+
+    if (vecinoArriba && vecinoIzquierda) pieza(0, 0, 4, 4, 0.0f, 0.0f, borde, borde);
+    if (vecinoArriba && vecinoDerecha) pieza(28, 0, 4, 4, TAMANIO_BLOQUE_JUEGO - borde, 0.0f, borde, borde);
+    if (vecinoAbajo && vecinoIzquierda) pieza(0, 28, 4, 4, 0.0f, TAMANIO_BLOQUE_JUEGO - borde, borde, borde);
+    if (vecinoAbajo && vecinoDerecha) pieza(28, 28, 4, 4, TAMANIO_BLOQUE_JUEGO - borde, TAMANIO_BLOQUE_JUEGO - borde, borde, borde);
+
     unsigned int h = static_cast<unsigned int>(bloqueX * 73856093u) ^
                      static_cast<unsigned int>(bloqueY * 19349663u);
     h ^= h >> 13u;
     h *= 1274126177u;
     h ^= h >> 16u;
-
-    sf::RectangleShape sombraSup({TAMANIO_BLOQUE_JUEGO, 1.0f});
-    sombraSup.setPosition({x, y});
-    sombraSup.setFillColor(sf::Color(190, 193, 190, 95));
-    ventana.draw(sombraSup);
-
-    sf::RectangleShape sombraIzq({1.0f, TAMANIO_BLOQUE_JUEGO});
-    sombraIzq.setPosition({x, y});
-    sombraIzq.setFillColor(sf::Color(185, 188, 185, 75));
-    ventana.draw(sombraIzq);
-
-    sf::RectangleShape sombraDer({1.0f, TAMANIO_BLOQUE_JUEGO});
-    sombraDer.setPosition({x + TAMANIO_BLOQUE_JUEGO - 1.0f, y});
-    sombraDer.setFillColor(sf::Color(55, 57, 58, 95));
-    ventana.draw(sombraDer);
-
-    sf::RectangleShape sombraInf({TAMANIO_BLOQUE_JUEGO, 1.0f});
-    sombraInf.setPosition({x, y + TAMANIO_BLOQUE_JUEGO - 1.0f});
-    sombraInf.setFillColor(sf::Color(48, 50, 51, 105));
-    ventana.draw(sombraInf);
 
     auto marca = [&](float mx, float my, float mw, float mh, sf::Color color) {
         sf::RectangleShape r({mw, mh});
@@ -221,6 +221,11 @@ inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int blo
     if ((h & 3u) == 0u) {
         marca(15.0f, 4.0f, 5.0f, 2.0f, sf::Color(182, 185, 181, 115));
     }
+
+    if (!vecinoArriba) marca(borde, borde - 1.0f, centro, 1.0f, sf::Color(190, 193, 190, 95));
+    if (!vecinoIzquierda) marca(borde - 1.0f, borde, 1.0f, centro, sf::Color(185, 188, 185, 75));
+    if (!vecinoDerecha) marca(TAMANIO_BLOQUE_JUEGO - borde, borde, 1.0f, centro, sf::Color(55, 57, 58, 95));
+    if (!vecinoAbajo) marca(borde, TAMANIO_BLOQUE_JUEGO - borde, centro, 1.0f, sf::Color(48, 50, 51, 105));
 }
 
 inline unsigned int ruidoDecoracion(int x, int y) {
@@ -739,6 +744,18 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
     int inicioY = std::max(0, static_cast<int>(arriba / TAMANIO_BLOQUE) - 1);
     int finY = std::min(alto, static_cast<int>(abajo / TAMANIO_BLOQUE) + 2);
 
+    auto esPiedraVisual = [&](int bx, int by) {
+        if (bx < 0 || bx >= ancho || by < 0 || by >= alto) {
+            return false;
+        }
+        TipoBloque tipo = cuadricula[by][bx].tipo;
+        return tipo == TipoBloque::Piedra ||
+               tipo == TipoBloque::MineralHierro ||
+               tipo == TipoBloque::MineralPlata ||
+               tipo == TipoBloque::MineralOro ||
+               tipo == TipoBloque::MineralDiamante;
+    };
+
     for (int y = inicioY; y < finY; ++y) {
         for (int x = inicioX; x < finX; ++x) {
             if (cuadricula[y][x].tipo == TipoBloque::Pasto) {
@@ -788,7 +805,14 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::CuevaEntrada) {
                 formaBlq.setFillColor(cuadricula[y][x].minaAbierta ? sf::Color(45, 25, 65) : sf::Color(18, 18, 22));
             } else if (cuadricula[y][x].tipo == TipoBloque::Piedra) {
-                dibujarTexturaPiedra(ventana, x, y);
+                dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
+                dibujarTexturaPiedra(
+                    ventana, x, y,
+                    esPiedraVisual(x, y - 1),
+                    esPiedraVisual(x, y + 1),
+                    esPiedraVisual(x - 1, y),
+                    esPiedraVisual(x + 1, y)
+                );
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
                 formaBlq.setFillColor(sf::Color(210, 180, 140));
