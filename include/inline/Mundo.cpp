@@ -133,19 +133,19 @@ inline sf::Color colorTierraPixel(int x, int y, bool arada) {
 }
 
 inline sf::Color colorPiedraPixel(int x, int y) {
-    int ruido = (x * 19 + y * 11 + x * y * 3 + (x - y) * 5) % 17;
+    int ruido = (x * 19 + y * 11 + x * y * 3 + (x - y) * 5) % 19;
     bool grietaPrincipal = (x == y / 2 + 3 && y > 2 && y < 13) ||
                            (x == 12 - y / 3 && y > 5 && y < 15);
     bool grietaSecundaria = (y == 4 && x > 8 && x < 13) ||
                             (y == 11 && x > 2 && x < 7) ||
                             (x == 5 && y > 9 && y < 13);
 
-    if (grietaPrincipal) return sf::Color(70, 72, 72);
-    if (grietaSecundaria) return sf::Color(83, 85, 85);
-    if (ruido <= 2) return sf::Color(94, 96, 96);
-    if (ruido >= 14) return sf::Color(158, 160, 157);
-    if ((x + y) % 7 == 0) return sf::Color(132, 134, 132);
-    return sf::Color(118, 120, 119);
+    if (grietaPrincipal) return sf::Color(54, 56, 57);
+    if (grietaSecundaria) return sf::Color(72, 74, 75);
+    if (ruido <= 2) return sf::Color(86, 88, 89);
+    if (ruido >= 15) return sf::Color(175, 178, 174);
+    if ((x + y) % 7 == 0) return sf::Color(145, 147, 145);
+    return sf::Color(112, 115, 114);
 }
 
 inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
@@ -179,6 +179,48 @@ inline void dibujarTexturaPiedra(sf::RenderWindow& ventana, int bloqueX, int blo
     sprite.setPosition({bloqueX * TAMANIO_BLOQUE_JUEGO, bloqueY * TAMANIO_BLOQUE_JUEGO});
     sprite.setScale({ESCALA_BLOQUE_JUEGO, ESCALA_BLOQUE_JUEGO});
     ventana.draw(sprite);
+
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    unsigned int h = static_cast<unsigned int>(bloqueX * 73856093u) ^
+                     static_cast<unsigned int>(bloqueY * 19349663u);
+    h ^= h >> 13u;
+    h *= 1274126177u;
+    h ^= h >> 16u;
+
+    sf::RectangleShape sombraSup({TAMANIO_BLOQUE_JUEGO, 1.0f});
+    sombraSup.setPosition({x, y});
+    sombraSup.setFillColor(sf::Color(190, 193, 190, 95));
+    ventana.draw(sombraSup);
+
+    sf::RectangleShape sombraIzq({1.0f, TAMANIO_BLOQUE_JUEGO});
+    sombraIzq.setPosition({x, y});
+    sombraIzq.setFillColor(sf::Color(185, 188, 185, 75));
+    ventana.draw(sombraIzq);
+
+    sf::RectangleShape sombraDer({1.0f, TAMANIO_BLOQUE_JUEGO});
+    sombraDer.setPosition({x + TAMANIO_BLOQUE_JUEGO - 1.0f, y});
+    sombraDer.setFillColor(sf::Color(55, 57, 58, 95));
+    ventana.draw(sombraDer);
+
+    sf::RectangleShape sombraInf({TAMANIO_BLOQUE_JUEGO, 1.0f});
+    sombraInf.setPosition({x, y + TAMANIO_BLOQUE_JUEGO - 1.0f});
+    sombraInf.setFillColor(sf::Color(48, 50, 51, 105));
+    ventana.draw(sombraInf);
+
+    auto marca = [&](float mx, float my, float mw, float mh, sf::Color color) {
+        sf::RectangleShape r({mw, mh});
+        r.setPosition({x + mx, y + my});
+        r.setFillColor(color);
+        ventana.draw(r);
+    };
+
+    marca(4.0f + static_cast<float>(h % 4u), 5.0f, 8.0f, 2.0f, sf::Color(70, 72, 73, 135));
+    marca(8.0f, 8.0f + static_cast<float>((h >> 3u) % 4u), 2.0f, 7.0f, sf::Color(62, 64, 65, 135));
+    marca(13.0f, 14.0f, 7.0f, 2.0f, sf::Color(157, 160, 157, 95));
+    if ((h & 3u) == 0u) {
+        marca(15.0f, 4.0f, 5.0f, 2.0f, sf::Color(182, 185, 181, 115));
+    }
 }
 
 inline unsigned int ruidoDecoracion(int x, int y) {
