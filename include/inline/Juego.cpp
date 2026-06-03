@@ -2,10 +2,71 @@
 #include <random>
 #include <sstream>
 #include <cmath>
+#include <cstdint>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
 
 namespace {
+constexpr float TICKS_POR_SEGUNDO_MUNDO = 20.0f;
+constexpr float TICKS_DIA_COMPLETO = 24000.0f;
+constexpr float TICK_FIN_DIA = 12000.0f;
+constexpr float TICK_INICIO_NOCHE = 13000.0f;
+constexpr float TICK_FIN_NOCHE = 22000.0f;
+constexpr float TICK_PUEDE_DORMIR = 12542.0f;
+
+inline float calcularSkyLightFloat(float worldTime) {
+    if (worldTime <= TICK_FIN_DIA) {
+        return 15.0f;
+    }
+    if (worldTime <= TICK_INICIO_NOCHE) {
+        float t = (worldTime - TICK_FIN_DIA) / (TICK_INICIO_NOCHE - TICK_FIN_DIA);
+        return 15.0f + (4.0f - 15.0f) * t;
+    }
+    if (worldTime <= TICK_FIN_NOCHE) {
+        return 4.0f;
+    }
+
+    float t = (worldTime - TICK_FIN_NOCHE) / (TICKS_DIA_COMPLETO - TICK_FIN_NOCHE);
+    return 4.0f + (15.0f - 4.0f) * t;
+}
+
+inline int calcularSkyLight(float worldTime) {
+    return std::clamp(static_cast<int>(std::round(calcularSkyLightFloat(worldTime))), 0, 15);
+}
+
+inline const char* nombreMomentoDia(float worldTime) {
+    if (worldTime <= TICK_FIN_DIA) return "Dia";
+    if (worldTime <= TICK_INICIO_NOCHE) return "Atardecer";
+    if (worldTime <= TICK_FIN_NOCHE) return "Noche";
+    return "Amanecer";
+}
+
+inline void dibujarFiltroDiaNoche(sf::RenderWindow& ventana, const sf::View& camara, float worldTime, int skyLight) {
+    float oscuridad = 1.0f - (static_cast<float>(skyLight) / 15.0f);
+    if (oscuridad <= 0.01f) {
+        return;
+    }
+
+    std::uint8_t alphaAzul = static_cast<std::uint8_t>(std::clamp(oscuridad * 170.0f, 0.0f, 170.0f));
+    sf::Color colorFiltro(8, 18, 54, alphaAzul);
+
+    if (worldTime > TICK_FIN_DIA && worldTime <= TICK_INICIO_NOCHE) {
+        float t = (worldTime - TICK_FIN_DIA) / (TICK_INICIO_NOCHE - TICK_FIN_DIA);
+        std::uint8_t alphaCalido = static_cast<std::uint8_t>(std::clamp(45.0f * (1.0f - std::abs(t - 0.45f) * 1.8f), 0.0f, 45.0f));
+        sf::RectangleShape atardecer(camara.getSize());
+        atardecer.setOrigin(camara.getSize() * 0.5f);
+        atardecer.setPosition(camara.getCenter());
+        atardecer.setFillColor(sf::Color(255, 112, 42, alphaCalido));
+        ventana.draw(atardecer);
+    }
+
+    sf::RectangleShape filtro(camara.getSize());
+    filtro.setOrigin(camara.getSize() * 0.5f);
+    filtro.setPosition(camara.getCenter());
+    filtro.setFillColor(colorFiltro);
+    ventana.draw(filtro);
+}
+
 inline void dibujarPixelHUD(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
     sf::RectangleShape pixel({escala, escala});
     pixel.setPosition({origen.x + static_cast<float>(x) * escala, origen.y + static_cast<float>(y) * escala});
@@ -86,7 +147,10 @@ inline void dibujarBarraVida(sf::RenderWindow& ventana, const Jugador& jugador) 
 inline Juego::Juego()
     : ventana(sf::VideoMode({800, 600}), "TEST DE CAMBIOS REALES"),
       estaCorriendo(true),
-      fuenteCargada(false) {
+      fuenteCargada(false),
+      worldTime(0.0f),
+      skyLight(15),
+      spawnHostilesHabilitado(false) {
     mapaSuperficie = std::make_unique<Mundo>(1000, 1000);
 
     std::random_device rd;
@@ -196,6 +260,26 @@ inline Juego::~Juego() {
     animales.clear();
 }
 
+inline void Juego::actualizarTiempo(float dt) {
+    worldTime += dt * TICKS_POR_SEGUNDO_MUNDO;
+    while (worldTime >= TICKS_DIA_COMPLETO) {
+        worldTime -= TICKS_DIA_COMPLETO;
+    }
+
+    skyLight = calcularSkyLight(worldTime);
+    spawnHostilesHabilitado = skyLight < 7;
+}
+
+inline bool Juego::puedeDormir() const {
+    return worldTime >= TICK_PUEDE_DORMIR && worldTime < TICKS_DIA_COMPLETO;
+}
+
+inline void Juego::saltarAlAmanecer() {
+    worldTime = 0.0f;
+    skyLight = 15;
+    spawnHostilesHabilitado = false;
+}
+
 inline void Juego::ejecutar() {
     sf::Clock reloj;
     SistemaHerramientas herramientas;
@@ -270,6 +354,7 @@ inline void Juego::ejecutar() {
         if (dt > 0.05f) {
             dt = 0.05f;
         }
+        actualizarTiempo(dt);
         acumuladorFPS += dt;
         contadorFrames++;
         if (acumuladorFPS >= 1.0f) {
@@ -312,6 +397,10 @@ inline void Juego::ejecutar() {
 
                 if (botonTeclado->code == sf::Keyboard::Key::F3) {
                     mostrarDebug = !mostrarDebug;
+                }
+
+                if (botonTeclado->code == sf::Keyboard::Key::B && puedeDormir()) {
+                    saltarAlAmanecer();
                 }
             }
         }
@@ -650,6 +739,8 @@ inline void Juego::ejecutar() {
             }
         }
 
+        dibujarFiltroDiaNoche(ventana, camara, worldTime, skyLight);
+
         ventana.setView(ventana.getDefaultView());
 
         if (jugador) {
@@ -665,7 +756,12 @@ inline void Juego::ejecutar() {
             ss << "FPS: " << fpsActuales << "\n"
                << "Bloque Coords -> X: " << static_cast<int>(pos.x / TAMANIO_BLOQUE_JUEGO)
                << " Y: " << static_cast<int>(pos.y / TAMANIO_BLOQUE_JUEGO) << "\n"
-               << "Item en Mano: " << nombreEnMano;
+               << "Item en Mano: " << nombreEnMano << "\n"
+               << "Tiempo: " << static_cast<int>(worldTime)
+               << " (" << nombreMomentoDia(worldTime) << ")"
+               << "\nLuz cielo: " << skyLight
+               << "\nSpawn hostil: " << (spawnHostilesHabilitado ? "Activo" : "Inactivo")
+               << "\nDormir: " << (puedeDormir() ? "Disponible (B)" : "No");
 
             if (jugadorSobreEntradaMina) {
                 int segundosRestantes = static_cast<int>(std::ceil(minaRestante));

@@ -31,6 +31,14 @@ private:
     std::vector<Animal*> animales;
     std::vector<ItemSuelo> itemsSuelo;
 
+    float worldTime;
+    int skyLight;
+    bool spawnHostilesHabilitado;
+
+    void actualizarTiempo(float dt);
+    bool puedeDormir() const;
+    void saltarAlAmanecer();
+
 public:
     Juego();
     ~Juego();
