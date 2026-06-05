@@ -3,10 +3,14 @@
 #include <algorithm>
 #include <cstdint>
 
+namespace {
+constexpr float MULTIPLICADOR_VELOCIDAD_JUGADOR = 1.45f;
+}
+
 // Constructor: Recibe la posiciÃ³n aleatoria de spawn
 inline Jugador::Jugador(float x, float y) {
     posicion = {x, y};
-    velocidad = 4.317f * TAMANIO_BLOQUE_JUEGO;
+    velocidad = 4.317f * TAMANIO_BLOQUE_JUEGO * MULTIPLICADOR_VELOCIDAD_JUGADOR;
     direccionMirada = DireccionMirada::Abajo;
     caminando = false;
     tiempoAnimacion = 0.0f;
@@ -283,13 +287,13 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     direccion /= longitud;
     float velocidadActual = velocidad;
     if (corriendo) {
-        velocidadActual = 5.612f * TAMANIO_BLOQUE_JUEGO;
+        velocidadActual = 5.612f * TAMANIO_BLOQUE_JUEGO * MULTIPLICADOR_VELOCIDAD_JUGADOR;
     }
     if (agachado) {
-        velocidadActual = 1.31f * TAMANIO_BLOQUE_JUEGO;
+        velocidadActual = 1.31f * TAMANIO_BLOQUE_JUEGO * MULTIPLICADOR_VELOCIDAD_JUGADOR;
     }
     if (enAgua) {
-        velocidadActual = 2.20f * TAMANIO_BLOQUE_JUEGO;
+        velocidadActual = 2.20f * TAMANIO_BLOQUE_JUEGO * MULTIPLICADOR_VELOCIDAD_JUGADOR;
     }
 
     const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
