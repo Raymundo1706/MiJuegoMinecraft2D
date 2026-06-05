@@ -221,6 +221,83 @@ inline void dibujarBloqueSprite(sf::RenderWindow& ventana, sf::Vector2f origen, 
     }
 }
 
+inline void dibujarTroncoCortadoSprite(sf::RenderWindow& ventana, sf::Vector2f origen, float escala) {
+    sf::Color borde(22, 14, 12);
+    sf::Color sombra(62, 36, 27);
+    sf::Color corte(178, 128, 77);
+    sf::Color corteOscuro(113, 75, 46);
+    sf::Color corteLuz(218, 166, 96);
+    sf::Color madera(112, 68, 48);
+    sf::Color maderaLuz(150, 95, 66);
+    sf::Color maderaOscura(68, 40, 34);
+    sf::Color cuerda(194, 148, 88);
+    sf::Color cuerdaSombra(118, 82, 48);
+
+    auto troncoHorizontal = [&](int x, int y, int largo) {
+        for (int py = y; py < y + 5; ++py) {
+            for (int px = x + 2; px < x + largo; ++px) {
+                pixel(ventana, origen, px, py, madera, escala);
+            }
+        }
+        for (int px = x + 2; px < x + largo; ++px) {
+            pixel(ventana, origen, px, y, borde, escala);
+            pixel(ventana, origen, px, y + 4, borde, escala);
+        }
+        for (int py = y; py < y + 5; ++py) {
+            pixel(ventana, origen, x + largo, py, borde, escala);
+            pixel(ventana, origen, x + largo - 1, py, maderaOscura, escala);
+        }
+
+        pixel(ventana, origen, x + 4, y + 1, maderaLuz, escala);
+        pixel(ventana, origen, x + 5, y + 1, maderaLuz, escala);
+        pixel(ventana, origen, x + 7, y + 2, maderaOscura, escala);
+        pixel(ventana, origen, x + 8, y + 2, maderaOscura, escala);
+        pixel(ventana, origen, x + 5, y + 3, maderaOscura, escala);
+        pixel(ventana, origen, x + 10, y + 1, maderaLuz, escala);
+    };
+
+    auto corteCircular = [&](int cx, int cy) {
+        pixel(ventana, origen, cx - 2, cy - 1, borde, escala);
+        pixel(ventana, origen, cx - 1, cy - 2, borde, escala);
+        pixel(ventana, origen, cx, cy - 2, borde, escala);
+        pixel(ventana, origen, cx + 1, cy - 1, borde, escala);
+        pixel(ventana, origen, cx + 1, cy, borde, escala);
+        pixel(ventana, origen, cx, cy + 1, borde, escala);
+        pixel(ventana, origen, cx - 1, cy + 1, borde, escala);
+        pixel(ventana, origen, cx - 2, cy, borde, escala);
+
+        pixel(ventana, origen, cx - 1, cy - 1, corte, escala);
+        pixel(ventana, origen, cx, cy - 1, corteLuz, escala);
+        pixel(ventana, origen, cx - 1, cy, corte, escala);
+        pixel(ventana, origen, cx, cy, corteOscuro, escala);
+        pixel(ventana, origen, cx - 1, cy + 1, corteOscuro, escala);
+
+        pixel(ventana, origen, cx - 1, cy, corteOscuro, escala);
+        pixel(ventana, origen, cx, cy, corteLuz, escala);
+        pixel(ventana, origen, cx, cy - 1, corteOscuro, escala);
+    };
+
+    sf::RectangleShape sombraSuelo({12.0f * escala, 3.0f * escala});
+    sombraSuelo.setPosition({origen.x + 2.0f * escala, origen.y + 12.0f * escala});
+    sombraSuelo.setFillColor(sf::Color(0, 0, 0, 55));
+    ventana.draw(sombraSuelo);
+
+    troncoHorizontal(2, 3, 11);
+    troncoHorizontal(4, 8, 10);
+    corteCircular(3, 5);
+    corteCircular(5, 10);
+    corteCircular(9, 11);
+
+    for (int y = 3; y <= 12; ++y) {
+        pixel(ventana, origen, 11, y, (y % 2 == 0) ? cuerda : cuerdaSombra, escala);
+    }
+    for (int y = 4; y <= 10; ++y) {
+        pixel(ventana, origen, 12, y, cuerda, escala);
+    }
+    pixel(ventana, origen, 13, 8, cuerdaSombra, escala);
+    pixel(ventana, origen, 13, 9, cuerda, escala);
+}
+
 inline void dibujarHerramientaSprite(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala) {
     sf::Color mango(120, 72, 32);
     sf::Color material = materialHerramienta(item);
@@ -301,6 +378,9 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
         case ItemId::PaloMadera:
             lineaPixel(ventana, origen, 5, 13, 11, 3, sf::Color(154, 93, 39), escala);
             lineaPixel(ventana, origen, 6, 13, 12, 3, sf::Color(100, 62, 28), escala);
+            return;
+        case ItemId::BloqueTronco:
+            dibujarTroncoCortadoSprite(ventana, origen, escala);
             return;
         case ItemId::MapaInicial:
             for (int y = 2; y < 14; ++y) {

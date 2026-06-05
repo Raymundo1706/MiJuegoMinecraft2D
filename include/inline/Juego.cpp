@@ -7,7 +7,7 @@
 #include "InventarioGrid.hpp"
 
 namespace {
-constexpr float TICKS_POR_SEGUNDO_MUNDO = 100.0f;
+constexpr float TICKS_POR_SEGUNDO_MUNDO = 75.0f;
 constexpr float TICKS_DIA_COMPLETO = 24000.0f;
 constexpr float TICK_FIN_DIA = 12000.0f;
 constexpr float TICK_INICIO_NOCHE = 13000.0f;
@@ -65,6 +65,73 @@ inline void dibujarFiltroDiaNoche(sf::RenderWindow& ventana, const sf::View& cam
     filtro.setPosition(camara.getCenter());
     filtro.setFillColor(colorFiltro);
     ventana.draw(filtro);
+}
+
+inline void dibujarPixelMundo(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
+    sf::RectangleShape pixel({escala, escala});
+    pixel.setPosition({origen.x + static_cast<float>(x) * escala, origen.y + static_cast<float>(y) * escala});
+    pixel.setFillColor(color);
+    ventana.draw(pixel);
+}
+
+inline void dibujarTroncoSuelo(sf::RenderWindow& ventana, sf::Vector2f centro) {
+    const float escala = 1.0f;
+    sf::Vector2f origen(centro.x - 8.0f, centro.y - 8.0f);
+    sf::Color borde(20, 13, 11);
+    sf::Color madera(112, 68, 48);
+    sf::Color maderaLuz(150, 95, 66);
+    sf::Color maderaOscura(64, 38, 32);
+    sf::Color corte(178, 128, 77);
+    sf::Color corteOscuro(105, 70, 44);
+    sf::Color cuerda(190, 144, 86);
+
+    auto pixel = [&](int x, int y, sf::Color color) {
+        dibujarPixelMundo(ventana, origen, x, y, color, escala);
+    };
+
+    auto barra = [&](int x, int y, int largo) {
+        for (int py = y; py < y + 5; ++py) {
+            for (int px = x + 2; px <= x + largo; ++px) {
+                pixel(px, py, madera);
+            }
+        }
+        for (int px = x + 2; px <= x + largo; ++px) {
+            pixel(px, y, borde);
+            pixel(px, y + 4, borde);
+        }
+        for (int py = y; py < y + 5; ++py) {
+            pixel(x + largo, py, borde);
+        }
+        pixel(x + 5, y + 1, maderaLuz);
+        pixel(x + 7, y + 2, maderaOscura);
+        pixel(x + 9, y + 3, maderaOscura);
+    };
+
+    auto corteFrente = [&](int cx, int cy) {
+        pixel(cx - 2, cy - 1, borde);
+        pixel(cx - 1, cy - 2, borde);
+        pixel(cx, cy - 2, borde);
+        pixel(cx + 1, cy - 1, borde);
+        pixel(cx + 1, cy, borde);
+        pixel(cx, cy + 1, borde);
+        pixel(cx - 1, cy + 1, borde);
+        pixel(cx - 2, cy, borde);
+        pixel(cx - 1, cy - 1, corte);
+        pixel(cx, cy - 1, corte);
+        pixel(cx - 1, cy, corteOscuro);
+        pixel(cx, cy, corte);
+    };
+
+    barra(2, 4, 11);
+    barra(4, 9, 10);
+    corteFrente(3, 6);
+    corteFrente(5, 11);
+    corteFrente(9, 12);
+
+    for (int y = 4; y <= 12; ++y) {
+        pixel(11, y, cuerda);
+        if (y % 2 == 0) pixel(12, y, sf::Color(122, 84, 50));
+    }
 }
 
 inline void dibujarPixelHUD(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
@@ -902,13 +969,17 @@ inline void Juego::ejecutar() {
             sombra.setFillColor(sf::Color(20, 20, 20, 80));
             ventana.draw(sombra);
 
-            sf::RectangleShape icono({12.0f, 9.0f});
-            icono.setOrigin({6.0f, 4.5f});
-            icono.setPosition(item.posicion);
-            icono.setFillColor(colorItemSuelo(item.item));
-            icono.setOutlineColor(sf::Color(70, 35, 35));
-            icono.setOutlineThickness(1.0f);
-            ventana.draw(icono);
+            if (item.item == ItemId::BloqueTronco) {
+                dibujarTroncoSuelo(ventana, item.posicion);
+            } else {
+                sf::RectangleShape icono({12.0f, 9.0f});
+                icono.setOrigin({6.0f, 4.5f});
+                icono.setPosition(item.posicion);
+                icono.setFillColor(colorItemSuelo(item.item));
+                icono.setOutlineColor(sf::Color(70, 35, 35));
+                icono.setOutlineThickness(1.0f);
+                ventana.draw(icono);
+            }
 
             if (item.cantidad > 1) {
                 sf::CircleShape brillo(2.0f);
