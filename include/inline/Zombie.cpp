@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <array>
 
 namespace {
 inline void dibujarPixelZombie(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala, bool espejo) {
@@ -115,6 +116,105 @@ inline void dibujarZombiePixelArt(sf::RenderWindow& ventana, sf::Vector2f posici
         dibujarPixelZombie(ventana, origen, 8, 16, camisaLuz, escala, false);
     }
 }
+
+struct AnimacionZombieSprite {
+    sf::Texture textura;
+    int frames = 1;
+    int anchoFrame = 1;
+    int altoFrame = 1;
+    bool cargada = false;
+};
+
+struct BancoSpritesZombie {
+    std::array<AnimacionZombieSprite, 8> animaciones;
+    bool intentado = false;
+    bool listo = false;
+};
+
+inline BancoSpritesZombie& bancoSpritesZombie() {
+    static BancoSpritesZombie banco;
+    return banco;
+}
+
+inline bool cargarAnimacionZombie(AnimacionZombieSprite& animacion, const char* ruta, int frames) {
+    sf::Image imagen;
+    if (!imagen.loadFromFile(ruta)) {
+        return false;
+    }
+
+    if (!animacion.textura.loadFromImage(imagen)) {
+        return false;
+    }
+
+    animacion.textura.setSmooth(false);
+    animacion.frames = frames;
+    animacion.anchoFrame = static_cast<int>(imagen.getSize().x) / frames;
+    animacion.altoFrame = static_cast<int>(imagen.getSize().y);
+    animacion.cargada = animacion.anchoFrame > 0 && animacion.altoFrame > 0;
+    return animacion.cargada;
+}
+
+inline void prepararSpritesZombie() {
+    BancoSpritesZombie& banco = bancoSpritesZombie();
+    if (banco.intentado) {
+        return;
+    }
+
+    banco.intentado = true;
+    banco.listo =
+        cargarAnimacionZombie(banco.animaciones[0], "assets/zombie/down_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[1], "assets/zombie/down_walk.png", 8) &&
+        cargarAnimacionZombie(banco.animaciones[2], "assets/zombie/right_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[3], "assets/zombie/right_walk.png", 8) &&
+        cargarAnimacionZombie(banco.animaciones[4], "assets/zombie/up_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[5], "assets/zombie/up_walk.png", 8) &&
+        cargarAnimacionZombie(banco.animaciones[6], "assets/zombie/left_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[7], "assets/zombie/left_walk.png", 8);
+}
+
+inline bool dibujarZombieDesdeSprites(sf::RenderWindow& ventana, sf::Vector2f posicion, bool bebe, int direccion, bool caminando, float tiempoSprite, float tiempoAnimacion, float golpe, float quemadura) {
+    prepararSpritesZombie();
+    BancoSpritesZombie& banco = bancoSpritesZombie();
+    if (!banco.listo) {
+        return false;
+    }
+
+    int base = 0;
+    if (direccion == 1) base = 2;
+    else if (direccion == 2) base = 4;
+    else if (direccion == 3) base = 6;
+
+    AnimacionZombieSprite& animacion = banco.animaciones[base + (caminando ? 1 : 0)];
+    if (!animacion.cargada) {
+        return false;
+    }
+
+    float escala = bebe ? 0.95f : 1.42f;
+    int frame = caminando
+        ? static_cast<int>(tiempoAnimacion * 1.15f) % animacion.frames
+        : static_cast<int>(tiempoSprite * 5.0f) % animacion.frames;
+
+    sf::RectangleShape sombra({static_cast<float>(animacion.anchoFrame) * escala * 0.82f, 4.0f});
+    sombra.setOrigin({sombra.getSize().x * 0.5f, 2.0f});
+    sombra.setPosition({posicion.x + (bebe ? 7.0f : 12.0f), posicion.y + (bebe ? 15.0f : 24.0f)});
+    sombra.setFillColor(sf::Color(0, 0, 0, 75));
+    ventana.draw(sombra);
+
+    sf::Sprite sprite(animacion.textura);
+    sprite.setTextureRect(sf::IntRect({frame * animacion.anchoFrame, 0}, {animacion.anchoFrame, animacion.altoFrame}));
+    sprite.setOrigin({static_cast<float>(animacion.anchoFrame) * 0.5f, static_cast<float>(animacion.altoFrame) - 1.0f});
+    sprite.setPosition({posicion.x + (bebe ? 7.0f : 12.0f), posicion.y + (bebe ? 16.0f : 25.0f)});
+    sprite.setScale({escala, escala});
+
+    if (golpe > 0.0f) {
+        sprite.setColor(sf::Color(255, 108, 108, 255));
+    } else if (quemadura > 0.0f) {
+        sprite.setColor(sf::Color(255, 158, 92, 245));
+    }
+
+    ventana.draw(sprite);
+    return true;
+}
 }
 
 inline Zombie::Zombie(float x, float y, bool bebe)
@@ -127,6 +227,7 @@ inline Zombie::Zombie(float x, float y, bool bebe)
       tiempoQuemadura(0.0f),
       tiempoLejos(0.0f),
       tiempoAnimacion(0.0f),
+      tiempoSprite(0.0f),
       tiempoGolpe(0.0f),
       direccionMirada(0),
       bebe(bebe),
@@ -182,6 +283,7 @@ inline void Zombie::actualizar(float dt, const Mundo& mundo, Jugador& jugador, i
 
     tiempoAtaque = std::max(0.0f, tiempoAtaque - dt);
     tiempoGolpe = std::max(0.0f, tiempoGolpe - dt);
+    tiempoSprite += dt;
     sf::Vector2f centroJugador = jugador.getPosicion() + sf::Vector2f(12.0f, 12.0f);
     float tam = bebe ? 14.0f : 24.0f;
     sf::Vector2f centroZombie = posicion + sf::Vector2f(tam * 0.5f, tam * 0.5f);
@@ -262,6 +364,22 @@ inline void Zombie::dibujar(sf::RenderWindow& ventana) {
     }
 
     float tam = bebe ? 14.0f : 24.0f;
+    bool caminando = std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f;
+    if (dibujarZombieDesdeSprites(ventana, posicion, bebe, direccionMirada, caminando, tiempoSprite, tiempoAnimacion, tiempoGolpe, tiempoQuemadura)) {
+        if (vida < vidaMaxima) {
+            sf::RectangleShape fondo({tam, 3.0f});
+            fondo.setPosition({posicion.x, posicion.y - 6.0f});
+            fondo.setFillColor(sf::Color(40, 8, 8, 180));
+            ventana.draw(fondo);
+
+            sf::RectangleShape barra({tam * std::max(0.0f, vida / vidaMaxima), 3.0f});
+            barra.setPosition({posicion.x, posicion.y - 6.0f});
+            barra.setFillColor(sf::Color(170, 32, 32));
+            ventana.draw(barra);
+        }
+        return;
+    }
+
     int frame = static_cast<int>(tiempoAnimacion) % 4;
     if (tiempoAnimacion <= 0.0f) {
         frame = 0;

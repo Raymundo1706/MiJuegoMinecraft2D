@@ -17,6 +17,7 @@ private:
     float tiempoQuemadura;
     float tiempoLejos;
     float tiempoAnimacion;
+    float tiempoSprite;
     float tiempoGolpe;
     int direccionMirada;
     bool bebe;
