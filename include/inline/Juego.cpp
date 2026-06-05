@@ -134,12 +134,12 @@ inline void dibujarCorazon(sf::RenderWindow& ventana, sf::Vector2f origen, int e
 inline void dibujarBarraVida(sf::RenderWindow& ventana, const Jugador& jugador) {
     int vida = std::clamp(jugador.getVidaHP(), 0, jugador.getVidaMaximaHP());
     int corazones = jugador.getVidaMaximaHP() / 2;
-    constexpr float escala = 2.2f;
-    sf::Vector2f origen(184.0f, 476.0f);
+    constexpr float escala = 2.0f;
+    sf::Vector2f origen(100.0f, 452.0f);
 
     for (int i = 0; i < corazones; ++i) {
         int hpCorazon = std::clamp(vida - i * 2, 0, 2);
-        dibujarCorazon(ventana, {origen.x + static_cast<float>(i) * 24.0f, origen.y}, hpCorazon, escala);
+        dibujarCorazon(ventana, {origen.x + static_cast<float>(i) * 18.0f, origen.y}, hpCorazon, escala);
     }
 }
 
@@ -199,12 +199,12 @@ inline void dibujarMusloHambre(sf::RenderWindow& ventana, sf::Vector2f origen, i
 
 inline void dibujarBarraHambre(sf::RenderWindow& ventana, const Jugador& jugador) {
     int hambre = std::clamp(jugador.getHambre(), 0, 20);
-    constexpr float escala = 2.2f;
-    sf::Vector2f origen(430.0f, 476.0f);
+    constexpr float escala = 2.0f;
+    sf::Vector2f origen(519.0f, 452.0f);
 
     for (int i = 0; i < 10; ++i) {
         int estado = std::clamp(hambre - i * 2, 0, 2);
-        dibujarMusloHambre(ventana, {origen.x + static_cast<float>(i) * 22.0f, origen.y}, estado, escala);
+        dibujarMusloHambre(ventana, {origen.x + static_cast<float>(i) * 18.0f, origen.y}, estado, escala);
     }
 }
 }
