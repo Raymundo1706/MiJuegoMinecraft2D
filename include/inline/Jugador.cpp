@@ -4,7 +4,7 @@
 #include <cstdint>
 
 namespace {
-constexpr float MULTIPLICADOR_VELOCIDAD_JUGADOR = 1.45f;
+constexpr float MULTIPLICADOR_VELOCIDAD_JUGADOR = 1.75f;
 }
 
 // Constructor: Recibe la posiciÃ³n aleatoria de spawn
