@@ -142,6 +142,71 @@ inline void dibujarBarraVida(sf::RenderWindow& ventana, const Jugador& jugador) 
         dibujarCorazon(ventana, {origen.x + static_cast<float>(i) * 24.0f, origen.y}, hpCorazon, escala);
     }
 }
+
+inline void dibujarMusloHambre(sf::RenderWindow& ventana, sf::Vector2f origen, int estado, float escala) {
+    static const char* silueta[9] = {
+        "...BBB...",
+        "..BggB...",
+        ".BgggBB..",
+        ".BggggB..",
+        "..BggB...",
+        "...BB....",
+        "...B.B...",
+        "..B...B..",
+        "..B...B.."
+    };
+    static const char* lleno[9] = {
+        "...BBB...",
+        "..BooB...",
+        ".BoooBB..",
+        ".BooooB..",
+        "..BooB...",
+        "...BB....",
+        "...BcB...",
+        "..B...B..",
+        "..B...B.."
+    };
+
+    sf::Color borde(28, 14, 8);
+    sf::Color gris(82, 70, 64);
+    sf::Color naranja(205, 92, 34);
+    sf::Color naranjaClaro(238, 133, 54);
+    sf::Color hueso(230, 210, 172);
+
+    for (int y = 0; y < 9; ++y) {
+        for (int x = 0; x < 9; ++x) {
+            char base = silueta[y][x];
+            if (base == '.') {
+                continue;
+            }
+
+            bool pintarRelleno = estado == 2 || (estado == 1 && x <= 4);
+            char pixel = pintarRelleno ? lleno[y][x] : base;
+
+            sf::Color color = gris;
+            if (pixel == 'B') color = borde;
+            if (pixel == 'g') color = gris;
+            if (pixel == 'o') color = (y <= 2 || x <= 3) ? naranjaClaro : naranja;
+            if (pixel == 'c') color = hueso;
+
+            if (estado == 1 && x == 5 && base != 'B') {
+                color = borde;
+            }
+            dibujarPixelHUD(ventana, origen, x, y, color, escala);
+        }
+    }
+}
+
+inline void dibujarBarraHambre(sf::RenderWindow& ventana, const Jugador& jugador) {
+    int hambre = std::clamp(jugador.getHambre(), 0, 20);
+    constexpr float escala = 2.2f;
+    sf::Vector2f origen(430.0f, 476.0f);
+
+    for (int i = 0; i < 10; ++i) {
+        int estado = std::clamp(hambre - i * 2, 0, 2);
+        dibujarMusloHambre(ventana, {origen.x + static_cast<float>(i) * 22.0f, origen.y}, estado, escala);
+    }
+}
 }
 
 inline Juego::Juego()
@@ -866,6 +931,7 @@ inline void Juego::ejecutar() {
 
         if (jugador) {
             dibujarBarraVida(ventana, *jugador);
+            dibujarBarraHambre(ventana, *jugador);
         }
 
         if (fuenteCargada && textoCoordenadas && jugador && mostrarDebug) {
