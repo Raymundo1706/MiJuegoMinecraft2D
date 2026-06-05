@@ -7,6 +7,7 @@
 #include "Mundo.hpp"
 #include "Jugador.hpp"
 #include "Animal.hpp"
+#include "Zombie.hpp"
 #include "Item.hpp"
 
 struct ItemSuelo {
@@ -29,6 +30,7 @@ private:
     bool fuenteCargada;
 
     std::vector<Animal*> animales;
+    std::vector<Zombie*> zombis;
     std::vector<ItemSuelo> itemsSuelo;
 
     float worldTime;

@@ -258,6 +258,11 @@ inline Juego::~Juego() {
         delete animal;
     }
     animales.clear();
+
+    for (auto* zombie : zombis) {
+        delete zombie;
+    }
+    zombis.clear();
 }
 
 inline void Juego::actualizarTiempo(float dt) {
@@ -294,6 +299,7 @@ inline void Juego::ejecutar() {
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
+    float acumuladorSpawnZombies = 0.0f;
     sf::Texture texturaMapaInicial;
     constexpr int TAMANIO_MAPA_INICIAL = 700;
     constexpr int RADIO_MAPA_INICIAL = TAMANIO_MAPA_INICIAL / 2;
@@ -346,6 +352,52 @@ inline void Juego::ejecutar() {
             case ItemId::Pluma: return sf::Color(240, 240, 230);
             case ItemId::BloqueTronco: return sf::Color(120, 72, 35);
             default: return sf::Color(230, 210, 120);
+        }
+    };
+
+    auto intentarSpawnearZombie = [&]() {
+        if (!jugador || !mapaSuperficie || !spawnHostilesHabilitado || zombis.size() >= 35) {
+            return;
+        }
+
+        static std::random_device rdZombie;
+        static std::mt19937 genZombie(rdZombie());
+        std::uniform_real_distribution<float> angulo(0.0f, 6.2831853f);
+        std::uniform_real_distribution<float> distanciaSpawn(24.0f, 38.0f);
+        std::uniform_int_distribution<int> chanceBebe(1, 100);
+
+        sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+        for (int intento = 0; intento < 20; ++intento) {
+            float a = angulo(genZombie);
+            float d = distanciaSpawn(genZombie) * TAMANIO_BLOQUE_JUEGO;
+            int bx = static_cast<int>(std::floor((centroJugador.x + std::cos(a) * d) / TAMANIO_BLOQUE_JUEGO));
+            int by = static_cast<int>(std::floor((centroJugador.y + std::sin(a) * d) / TAMANIO_BLOQUE_JUEGO));
+
+            TipoBloque tipo = mapaSuperficie->getTipoBloque(bx, by);
+            if (mapaSuperficie->esBloqueSolido(bx, by) ||
+                tipo == TipoBloque::Agua ||
+                tipo == TipoBloque::AguaProfunda ||
+                tipo == TipoBloque::Madera) {
+                continue;
+            }
+
+            bool cercaDeOtroZombie = false;
+            sf::Vector2f posSpawn(static_cast<float>(bx) * TAMANIO_BLOQUE_JUEGO, static_cast<float>(by) * TAMANIO_BLOQUE_JUEGO);
+            for (auto* zombie : zombis) {
+                if (!zombie) continue;
+                sf::Vector2f delta = zombie->getPosicion() - posSpawn;
+                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) < 5.0f * TAMANIO_BLOQUE_JUEGO) {
+                    cercaDeOtroZombie = true;
+                    break;
+                }
+            }
+            if (cercaDeOtroZombie) {
+                continue;
+            }
+
+            bool bebe = chanceBebe(genZombie) <= 5;
+            zombis.push_back(new Zombie(posSpawn.x, posSpawn.y, bebe));
+            return;
         }
     };
 
@@ -437,6 +489,24 @@ inline void Juego::ejecutar() {
                     itemAtraccion = inventarioGrid.getItemEnHotbar();
                 }
                 animal->actualizar(dt, *mapaSuperficie, objetivoAnimal, itemAtraccion);
+            }
+        }
+
+        if (spawnHostilesHabilitado && !uiAbierta) {
+            acumuladorSpawnZombies += dt;
+            if (acumuladorSpawnZombies >= 1.0f) {
+                acumuladorSpawnZombies = 0.0f;
+                intentarSpawnearZombie();
+            }
+        } else {
+            acumuladorSpawnZombies = 0.0f;
+        }
+
+        if (jugador && mapaSuperficie) {
+            for (auto* zombie : zombis) {
+                if (zombie) {
+                    zombie->actualizar(dt, *mapaSuperficie, *jugador, skyLight);
+                }
             }
         }
 
@@ -541,6 +611,26 @@ inline void Juego::ejecutar() {
         }
 
         bool golpeoAnimal = false;
+        bool golpeoZombie = false;
+        if (!uiAbierta && clickIzquierdo && !clickIzquierdoAnterior && jugador) {
+            sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+            for (auto* zombie : zombis) {
+                if (!zombie || !zombie->estaVivo() || !zombie->contienePunto(posicionMundoMouse)) {
+                    continue;
+                }
+
+                sf::Vector2f centroZombie = zombie->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+                sf::Vector2f delta = centroZombie - centroJugador;
+                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) > 95.0f) {
+                    continue;
+                }
+
+                zombie->recibirDanio(danioContraAnimal(inventarioGrid.getItemEnHotbar()));
+                golpeoZombie = true;
+                break;
+            }
+        }
+
         if (!uiAbierta && clickIzquierdo && !clickIzquierdoAnterior && jugador) {
             sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
             for (auto it = animales.begin(); it != animales.end(); ++it) {
@@ -602,7 +692,17 @@ inline void Juego::ejecutar() {
             }
         }
 
-        if (!uiAbierta && clickIzquierdo && !clickSobreMesa && !usandoMina && !golpeoAnimal) {
+        for (auto it = zombis.begin(); it != zombis.end();) {
+            Zombie* zombie = *it;
+            if (zombie && zombie->debeEliminarse()) {
+                delete zombie;
+                it = zombis.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        if (!uiAbierta && clickIzquierdo && !clickSobreMesa && !usandoMina && !golpeoAnimal && !golpeoZombie) {
             ventana.setView(camara);
             int bloqueX = bloqueMouseX;
             int bloqueY = bloqueMouseY;
@@ -704,6 +804,15 @@ inline void Juego::ejecutar() {
             }
         }
 
+        for (auto* zombie : zombis) {
+            if (!zombie) continue;
+            sf::Vector2f posZombie = zombie->getPosicion();
+            if (posZombie.x >= dibujoIzq && posZombie.x <= dibujoDer &&
+                posZombie.y >= dibujoArriba && posZombie.y <= dibujoAbajo) {
+                zombie->dibujar(ventana);
+            }
+        }
+
         for (const auto& item : itemsSuelo) {
             if (item.posicion.x < dibujoIzq || item.posicion.x > dibujoDer ||
                 item.posicion.y < dibujoArriba || item.posicion.y > dibujoAbajo) {
@@ -761,6 +870,7 @@ inline void Juego::ejecutar() {
                << " (" << nombreMomentoDia(worldTime) << ")"
                << "\nLuz cielo: " << skyLight
                << "\nSpawn hostil: " << (spawnHostilesHabilitado ? "Activo" : "Inactivo")
+               << "\nZombies: " << zombis.size()
                << "\nDormir: " << (puedeDormir() ? "Disponible (B)" : "No");
 
             if (jugadorSobreEntradaMina) {
