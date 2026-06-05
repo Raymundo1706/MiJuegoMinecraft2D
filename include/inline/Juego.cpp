@@ -7,7 +7,7 @@
 #include "InventarioGrid.hpp"
 
 namespace {
-constexpr float TICKS_POR_SEGUNDO_MUNDO = 100.0f;
+constexpr float TICKS_POR_SEGUNDO_MUNDO = 20.0f;
 constexpr float TICKS_DIA_COMPLETO = 24000.0f;
 constexpr float TICK_FIN_DIA = 12000.0f;
 constexpr float TICK_INICIO_NOCHE = 13000.0f;
