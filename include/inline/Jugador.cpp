@@ -6,7 +6,7 @@
 // Constructor: Recibe la posiciÃ³n aleatoria de spawn
 inline Jugador::Jugador(float x, float y) {
     posicion = {x, y};
-    velocidad = 250.0f; // PÃ­xeles por segundo
+    velocidad = 4.317f * TAMANIO_BLOQUE_JUEGO;
     direccionMirada = DireccionMirada::Abajo;
     caminando = false;
     tiempoAnimacion = 0.0f;
@@ -22,6 +22,14 @@ inline Jugador::Jugador(float x, float y) {
     vidaHP = vidaMaximaHP;
     tiempoInvulnerable = 0.0f;
     ultimoDanioHP = 0;
+    hambre = 20;
+    saturacion = 5.0f;
+    agotamiento = 0.0f;
+    tiempoRegeneracion = 0.0f;
+    tiempoInanicion = 0.0f;
+    tiempoDesdeAtaque = 999.0f;
+    corriendo = false;
+    agachado = false;
 
     // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
@@ -88,8 +96,96 @@ inline bool jugadorEstaDentroDelAgua(const Mundo& mundo, sf::Vector2f posicionJu
     return puntoEsAgua(xs[1], yPies) && puntosEnAgua >= 4;
 }
 
+inline float tiempoRecargaAtaqueJugador(ItemId item) {
+    switch (item) {
+        case ItemId::EspadaMadera:
+        case ItemId::EspadaPiedra:
+            return 0.625f;
+        case ItemId::HachaMadera:
+            return 1.0f;
+        case ItemId::HachaPiedra:
+            return 1.25f;
+        default:
+            return 0.25f;
+    }
+}
+
+inline bool datosComidaJugador(ItemId item, int& puntosComida, float& modificadorSaturacion) {
+    switch (item) {
+        case ItemId::Zanahoria:
+            puntosComida = 3;
+            modificadorSaturacion = 0.6f;
+            return true;
+        case ItemId::Patata:
+            puntosComida = 1;
+            modificadorSaturacion = 0.6f;
+            return true;
+        case ItemId::ChuletaCerdoCruda:
+        case ItemId::CarneResCruda:
+            puntosComida = 3;
+            modificadorSaturacion = 0.3f;
+            return true;
+        case ItemId::ChuletaCerdoCocinada:
+            puntosComida = 8;
+            modificadorSaturacion = 0.8f;
+            return true;
+        case ItemId::PolloCrudo:
+            puntosComida = 2;
+            modificadorSaturacion = 0.3f;
+            return true;
+        default:
+            puntosComida = 0;
+            modificadorSaturacion = 0.0f;
+            return false;
+    }
+}
+
+inline void Jugador::actualizarNutricion(float dt) {
+    while (agotamiento >= 4.0f) {
+        agotamiento -= 4.0f;
+        if (saturacion > 0.0f) {
+            saturacion = std::max(0.0f, saturacion - 1.0f);
+        } else if (hambre > 0) {
+            hambre = std::max(0, hambre - 1);
+        }
+    }
+
+    if (vidaHP < vidaMaximaHP && hambre == 20 && saturacion > 0.0f) {
+        tiempoRegeneracion += dt;
+        if (tiempoRegeneracion >= 0.5f) {
+            curar(1);
+            agregarAgotamiento(6.0f);
+            tiempoRegeneracion = 0.0f;
+        }
+    } else if (vidaHP < vidaMaximaHP && hambre >= 18) {
+        tiempoRegeneracion += dt;
+        if (tiempoRegeneracion >= 4.0f) {
+            curar(1);
+            agregarAgotamiento(6.0f);
+            tiempoRegeneracion = 0.0f;
+        }
+    } else {
+        tiempoRegeneracion = 0.0f;
+    }
+
+    if (hambre == 0) {
+        tiempoInanicion += dt;
+        if (tiempoInanicion >= 4.0f) {
+            if (vidaHP > 1) {
+                vidaHP = std::max(1, vidaHP - 1);
+            }
+            tiempoInanicion = 0.0f;
+        }
+    } else {
+        tiempoInanicion = 0.0f;
+    }
+}
+
 // MÃ©todo para mover al personaje detectando colisiones sÃ³lidas con el terreno
 inline void Jugador::controlar(float dt, const Mundo& mundo) {
+    tiempoDesdeAtaque = std::min(10.0f, tiempoDesdeAtaque + dt);
+    actualizarNutricion(dt);
+
     if (tiempoInvulnerable > 0.0f) {
         tiempoInvulnerable = std::max(0.0f, tiempoInvulnerable - dt);
         if (tiempoInvulnerable <= 0.0f) {
@@ -142,6 +238,10 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
                                sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left);
     bool derechaPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) ||
                              sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right);
+    bool sprintPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
+                            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl);
+    bool agachadoPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) ||
+                              sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift);
 
     // DetecciÃ³n de teclas (WASD y Flechas)
     if (arribaPresionado) {
@@ -160,10 +260,14 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     // Si no hay teclas presionadas, no hacemos cÃ¡lculos
     if (direccion.x == 0.0f && direccion.y == 0.0f) {
         caminando = false;
+        corriendo = false;
+        agachado = false;
         return;
     }
 
     caminando = true;
+    agachado = agachadoPresionado && !enAgua;
+    corriendo = sprintPresionado && !agachado && !enAgua && hambre > 6;
     tiempoAnimacion += dt;
 
     if (izquierdaPresionado && !derechaPresionado) {
@@ -177,7 +281,16 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     // Normalizamos el vector de direcciÃ³n para evitar que camine mÃ¡s rÃ¡pido en diagonal
     float longitud = std::sqrt(direccion.x * direccion.x + direccion.y * direccion.y);
     direccion /= longitud;
-    float velocidadActual = enAgua ? velocidad / 3.0f : velocidad;
+    float velocidadActual = velocidad;
+    if (corriendo) {
+        velocidadActual = 5.612f * TAMANIO_BLOQUE_JUEGO;
+    }
+    if (agachado) {
+        velocidadActual = 1.31f * TAMANIO_BLOQUE_JUEGO;
+    }
+    if (enAgua) {
+        velocidadActual = 2.20f * TAMANIO_BLOQUE_JUEGO;
+    }
 
     const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
     const float hitboxOffsetX = 6.0f;
@@ -186,6 +299,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     const float hitboxAlto = 10.0f;
 
     // --- COMIENZA EL PASO POR EJES INDEPENDIENTES ---
+    sf::Vector2f posicionAntes = posicion;
     
     // 1. INTENTO DE MOVIMIENTO EN EJE X
     sf::Vector2f nuevaPosicionX = posicion;
@@ -233,6 +347,12 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
 
     // Aplicamos la posiciÃ³n final validada a la figura del jugador
     forma.setPosition(posicion);
+
+    if (corriendo) {
+        sf::Vector2f recorrido = posicion - posicionAntes;
+        float metros = std::sqrt(recorrido.x * recorrido.x + recorrido.y * recorrido.y) / TAMANIO_BLOQUE_JUEGO;
+        agregarAgotamiento(metros * 0.1f);
+    }
 }
 
 // MÃ©todo para pintar al jugador encima del mundo
@@ -429,6 +549,24 @@ inline int Jugador::getVidaMaximaHP() const {
     return vidaMaximaHP;
 }
 
+inline int Jugador::getHambre() const {
+    return hambre;
+}
+
+inline float Jugador::getSaturacion() const {
+    return saturacion;
+}
+
+inline float Jugador::getAgotamiento() const {
+    return agotamiento;
+}
+
+inline float Jugador::getMultiplicadorAtaque(ItemId item) const {
+    float recarga = tiempoRecargaAtaqueJugador(item);
+    float carga = std::clamp(tiempoDesdeAtaque / recarga, 0.0f, 1.0f);
+    return 0.2f + 0.8f * carga;
+}
+
 inline bool Jugador::estaMuerto() const {
     return vidaHP <= 0;
 }
@@ -447,6 +585,7 @@ inline void Jugador::recibirDanio(int danioHP) {
     }
 
     vidaHP = std::max(0, vidaHP - danioAplicado);
+    agregarAgotamiento(0.1f);
     ultimoDanioHP = std::max(ultimoDanioHP, danioHP);
     tiempoInvulnerable = 0.5f;
 }
@@ -456,5 +595,36 @@ inline void Jugador::curar(int puntosHP) {
         return;
     }
     vidaHP = std::min(vidaMaximaHP, vidaHP + puntosHP);
+}
+
+inline void Jugador::agregarAgotamiento(float puntos) {
+    if (puntos <= 0.0f) {
+        return;
+    }
+    agotamiento += puntos;
+}
+
+inline void Jugador::registrarAtaque(ItemId item) {
+    (void)item;
+    tiempoDesdeAtaque = 0.0f;
+    agregarAgotamiento(0.1f);
+}
+
+inline bool Jugador::consumirComida(ItemId item) {
+    int puntosComida = 0;
+    float modificadorSaturacion = 0.0f;
+    if (!datosComidaJugador(item, puntosComida, modificadorSaturacion)) {
+        return false;
+    }
+    if (hambre >= 20 && vidaHP >= vidaMaximaHP) {
+        return false;
+    }
+
+    hambre = std::min(20, hambre + puntosComida);
+    saturacion = std::min(
+        static_cast<float>(hambre),
+        saturacion + static_cast<float>(puntosComida) * modificadorSaturacion * 2.0f
+    );
+    return true;
 }
 

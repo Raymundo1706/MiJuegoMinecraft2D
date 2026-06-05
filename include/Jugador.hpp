@@ -32,10 +32,19 @@ private:
     int vidaHP;
     float tiempoInvulnerable;
     int ultimoDanioHP;
+    int hambre;
+    float saturacion;
+    float agotamiento;
+    float tiempoRegeneracion;
+    float tiempoInanicion;
+    float tiempoDesdeAtaque;
+    bool corriendo;
+    bool agachado;
 
     void dibujarPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala);
     void dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, int ancho, int alto, sf::Color color, float escala);
     void dibujarSpriteJugador(sf::RenderWindow& ventana);
+    void actualizarNutricion(float dt);
 
 public:
     Jugador(float x, float y);
@@ -51,9 +60,16 @@ public:
     float getTiempoEnAgua() const;
     int getVidaHP() const;
     int getVidaMaximaHP() const;
+    int getHambre() const;
+    float getSaturacion() const;
+    float getAgotamiento() const;
+    float getMultiplicadorAtaque(ItemId item) const;
     bool estaMuerto() const;
     void recibirDanio(int danioHP);
     void curar(int puntosHP);
+    void agregarAgotamiento(float puntos);
+    void registrarAtaque(ItemId item);
+    bool consumirComida(ItemId item);
 };
 
 #include "inline/Jugador.cpp"

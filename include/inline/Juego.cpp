@@ -585,18 +585,25 @@ inline void Juego::ejecutar() {
             TipoBloque bloqueAColocar = bloqueDesdeItem(itemEnMano);
 
             if (jugador && mapaSuperficie) {
-                sf::Vector2f posJugador = jugador->getPosicion();
-                sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
-                sf::Vector2f centroBloque((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
-                float dx = centroBloque.x - centroJugador.x;
-                float dy = centroBloque.y - centroJugador.y;
-                float distancia = std::sqrt(dx * dx + dy * dy);
-
-                if (distancia <= 115.0f &&
-                           esItemColocable(itemEnMano) &&
-                           bloqueAColocar != TipoBloque::Aire &&
-                           mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
+                bool consumioComida = jugador->consumirComida(itemEnMano);
+                if (consumioComida) {
                     inventarioGrid.consumirItemHotbar(1);
+                }
+
+                if (!consumioComida) {
+                    sf::Vector2f posJugador = jugador->getPosicion();
+                    sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
+                    sf::Vector2f centroBloque((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+                    float dx = centroBloque.x - centroJugador.x;
+                    float dy = centroBloque.y - centroJugador.y;
+                    float distancia = std::sqrt(dx * dx + dy * dy);
+
+                    if (distancia <= 115.0f &&
+                               esItemColocable(itemEnMano) &&
+                               bloqueAColocar != TipoBloque::Aire &&
+                               mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
+                        inventarioGrid.consumirItemHotbar(1);
+                    }
                 }
             }
         }
@@ -625,7 +632,9 @@ inline void Juego::ejecutar() {
                     continue;
                 }
 
-                zombie->recibirDanio(danioContraAnimal(inventarioGrid.getItemEnHotbar()));
+                ItemId arma = inventarioGrid.getItemEnHotbar();
+                zombie->recibirDanio(danioContraAnimal(arma) * jugador->getMultiplicadorAtaque(arma));
+                jugador->registrarAtaque(arma);
                 golpeoZombie = true;
                 break;
             }
@@ -646,7 +655,9 @@ inline void Juego::ejecutar() {
                     continue;
                 }
 
-                animal->recibirDanio(danioContraAnimal(inventarioGrid.getItemEnHotbar()), centroJugador);
+                ItemId arma = inventarioGrid.getItemEnHotbar();
+                animal->recibirDanio(danioContraAnimal(arma) * jugador->getMultiplicadorAtaque(arma), centroJugador);
+                jugador->registrarAtaque(arma);
                 golpeoAnimal = true;
 
                 if (animal->estaMuriendo()) {
@@ -757,6 +768,7 @@ inline void Juego::ejecutar() {
                             bool destruido = mapaSuperficie->daniarBloque(bloqueX, bloqueY, danioAplicado);
 
                             if (destruido) {
+                                jugador->agregarAgotamiento(0.005f);
                                 if (herramientas.puedeRecolectar(tipoActual, itemEnMano)) {
                                     inventarioGrid.agregarItem(itemDesdeBloque(tipoActual), 1);
                                 }
@@ -871,6 +883,10 @@ inline void Juego::ejecutar() {
                << "\nLuz cielo: " << skyLight
                << "\nSpawn hostil: " << (spawnHostilesHabilitado ? "Activo" : "Inactivo")
                << "\nZombies: " << zombis.size()
+               << "\nHambre: " << jugador->getHambre()
+               << " Sat: " << static_cast<int>(jugador->getSaturacion() * 10.0f) / 10.0f
+               << " Agot: " << static_cast<int>(jugador->getAgotamiento() * 10.0f) / 10.0f
+               << "\nCarga ataque: " << static_cast<int>(jugador->getMultiplicadorAtaque(inventarioGrid.getItemEnHotbar()) * 100.0f) << "%"
                << "\nDormir: " << (puedeDormir() ? "Disponible (B)" : "No");
 
             if (jugadorSobreEntradaMina) {
