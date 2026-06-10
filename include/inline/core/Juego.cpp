@@ -3,6 +3,10 @@
 #include <sstream>
 #include <cmath>
 #include <cstdint>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <vector>
 #include <string>
 #include <SFML/Audio.hpp>
@@ -16,6 +20,166 @@ constexpr float TICK_FIN_DIA = 12000.0f;
 constexpr float TICK_INICIO_NOCHE = 13000.0f;
 constexpr float TICK_FIN_NOCHE = 22000.0f;
 constexpr float TICK_PUEDE_DORMIR = 12542.0f;
+
+struct MundoGuardado {
+    std::string nombre;
+    std::string carpeta;
+    std::string ultimaVez;
+    std::string semillaTexto;
+    unsigned int semilla = 0;
+    int dificultad = 2;
+};
+
+inline std::string dificultadTexto(int dificultad) {
+    static const char* nombres[4] = {"Pacifico", "Facil", "Normal", "Dificil"};
+    return nombres[std::clamp(dificultad, 0, 3)];
+}
+
+inline std::string limpiarNombreArchivo(std::string texto) {
+    if (texto.empty()) {
+        texto = "Nuevo Mundo";
+    }
+
+    for (char& c : texto) {
+        bool valido = (c >= '0' && c <= '9') ||
+                      (c >= 'A' && c <= 'Z') ||
+                      (c >= 'a' && c <= 'z') ||
+                      c == ' ' || c == '_' || c == '-';
+        if (!valido) {
+            c = '_';
+        }
+    }
+    while (!texto.empty() && texto.back() == ' ') texto.pop_back();
+    if (texto.empty()) {
+        texto = "Nuevo Mundo";
+    }
+    return texto;
+}
+
+inline unsigned int semillaDesdeTexto(const std::string& entrada) {
+    if (entrada.empty()) {
+        auto ahora = std::chrono::system_clock::now().time_since_epoch().count();
+        return static_cast<unsigned int>((static_cast<std::uint64_t>(ahora) >> 7u) ^ static_cast<std::uint64_t>(ahora));
+    }
+
+    bool numerica = true;
+    std::size_t inicio = (entrada[0] == '-' || entrada[0] == '+') ? 1u : 0u;
+    if (inicio >= entrada.size()) {
+        numerica = false;
+    }
+    for (std::size_t i = inicio; i < entrada.size(); ++i) {
+        if (entrada[i] < '0' || entrada[i] > '9') {
+            numerica = false;
+            break;
+        }
+    }
+
+    if (numerica) {
+        try {
+            long long valor = std::stoll(entrada);
+            return static_cast<unsigned int>(valor);
+        } catch (...) {
+        }
+    }
+
+    std::uint32_t hash = 2166136261u;
+    for (unsigned char c : entrada) {
+        hash ^= c;
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+inline std::string fechaActualTexto() {
+    auto ahora = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(ahora);
+    std::tm tmLocal{};
+#ifdef _WIN32
+    localtime_s(&tmLocal, &t);
+#else
+    localtime_r(&t, &tmLocal);
+#endif
+    std::ostringstream ss;
+    ss << std::put_time(&tmLocal, "%Y-%m-%d %H:%M");
+    return ss.str();
+}
+
+inline std::filesystem::path carpetaSaves() {
+    return std::filesystem::path("saves");
+}
+
+inline std::filesystem::path rutaMetaMundo(const std::string& carpeta) {
+    return carpetaSaves() / carpeta / "world.meta";
+}
+
+inline std::filesystem::path rutaBloquesMundo(const std::string& carpeta) {
+    return carpetaSaves() / carpeta / "blocks.bin";
+}
+
+inline std::filesystem::path rutaInventarioMundo(const std::string& carpeta) {
+    return carpetaSaves() / carpeta / "inventory.txt";
+}
+
+inline std::filesystem::path rutaJugadorMundo(const std::string& carpeta) {
+    return carpetaSaves() / carpeta / "player.txt";
+}
+
+inline MundoGuardado leerMetaMundo(const std::filesystem::path& ruta) {
+    MundoGuardado mundo;
+    mundo.carpeta = ruta.parent_path().filename().string();
+    std::ifstream in(ruta);
+    std::string linea;
+    while (std::getline(in, linea)) {
+        std::size_t eq = linea.find('=');
+        if (eq == std::string::npos) continue;
+        std::string clave = linea.substr(0, eq);
+        std::string valor = linea.substr(eq + 1);
+        if (clave == "name") mundo.nombre = valor;
+        if (clave == "seedText") mundo.semillaTexto = valor;
+        if (clave == "seed") mundo.semilla = static_cast<unsigned int>(std::stoul(valor));
+        if (clave == "difficulty") mundo.dificultad = std::stoi(valor);
+        if (clave == "lastPlayed") mundo.ultimaVez = valor;
+    }
+    if (mundo.nombre.empty()) mundo.nombre = mundo.carpeta;
+    if (mundo.ultimaVez.empty()) mundo.ultimaVez = "Sin fecha";
+    return mundo;
+}
+
+inline std::vector<MundoGuardado> escanearMundosGuardados() {
+    std::vector<MundoGuardado> mundos;
+    std::filesystem::create_directories(carpetaSaves());
+    for (const auto& entrada : std::filesystem::directory_iterator(carpetaSaves())) {
+        if (!entrada.is_directory()) continue;
+        std::filesystem::path meta = entrada.path() / "world.meta";
+        if (std::filesystem::exists(meta)) {
+            mundos.push_back(leerMetaMundo(meta));
+        }
+    }
+    std::sort(mundos.begin(), mundos.end(), [](const MundoGuardado& a, const MundoGuardado& b) {
+        return a.ultimaVez > b.ultimaVez;
+    });
+    return mundos;
+}
+
+inline void guardarMetaMundo(const MundoGuardado& mundo) {
+    std::filesystem::create_directories(carpetaSaves() / mundo.carpeta);
+    std::ofstream out(rutaMetaMundo(mundo.carpeta));
+    out << "name=" << mundo.nombre << "\n";
+    out << "seedText=" << mundo.semillaTexto << "\n";
+    out << "seed=" << mundo.semilla << "\n";
+    out << "difficulty=" << mundo.dificultad << "\n";
+    out << "lastPlayed=" << mundo.ultimaVez << "\n";
+}
+
+inline std::string carpetaUnicaMundo(const std::string& nombre) {
+    std::string base = limpiarNombreArchivo(nombre);
+    std::string carpeta = base;
+    int sufijo = 2;
+    while (std::filesystem::exists(carpetaSaves() / carpeta)) {
+        carpeta = base + " " + std::to_string(sufijo++);
+    }
+    return carpeta;
+}
 
 inline float calcularSkyLightFloat(float worldTime) {
     if (worldTime <= TICK_FIN_DIA) {
@@ -822,7 +986,8 @@ inline void dibujarEntradaTextoMenu(sf::RenderWindow& ventana, sf::Font& fuente,
     }
 }
 
-inline void dibujarMenuJugar(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, bool online, sf::Vector2i mouse) {
+inline void dibujarMenuJugar(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, bool online,
+                             const std::vector<MundoGuardado>& mundosGuardados, sf::Vector2i mouse) {
     dibujarPanoramaMenu(ventana, tiempo);
     dibujarTituloSubmenu(ventana, fuente, "Jugar");
 
@@ -853,9 +1018,9 @@ inline void dibujarMenuJugar(sf::RenderWindow& ventana, sf::Font& fuente, float 
     guardados.setPosition({84.0f, 304.0f});
     ventana.draw(guardados);
 
-    const char* nombres[3] = {"Mundo de Raymu", "Bosque inicial", "Prueba de zombies"};
-    const char* semillas[3] = {"Seed: 20260609", "Seed: random", "Seed: night-test"};
-    for (int i = 0; i < 3; ++i) {
+    int visibles = std::min<int>(3, mundosGuardados.size());
+    for (int i = 0; i < visibles; ++i) {
+        const MundoGuardado& mundo = mundosGuardados[i];
         float y = 332.0f + static_cast<float>(i) * 48.0f;
         sf::FloatRect r({82.0f, y}, {284.0f, 40.0f});
         bool hover = r.contains(sf::Vector2f(mouse));
@@ -873,19 +1038,29 @@ inline void dibujarMenuJugar(sf::RenderWindow& ventana, sf::Font& fuente, float 
         icono.setOutlineThickness(2.0f);
         ventana.draw(icono);
 
-        sf::Text nombre(fuente, nombres[i], 13);
+        sf::Text nombre(fuente, mundo.nombre, 13);
         nombre.setFillColor(sf::Color::White);
         nombre.setOutlineColor(sf::Color::Black);
         nombre.setOutlineThickness(1.0f);
         nombre.setPosition({r.position.x + 46.0f, r.position.y + 5.0f});
         ventana.draw(nombre);
 
-        sf::Text seed(fuente, semillas[i], 11);
+        std::string detalleMundo = mundo.ultimaVez + " - " + dificultadTexto(mundo.dificultad);
+        sf::Text seed(fuente, detalleMundo, 11);
         seed.setFillColor(sf::Color(190, 190, 190));
         seed.setOutlineColor(sf::Color::Black);
         seed.setOutlineThickness(1.0f);
         seed.setPosition({r.position.x + 46.0f, r.position.y + 23.0f});
         ventana.draw(seed);
+    }
+
+    if (mundosGuardados.empty()) {
+        sf::Text vacio(fuente, "No hay mundos guardados todavia", 12);
+        vacio.setFillColor(sf::Color(190, 190, 190));
+        vacio.setOutlineColor(sf::Color::Black);
+        vacio.setOutlineThickness(1.0f);
+        vacio.setPosition({86.0f, 336.0f});
+        ventana.draw(vacio);
     }
 
     sf::FloatRect partida({446.0f, 216.0f}, {222.0f, 54.0f});
@@ -1359,6 +1534,9 @@ inline void Juego::ejecutar() {
     std::string semillaMundoNuevo;
     int dificultadMundoNuevo = 2;
     int inputCrearMundoActivo = 0;
+    std::vector<MundoGuardado> mundosGuardados = escanearMundosGuardados();
+    MundoGuardado mundoActivo;
+    bool hayMundoActivo = false;
     sf::Music musicaMenu;
     bool musicaMenuLista = musicaMenu.openFromFile("assets/audio/menu_music.ogg");
     if (musicaMenuLista) {
@@ -1424,6 +1602,155 @@ inline void Juego::ejecutar() {
     constexpr int RADIO_MAPA_INICIAL = TAMANIO_MAPA_INICIAL / 2;
     std::random_device rdLoot;
     std::mt19937 genLoot(rdLoot());
+
+    auto guardarMundoActivo = [&]() {
+        if (!hayMundoActivo || !mapaSuperficie) {
+            return;
+        }
+        mundoActivo.ultimaVez = fechaActualTexto();
+        guardarMetaMundo(mundoActivo);
+        mapaSuperficie->guardarEstado(rutaBloquesMundo(mundoActivo.carpeta).string());
+        {
+            std::ofstream inv(rutaInventarioMundo(mundoActivo.carpeta));
+            const auto& slots = inventarioGrid.getSlots();
+            for (std::size_t i = 0; i < slots.size(); ++i) {
+                inv << i << ' ' << static_cast<int>(slots[i].item) << ' ' << slots[i].cantidad << '\n';
+            }
+        }
+        if (jugador) {
+            std::ofstream pj(rutaJugadorMundo(mundoActivo.carpeta));
+            sf::Vector2f pos = jugador->getPosicion();
+            pj << pos.x << ' ' << pos.y << '\n';
+        }
+        mundosGuardados = escanearMundosGuardados();
+    };
+
+    auto iniciarMundo = [&](MundoGuardado mundo, bool cargarBloques) {
+        for (auto* animal : animales) delete animal;
+        animales.clear();
+        for (auto* zombie : zombis) delete zombie;
+        zombis.clear();
+        itemsSuelo.clear();
+
+        mapaSuperficie = std::make_unique<Mundo>(1000, 1000, mundo.semilla);
+        if (cargarBloques) {
+            mapaSuperficie->cargarEstado(rutaBloquesMundo(mundo.carpeta).string());
+        }
+
+        std::mt19937 genMundo(mundo.semilla ^ 0x5A17C3u);
+        std::uniform_int_distribution<> spawnBloqueX(30, mapaSuperficie->getAncho() - 31);
+        std::uniform_int_distribution<> spawnBloqueY(30, mapaSuperficie->getAlto() - 31);
+
+        auto bloqueSeguroParaSpawn = [&](int bx, int by) {
+            if (mapaSuperficie->getTipoBloque(bx, by) != TipoBloque::Pasto) return false;
+            for (int y = by - 1; y <= by + 1; ++y) {
+                for (int x = bx - 1; x <= bx + 1; ++x) {
+                    if (mapaSuperficie->esBloqueSolido(x, y)) return false;
+                }
+            }
+            return true;
+        };
+
+        int bloqueSpawnX = 50;
+        int bloqueSpawnY = 50;
+        bool spawnEncontrado = false;
+        for (int intento = 0; intento < 8000 && !spawnEncontrado; ++intento) {
+            int bx = spawnBloqueX(genMundo);
+            int by = spawnBloqueY(genMundo);
+            if (bloqueSeguroParaSpawn(bx, by)) {
+                bloqueSpawnX = bx;
+                bloqueSpawnY = by;
+                spawnEncontrado = true;
+            }
+        }
+        if (!spawnEncontrado) {
+            for (int y = 30; y < mapaSuperficie->getAlto() - 30 && !spawnEncontrado; ++y) {
+                for (int x = 30; x < mapaSuperficie->getAncho() - 30 && !spawnEncontrado; ++x) {
+                    if (bloqueSeguroParaSpawn(x, y)) {
+                        bloqueSpawnX = x;
+                        bloqueSpawnY = y;
+                        spawnEncontrado = true;
+                    }
+                }
+            }
+        }
+
+        float jugadorX = static_cast<float>(bloqueSpawnX) * TAMANIO_BLOQUE_JUEGO;
+        float jugadorY = static_cast<float>(bloqueSpawnY) * TAMANIO_BLOQUE_JUEGO;
+        if (cargarBloques) {
+            std::ifstream pj(rutaJugadorMundo(mundo.carpeta));
+            if (pj) {
+                pj >> jugadorX >> jugadorY;
+            }
+        }
+        jugador = std::make_unique<Jugador>(jugadorX, jugadorY);
+        camara.setSize({560.0f, 420.0f});
+
+        std::uniform_int_distribution<> animalBloqueX(30, mapaSuperficie->getAncho() - 31);
+        std::uniform_int_distribution<> animalBloqueY(30, mapaSuperficie->getAlto() - 31);
+        std::uniform_int_distribution<> tipoAnimal(0, 3);
+        auto bloqueSeguroParaAnimal = [&](int bx, int by) {
+            return mapaSuperficie->getTipoBloque(bx, by) == TipoBloque::Pasto &&
+                   !mapaSuperficie->esBloqueSolido(bx, by);
+        };
+
+        constexpr int TOTAL_ANIMALES = 420;
+        int animalesCreados = 0;
+        for (int intento = 0; intento < TOTAL_ANIMALES * 40 && animalesCreados < TOTAL_ANIMALES; ++intento) {
+            int bx = animalBloqueX(genMundo);
+            int by = animalBloqueY(genMundo);
+            if (!bloqueSeguroParaAnimal(bx, by)) continue;
+
+            TipoAnimal tipo = TipoAnimal::Cerdo;
+            int t = tipoAnimal(genMundo);
+            if (t == 1) tipo = TipoAnimal::Oveja;
+            if (t == 2) tipo = TipoAnimal::Vaca;
+            if (t == 3) tipo = TipoAnimal::Gallina;
+            animales.push_back(new Animal(
+                static_cast<float>(bx) * TAMANIO_BLOQUE_JUEGO,
+                static_cast<float>(by) * TAMANIO_BLOQUE_JUEGO,
+                tipo
+            ));
+            ++animalesCreados;
+        }
+
+        mundoActivo = mundo;
+        hayMundoActivo = true;
+        mapaInicialGenerado = false;
+        dificultadMundoNuevo = mundo.dificultad;
+        {
+            auto& slots = inventarioGrid.getSlots();
+            for (auto& slot : slots) {
+                slot = {};
+            }
+            if (cargarBloques) {
+                std::ifstream inv(rutaInventarioMundo(mundo.carpeta));
+                int indice = 0;
+                int item = 0;
+                int cantidad = 0;
+                while (inv >> indice >> item >> cantidad) {
+                    if (indice >= 0 && indice < static_cast<int>(slots.size())) {
+                        slots[indice].item = static_cast<ItemId>(item);
+                        slots[indice].cantidad = cantidad;
+                    }
+                }
+            }
+            bool inventarioVacio = true;
+            for (const auto& slot : slots) {
+                if (!esItemVacio(slot.item)) {
+                    inventarioVacio = false;
+                    break;
+                }
+            }
+            if (inventarioVacio) {
+                inventarioGrid.agregarItem(ItemId::MapaInicial, 1);
+            }
+        }
+        if (mundoActivo.ultimaVez.empty()) {
+            mundoActivo.ultimaVez = fechaActualTexto();
+        }
+        guardarMundoActivo();
+    };
 
     auto generarMapaInicial = [&]() {
         if (!jugador || !mapaSuperficie) return;
@@ -1515,6 +1842,19 @@ inline void Juego::ejecutar() {
         reloj.restart();
     };
 
+    auto crearNuevoMundoDesdeFormulario = [&]() {
+        MundoGuardado nuevo;
+        nuevo.nombre = nombreMundoNuevo.empty() ? "Nuevo Mundo" : nombreMundoNuevo;
+        nuevo.semillaTexto = semillaMundoNuevo.empty() ? "random" : semillaMundoNuevo;
+        nuevo.semilla = semillaDesdeTexto(semillaMundoNuevo);
+        nuevo.dificultad = std::clamp(dificultadMundoNuevo, 0, 3);
+        nuevo.ultimaVez = fechaActualTexto();
+        nuevo.carpeta = carpetaUnicaMundo(nuevo.nombre);
+        guardarMetaMundo(nuevo);
+        iniciarMundo(nuevo, false);
+        iniciarPartidaDesdeMenu();
+    };
+
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
         if (dt > 0.05f) {
@@ -1522,6 +1862,13 @@ inline void Juego::ejecutar() {
         }
         tiempoMenuInicio += dt;
         actualizarTiempo(dt);
+        if (hayMundoActivo && mundoActivo.dificultad == 0) {
+            spawnHostilesHabilitado = false;
+            for (auto* zombie : zombis) {
+                delete zombie;
+            }
+            zombis.clear();
+        }
         acumuladorFPS += dt;
         contadorFrames++;
         if (acumuladorFPS >= 1.0f) {
@@ -1532,6 +1879,7 @@ inline void Juego::ejecutar() {
 
         while (const std::optional<sf::Event> evento = ventana.pollEvent()) {
             if (evento->is<sf::Event::Closed>()) {
+                guardarMundoActivo();
                 ventana.close();
             }
 
@@ -1555,7 +1903,8 @@ inline void Juego::ejecutar() {
 
                     if (botonTeclado->code == sf::Keyboard::Key::Escape) {
                         if (pantallaMenuInicio == 0) {
-                            ventana.close();
+                            guardarMundoActivo();
+                ventana.close();
                         } else if (pantallaMenuInicio == 6) {
                             pantallaMenuInicio = 0;
                             opcionMenuInicio = 0;
@@ -1604,7 +1953,8 @@ inline void Juego::ejecutar() {
                                 pantallaMenuInicio = 1;
                                 opcionMenuInicio = 0;
                             } else if (opcionMenuInicio == 3) {
-                                ventana.close();
+                                guardarMundoActivo();
+                ventana.close();
                             }
                         } else if (pantallaMenuInicio == 1) {
                             if (opcionMenuInicio == 0) pantallaMenuInicio = 2;
@@ -1627,7 +1977,7 @@ inline void Juego::ejecutar() {
                             }
                         } else if (pantallaMenuInicio == 7) {
                             if (inputCrearMundoActivo == 0) {
-                                iniciarPartidaDesdeMenu();
+                                crearNuevoMundoDesdeFormulario();
                             }
                         } else if (pantallaMenuInicio == 8) {
                             pantallaMenuInicio = 6;
@@ -1699,7 +2049,8 @@ inline void Juego::ejecutar() {
                         pantallaMenuInicio = 1;
                         opcionMenuInicio = 0;
                     } else if (hover == 3) {
-                        ventana.close();
+                        guardarMundoActivo();
+                ventana.close();
                     }
                 }
             } else if (pantallaMenuInicio == 1) {
@@ -1802,10 +2153,12 @@ inline void Juego::ejecutar() {
                         pantallaMenuInicio = 0;
                         opcionMenuInicio = 0;
                     } else {
-                        for (int i = 0; i < 3; ++i) {
+                        int visibles = std::min<int>(3, mundosGuardados.size());
+                        for (int i = 0; i < visibles; ++i) {
                             sf::FloatRect mundo({82.0f, 332.0f + static_cast<float>(i) * 48.0f}, {284.0f, 40.0f});
                             if (mouseDentro(mundo)) {
                                 reproducirClickMenu();
+                                iniciarMundo(mundosGuardados[i], true);
                                 iniciarPartidaDesdeMenu();
                             }
                         }
@@ -1832,8 +2185,7 @@ inline void Juego::ejecutar() {
                         inputCrearMundoActivo = 0;
                     } else if (mouseDentro(sf::FloatRect({176.0f, 440.0f}, {288.0f, 40.0f}))) {
                         reproducirClickMenu();
-                        if (nombreMundoNuevo.empty()) nombreMundoNuevo = "New World";
-                        iniciarPartidaDesdeMenu();
+                        crearNuevoMundoDesdeFormulario();
                     } else if (mouseDentro(sf::FloatRect({500.0f, 440.0f}, {124.0f, 40.0f}))) {
                         reproducirClickMenu();
                         pantallaMenuInicio = 6;
@@ -1865,7 +2217,7 @@ inline void Juego::ejecutar() {
             } else if (fuenteCargada && pantallaMenuInicio == 5) {
                 dibujarCreditos(ventana, fuente, tiempoMenuInicio, scrollCreditos);
             } else if (fuenteCargada && pantallaMenuInicio == 6) {
-                dibujarMenuJugar(ventana, fuente, tiempoMenuInicio, partidaOnline, mousePos);
+                dibujarMenuJugar(ventana, fuente, tiempoMenuInicio, partidaOnline, mundosGuardados, mousePos);
             } else if (fuenteCargada && pantallaMenuInicio == 7) {
                 dibujarCrearMundo(
                     ventana,
