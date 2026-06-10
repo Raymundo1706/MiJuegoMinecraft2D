@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include <string>
 #include <SFML/Audio.hpp>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
@@ -525,6 +526,252 @@ inline void dibujarAyudaOpciones(sf::RenderWindow& ventana, sf::Font& fuente, fl
     }
 }
 
+inline void dibujarGuiaControlesMenu(sf::RenderWindow& ventana, sf::Font& fuente) {
+    sf::RectangleShape barra({800.0f, 34.0f});
+    barra.setPosition({0.0f, 566.0f});
+    barra.setFillColor(sf::Color(0, 0, 0, 150));
+    ventana.draw(barra);
+
+    sf::CircleShape a(8.0f);
+    a.setPosition({30.0f, 575.0f});
+    a.setFillColor(sf::Color(54, 185, 66));
+    ventana.draw(a);
+    sf::CircleShape b(8.0f);
+    b.setPosition({168.0f, 575.0f});
+    b.setFillColor(sf::Color(204, 52, 48));
+    ventana.draw(b);
+
+    sf::Text ta(fuente, "A Seleccionar", 13);
+    ta.setFillColor(sf::Color::White);
+    ta.setOutlineColor(sf::Color::Black);
+    ta.setOutlineThickness(2.0f);
+    ta.setPosition({52.0f, 573.0f});
+    ventana.draw(ta);
+
+    sf::Text tb(fuente, "B Atras", 13);
+    tb.setFillColor(sf::Color::White);
+    tb.setOutlineColor(sf::Color::Black);
+    tb.setOutlineThickness(2.0f);
+    tb.setPosition({190.0f, 573.0f});
+    ventana.draw(tb);
+}
+
+inline void dibujarCheckboxMenu(sf::RenderWindow& ventana, sf::Font& fuente, sf::Vector2f pos, const char* texto, bool activo) {
+    sf::RectangleShape caja({20.0f, 20.0f});
+    caja.setPosition(pos);
+    caja.setFillColor(sf::Color(36, 36, 36, 230));
+    caja.setOutlineColor(sf::Color(180, 180, 180));
+    caja.setOutlineThickness(2.0f);
+    ventana.draw(caja);
+
+    if (activo) {
+        sf::RectangleShape marca1({14.0f, 4.0f});
+        marca1.setPosition({pos.x + 4.0f, pos.y + 9.0f});
+        marca1.setFillColor(sf::Color(118, 220, 75));
+        marca1.setRotation(sf::degrees(-35.0f));
+        ventana.draw(marca1);
+    }
+
+    sf::Text etiqueta(fuente, texto, 15);
+    etiqueta.setFillColor(sf::Color::White);
+    etiqueta.setOutlineColor(sf::Color::Black);
+    etiqueta.setOutlineThickness(2.0f);
+    etiqueta.setPosition({pos.x + 30.0f, pos.y - 1.0f});
+    ventana.draw(etiqueta);
+}
+
+inline void dibujarEntradaTextoMenu(sf::RenderWindow& ventana, sf::Font& fuente, sf::FloatRect rect, const char* etiqueta, const std::string& valor, bool activa, const char* ayuda = nullptr) {
+    sf::Text titulo(fuente, etiqueta, 15);
+    titulo.setFillColor(sf::Color::White);
+    titulo.setOutlineColor(sf::Color::Black);
+    titulo.setOutlineThickness(2.0f);
+    titulo.setPosition({rect.position.x, rect.position.y - 24.0f});
+    ventana.draw(titulo);
+
+    sf::RectangleShape campo(rect.size);
+    campo.setPosition(rect.position);
+    campo.setFillColor(sf::Color(32, 32, 32, 235));
+    campo.setOutlineColor(activa ? sf::Color(180, 255, 116) : sf::Color(130, 130, 130));
+    campo.setOutlineThickness(activa ? 3.0f : 2.0f);
+    ventana.draw(campo);
+
+    sf::Text texto(fuente, valor.empty() ? " " : valor, 16);
+    texto.setFillColor(sf::Color::White);
+    texto.setOutlineColor(sf::Color::Black);
+    texto.setOutlineThickness(2.0f);
+    texto.setPosition({rect.position.x + 10.0f, rect.position.y + 8.0f});
+    ventana.draw(texto);
+
+    if (ayuda) {
+        sf::Text h(fuente, ayuda, 12);
+        h.setFillColor(sf::Color(184, 184, 184));
+        h.setOutlineColor(sf::Color::Black);
+        h.setOutlineThickness(1.0f);
+        h.setPosition({rect.position.x, rect.position.y + rect.size.y + 6.0f});
+        ventana.draw(h);
+    }
+}
+
+inline void dibujarMenuJugar(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, bool online, sf::Vector2i mouse) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Jugar");
+
+    sf::RectangleShape panel({700.0f, 414.0f});
+    panel.setPosition({50.0f, 112.0f});
+    panel.setFillColor(sf::Color(34, 34, 34, 226));
+    panel.setOutlineColor(sf::Color(142, 142, 142));
+    panel.setOutlineThickness(3.0f);
+    ventana.draw(panel);
+
+    dibujarCheckboxMenu(ventana, fuente, {82.0f, 134.0f}, "Partida en linea", online);
+
+    sf::Text iniciar(fuente, "Iniciar Partida", 18);
+    iniciar.setFillColor(sf::Color(255, 236, 120));
+    iniciar.setPosition({82.0f, 178.0f});
+    ventana.draw(iniciar);
+
+    sf::Text unir(fuente, "Unirse a Partida", 18);
+    unir.setFillColor(sf::Color(255, 236, 120));
+    unir.setPosition({446.0f, 178.0f});
+    ventana.draw(unir);
+
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({82.0f, 212.0f}, {284.0f, 34.0f}), "Crear nuevo mundo", sf::FloatRect({82.0f, 212.0f}, {284.0f, 34.0f}).contains(sf::Vector2f(mouse)), 15);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({82.0f, 254.0f}, {284.0f, 34.0f}), "Jugar Tutorial", sf::FloatRect({82.0f, 254.0f}, {284.0f, 34.0f}).contains(sf::Vector2f(mouse)), 15);
+
+    sf::Text guardados(fuente, "Mundos guardados", 14);
+    guardados.setFillColor(sf::Color(210, 210, 210));
+    guardados.setPosition({84.0f, 304.0f});
+    ventana.draw(guardados);
+
+    const char* nombres[3] = {"Mundo de Raymu", "Bosque inicial", "Prueba de zombies"};
+    const char* semillas[3] = {"Seed: 20260609", "Seed: random", "Seed: night-test"};
+    for (int i = 0; i < 3; ++i) {
+        float y = 332.0f + static_cast<float>(i) * 48.0f;
+        sf::FloatRect r({82.0f, y}, {284.0f, 40.0f});
+        bool hover = r.contains(sf::Vector2f(mouse));
+        sf::RectangleShape fila(r.size);
+        fila.setPosition(r.position);
+        fila.setFillColor(hover ? sf::Color(92, 108, 82, 230) : sf::Color(48, 48, 48, 220));
+        fila.setOutlineColor(hover ? sf::Color(180, 255, 116) : sf::Color(24, 24, 24));
+        fila.setOutlineThickness(2.0f);
+        ventana.draw(fila);
+
+        sf::RectangleShape icono({28.0f, 28.0f});
+        icono.setPosition({r.position.x + 8.0f, r.position.y + 6.0f});
+        icono.setFillColor(sf::Color(72, 152, 64));
+        icono.setOutlineColor(sf::Color(64, 42, 24));
+        icono.setOutlineThickness(2.0f);
+        ventana.draw(icono);
+
+        sf::Text nombre(fuente, nombres[i], 13);
+        nombre.setFillColor(sf::Color::White);
+        nombre.setOutlineColor(sf::Color::Black);
+        nombre.setOutlineThickness(1.0f);
+        nombre.setPosition({r.position.x + 46.0f, r.position.y + 5.0f});
+        ventana.draw(nombre);
+
+        sf::Text seed(fuente, semillas[i], 11);
+        seed.setFillColor(sf::Color(190, 190, 190));
+        seed.setOutlineColor(sf::Color::Black);
+        seed.setOutlineThickness(1.0f);
+        seed.setPosition({r.position.x + 46.0f, r.position.y + 23.0f});
+        ventana.draw(seed);
+    }
+
+    sf::FloatRect partida({446.0f, 216.0f}, {222.0f, 54.0f});
+    bool hoverPartida = partida.contains(sf::Vector2f(mouse));
+    dibujarBotonRect(ventana, fuente, partida, "Sesion de amigo", hoverPartida, 15);
+
+    sf::Text detalle(fuente, "2 jugadores en linea\nSupervivencia - Normal", 12);
+    detalle.setFillColor(sf::Color(210, 210, 210));
+    detalle.setOutlineColor(sf::Color::Black);
+    detalle.setOutlineThickness(1.0f);
+    detalle.setPosition({456.0f, 286.0f});
+    ventana.draw(detalle);
+
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({576.0f, 482.0f}, {124.0f, 34.0f}), "Atras", sf::FloatRect({576.0f, 482.0f}, {124.0f, 34.0f}).contains(sf::Vector2f(mouse)), 15);
+    dibujarGuiaControlesMenu(ventana, fuente);
+}
+
+inline void dibujarCrearMundo(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, bool online, bool soloInvitados,
+                              const std::string& nombreMundo, const std::string& semilla, int dificultad, int inputActivo, sf::Vector2i mouse) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Crear Nuevo Mundo");
+
+    sf::RectangleShape panel({520.0f, 430.0f});
+    panel.setPosition({140.0f, 106.0f});
+    panel.setFillColor(sf::Color(34, 34, 34, 232));
+    panel.setOutlineColor(sf::Color(142, 142, 142));
+    panel.setOutlineThickness(3.0f);
+    ventana.draw(panel);
+
+    dibujarCheckboxMenu(ventana, fuente, {176.0f, 132.0f}, "Online game", online);
+    dibujarCheckboxMenu(ventana, fuente, {410.0f, 132.0f}, "Solo invitados", online && soloInvitados);
+
+    dibujarEntradaTextoMenu(ventana, fuente, sf::FloatRect({176.0f, 202.0f}, {448.0f, 40.0f}), "Nombre del Mundo", nombreMundo, inputActivo == 1);
+    dibujarEntradaTextoMenu(ventana, fuente, sf::FloatRect({176.0f, 286.0f}, {448.0f, 40.0f}), "Semilla para el Generador", semilla, inputActivo == 2, "Leave blank for a random seed");
+
+    const char* dificultades[4] = {"Pacifico", "Facil", "Normal", "Dificil"};
+    sf::Text d(fuente, "Dificultad", 15);
+    d.setFillColor(sf::Color::White);
+    d.setOutlineColor(sf::Color::Black);
+    d.setOutlineThickness(2.0f);
+    d.setPosition({176.0f, 356.0f});
+    ventana.draw(d);
+
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({400.0f, 348.0f}, {224.0f, 34.0f}), dificultades[std::clamp(dificultad, 0, 3)],
+                     sf::FloatRect({400.0f, 348.0f}, {224.0f, 34.0f}).contains(sf::Vector2f(mouse)), 15);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({176.0f, 440.0f}, {288.0f, 40.0f}), "Crear nuevo mundo",
+                     sf::FloatRect({176.0f, 440.0f}, {288.0f, 40.0f}).contains(sf::Vector2f(mouse)), 16);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({500.0f, 440.0f}, {124.0f, 40.0f}), "Atras",
+                     sf::FloatRect({500.0f, 440.0f}, {124.0f, 40.0f}).contains(sf::Vector2f(mouse)), 15);
+    dibujarGuiaControlesMenu(ventana, fuente);
+}
+
+inline void dibujarUnirsePartida(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, sf::Vector2i mouse) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Join Game");
+
+    sf::RectangleShape panel({460.0f, 330.0f});
+    panel.setPosition({170.0f, 144.0f});
+    panel.setFillColor(sf::Color(34, 34, 34, 232));
+    panel.setOutlineColor(sf::Color(142, 142, 142));
+    panel.setOutlineThickness(3.0f);
+    ventana.draw(panel);
+
+    sf::Text titulo(fuente, "Players in game", 20);
+    titulo.setFillColor(sf::Color(255, 236, 120));
+    centrarTexto(titulo, {400.0f, 186.0f});
+    ventana.draw(titulo);
+
+    const char* jugadores[3] = {"Raymu", "Invitado 01", "Constructor 2D"};
+    for (int i = 0; i < 3; ++i) {
+        sf::FloatRect r({236.0f, 228.0f + static_cast<float>(i) * 50.0f}, {328.0f, 38.0f});
+        sf::RectangleShape fila(r.size);
+        fila.setPosition(r.position);
+        fila.setFillColor(sf::Color(52, 52, 52, 228));
+        fila.setOutlineColor(sf::Color(24, 24, 24));
+        fila.setOutlineThickness(2.0f);
+        ventana.draw(fila);
+
+        sf::CircleShape avatar(12.0f);
+        avatar.setPosition({r.position.x + 12.0f, r.position.y + 7.0f});
+        avatar.setFillColor(i == 0 ? sf::Color(74, 162, 220) : sf::Color(110, 110, 160));
+        ventana.draw(avatar);
+
+        sf::Text nombre(fuente, jugadores[i], 14);
+        nombre.setFillColor(sf::Color::White);
+        nombre.setOutlineColor(sf::Color::Black);
+        nombre.setOutlineThickness(1.0f);
+        nombre.setPosition({r.position.x + 52.0f, r.position.y + 9.0f});
+        ventana.draw(nombre);
+    }
+
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({326.0f, 416.0f}, {150.0f, 36.0f}), "Atras",
+                     sf::FloatRect({326.0f, 416.0f}, {150.0f, 36.0f}).contains(sf::Vector2f(mouse)), 15);
+    dibujarGuiaControlesMenu(ventana, fuente);
+}
+
 inline void dibujarPanelLibro(sf::RenderWindow& ventana) {
     sf::RectangleShape sombra({560.0f, 318.0f});
     sombra.setPosition({124.0f, 126.0f});
@@ -896,6 +1143,12 @@ inline void Juego::ejecutar() {
     int autosaveIndice = 1;
     bool nombresJugador = true;
     float scrollCreditos = 0.0f;
+    bool partidaOnline = false;
+    bool soloInvitados = false;
+    std::string nombreMundoNuevo = "New World";
+    std::string semillaMundoNuevo;
+    int dificultadMundoNuevo = 2;
+    int inputCrearMundoActivo = 0;
     sf::Music musicaMenu;
     bool musicaMenuLista = musicaMenu.openFromFile("assets/audio/menu_music.ogg");
     if (musicaMenuLista) {
@@ -1033,6 +1286,14 @@ inline void Juego::ejecutar() {
         }
     };
 
+    auto iniciarPartidaDesdeMenu = [&]() {
+        mostrandoMenuInicio = false;
+        if (musicaMenuLista) {
+            musicaMenu.stop();
+        }
+        reloj.restart();
+    };
+
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
         if (dt > 0.05f) {
@@ -1053,6 +1314,16 @@ inline void Juego::ejecutar() {
                 ventana.close();
             }
 
+            if (const auto* texto = evento->getIf<sf::Event::TextEntered>()) {
+                if (mostrandoMenuInicio && pantallaMenuInicio == 7 && inputCrearMundoActivo != 0) {
+                    char32_t c = texto->unicode;
+                    std::string& destino = inputCrearMundoActivo == 1 ? nombreMundoNuevo : semillaMundoNuevo;
+                    if (c >= 32 && c <= 126 && destino.size() < 24) {
+                        destino.push_back(static_cast<char>(c));
+                    }
+                }
+            }
+
             if (const auto* botonTeclado = evento->getIf<sf::Event::KeyPressed>()) {
                 if (mostrandoMenuInicio) {
                     if (pantallaMenuInicio == 5) {
@@ -1064,6 +1335,13 @@ inline void Juego::ejecutar() {
                     if (botonTeclado->code == sf::Keyboard::Key::Escape) {
                         if (pantallaMenuInicio == 0) {
                             ventana.close();
+                        } else if (pantallaMenuInicio == 6) {
+                            pantallaMenuInicio = 0;
+                            opcionMenuInicio = 0;
+                        } else if (pantallaMenuInicio == 7 || pantallaMenuInicio == 8) {
+                            pantallaMenuInicio = 6;
+                            opcionMenuInicio = 0;
+                            inputCrearMundoActivo = 0;
                         } else if (pantallaMenuInicio == 1) {
                             pantallaMenuInicio = 0;
                             opcionMenuInicio = 2;
@@ -1077,25 +1355,30 @@ inline void Juego::ejecutar() {
                     if (botonTeclado->code == sf::Keyboard::Key::Up ||
                         botonTeclado->code == sf::Keyboard::Key::W) {
                         int total = pantallaMenuInicio == 1 ? 5 : 4;
+                        if (pantallaMenuInicio == 6) total = 4;
                         opcionMenuInicio = (opcionMenuInicio + total - 1) % total;
                         reproducirClickMenu();
                     }
                     if (botonTeclado->code == sf::Keyboard::Key::Down ||
                         botonTeclado->code == sf::Keyboard::Key::S) {
                         int total = pantallaMenuInicio == 1 ? 5 : 4;
+                        if (pantallaMenuInicio == 6) total = 4;
                         opcionMenuInicio = (opcionMenuInicio + 1) % total;
                         reproducirClickMenu();
+                    }
+                    if (pantallaMenuInicio == 7 && botonTeclado->code == sf::Keyboard::Key::Backspace) {
+                        std::string& destino = inputCrearMundoActivo == 1 ? nombreMundoNuevo : semillaMundoNuevo;
+                        if (inputCrearMundoActivo != 0 && !destino.empty()) {
+                            destino.pop_back();
+                        }
                     }
                     if (botonTeclado->code == sf::Keyboard::Key::Enter ||
                         botonTeclado->code == sf::Keyboard::Key::Space) {
                         reproducirClickMenu();
                         if (pantallaMenuInicio == 0) {
                             if (opcionMenuInicio == 0) {
-                                mostrandoMenuInicio = false;
-                                if (musicaMenuLista) {
-                                    musicaMenu.stop();
-                                }
-                                reloj.restart();
+                                pantallaMenuInicio = 6;
+                                opcionMenuInicio = 0;
                             } else if (opcionMenuInicio == 2) {
                                 pantallaMenuInicio = 1;
                                 opcionMenuInicio = 0;
@@ -1114,6 +1397,19 @@ inline void Juego::ejecutar() {
                                 pantallaMenuInicio = 0;
                                 opcionMenuInicio = 2;
                             }
+                        } else if (pantallaMenuInicio == 6) {
+                            if (opcionMenuInicio == 0) pantallaMenuInicio = 7;
+                            if (opcionMenuInicio == 1 || opcionMenuInicio == 2) iniciarPartidaDesdeMenu();
+                            if (opcionMenuInicio == 3) {
+                                pantallaMenuInicio = 0;
+                                opcionMenuInicio = 0;
+                            }
+                        } else if (pantallaMenuInicio == 7) {
+                            if (inputCrearMundoActivo == 0) {
+                                iniciarPartidaDesdeMenu();
+                            }
+                        } else if (pantallaMenuInicio == 8) {
+                            pantallaMenuInicio = 6;
                         }
                     }
                     continue;
@@ -1176,11 +1472,8 @@ inline void Juego::ejecutar() {
                 if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
                     reproducirClickMenu();
                     if (hover == 0) {
-                        mostrandoMenuInicio = false;
-                        if (musicaMenuLista) {
-                            musicaMenu.stop();
-                        }
-                        reloj.restart();
+                        pantallaMenuInicio = 6;
+                        opcionMenuInicio = 0;
                     } else if (hover == 2) {
                         pantallaMenuInicio = 1;
                         opcionMenuInicio = 0;
@@ -1268,6 +1561,72 @@ inline void Juego::ejecutar() {
                     scrollCreditos = 0.0f;
                     opcionMenuInicio = 3;
                 }
+            } else if (pantallaMenuInicio == 6) {
+                if (clickIzquierdo && !clickMenuAnterior) {
+                    if (mouseDentro(sf::FloatRect({82.0f, 134.0f}, {220.0f, 28.0f}))) {
+                        reproducirClickMenu();
+                        partidaOnline = !partidaOnline;
+                    } else if (mouseDentro(sf::FloatRect({82.0f, 212.0f}, {284.0f, 34.0f}))) {
+                        reproducirClickMenu();
+                        pantallaMenuInicio = 7;
+                        inputCrearMundoActivo = 0;
+                    } else if (mouseDentro(sf::FloatRect({82.0f, 254.0f}, {284.0f, 34.0f}))) {
+                        reproducirClickMenu();
+                        iniciarPartidaDesdeMenu();
+                    } else if (mouseDentro(sf::FloatRect({446.0f, 216.0f}, {222.0f, 54.0f}))) {
+                        reproducirClickMenu();
+                        pantallaMenuInicio = 8;
+                    } else if (mouseDentro(sf::FloatRect({576.0f, 482.0f}, {124.0f, 34.0f}))) {
+                        reproducirClickMenu();
+                        pantallaMenuInicio = 0;
+                        opcionMenuInicio = 0;
+                    } else {
+                        for (int i = 0; i < 3; ++i) {
+                            sf::FloatRect mundo({82.0f, 332.0f + static_cast<float>(i) * 48.0f}, {284.0f, 40.0f});
+                            if (mouseDentro(mundo)) {
+                                reproducirClickMenu();
+                                iniciarPartidaDesdeMenu();
+                            }
+                        }
+                    }
+                }
+            } else if (pantallaMenuInicio == 7) {
+                if (clickIzquierdo && !clickMenuAnterior) {
+                    if (mouseDentro(sf::FloatRect({176.0f, 132.0f}, {180.0f, 28.0f}))) {
+                        reproducirClickMenu();
+                        partidaOnline = !partidaOnline;
+                        if (!partidaOnline) soloInvitados = false;
+                    } else if (mouseDentro(sf::FloatRect({410.0f, 132.0f}, {190.0f, 28.0f})) && partidaOnline) {
+                        reproducirClickMenu();
+                        soloInvitados = !soloInvitados;
+                    } else if (mouseDentro(sf::FloatRect({176.0f, 202.0f}, {448.0f, 40.0f}))) {
+                        reproducirClickMenu();
+                        inputCrearMundoActivo = 1;
+                    } else if (mouseDentro(sf::FloatRect({176.0f, 286.0f}, {448.0f, 40.0f}))) {
+                        reproducirClickMenu();
+                        inputCrearMundoActivo = 2;
+                    } else if (mouseDentro(sf::FloatRect({400.0f, 348.0f}, {224.0f, 34.0f}))) {
+                        reproducirClickMenu();
+                        dificultadMundoNuevo = (dificultadMundoNuevo + 1) % 4;
+                        inputCrearMundoActivo = 0;
+                    } else if (mouseDentro(sf::FloatRect({176.0f, 440.0f}, {288.0f, 40.0f}))) {
+                        reproducirClickMenu();
+                        if (nombreMundoNuevo.empty()) nombreMundoNuevo = "New World";
+                        iniciarPartidaDesdeMenu();
+                    } else if (mouseDentro(sf::FloatRect({500.0f, 440.0f}, {124.0f, 40.0f}))) {
+                        reproducirClickMenu();
+                        pantallaMenuInicio = 6;
+                        inputCrearMundoActivo = 0;
+                    } else {
+                        inputCrearMundoActivo = 0;
+                    }
+                }
+            } else if (pantallaMenuInicio == 8) {
+                if (clickIzquierdo && !clickMenuAnterior && mouseDentro(sf::FloatRect({326.0f, 416.0f}, {150.0f, 36.0f}))) {
+                    reproducirClickMenu();
+                    pantallaMenuInicio = 6;
+                    opcionMenuInicio = 0;
+                }
             }
             clickMenuAnterior = clickIzquierdo;
 
@@ -1284,6 +1643,23 @@ inline void Juego::ejecutar() {
                 dibujarConfiguracion(ventana, fuente, tiempoMenuInicio, brilloMenu, volumenMusica, volumenEfectos, autosaveIndice, nombresJugador);
             } else if (fuenteCargada && pantallaMenuInicio == 5) {
                 dibujarCreditos(ventana, fuente, tiempoMenuInicio, scrollCreditos);
+            } else if (fuenteCargada && pantallaMenuInicio == 6) {
+                dibujarMenuJugar(ventana, fuente, tiempoMenuInicio, partidaOnline, mousePos);
+            } else if (fuenteCargada && pantallaMenuInicio == 7) {
+                dibujarCrearMundo(
+                    ventana,
+                    fuente,
+                    tiempoMenuInicio,
+                    partidaOnline,
+                    soloInvitados,
+                    nombreMundoNuevo,
+                    semillaMundoNuevo,
+                    dificultadMundoNuevo,
+                    inputCrearMundoActivo,
+                    mousePos
+                );
+            } else if (fuenteCargada && pantallaMenuInicio == 8) {
+                dibujarUnirsePartida(ventana, fuente, tiempoMenuInicio, mousePos);
             }
             aplicarBrilloPantalla(ventana, brilloMenu);
             ventana.display();
