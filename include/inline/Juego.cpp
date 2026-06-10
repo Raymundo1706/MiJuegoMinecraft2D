@@ -447,6 +447,270 @@ inline void dibujarMenuInicio(sf::RenderWindow& ventana, sf::Font& fuente, bool 
         ventana.draw(copy);
     }
 }
+
+inline sf::FloatRect rectBotonLista(float y, float ancho = 360.0f) {
+    return sf::FloatRect({400.0f - ancho * 0.5f, y}, {ancho, 36.0f});
+}
+
+inline int indiceListaMenu(sf::Vector2i mouse, int cantidad, float yInicial, float paso = 48.0f) {
+    sf::Vector2f pos(static_cast<float>(mouse.x), static_cast<float>(mouse.y));
+    for (int i = 0; i < cantidad; ++i) {
+        if (rectBotonLista(yInicial + static_cast<float>(i) * paso).contains(pos)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+inline void dibujarBotonRect(sf::RenderWindow& ventana, sf::Font& fuente, sf::FloatRect rect, const char* texto, bool seleccionado, int tamTexto = 18) {
+    sf::RectangleShape sombra(rect.size);
+    sombra.setPosition({rect.position.x + 4.0f, rect.position.y + 4.0f});
+    sombra.setFillColor(sf::Color(0, 0, 0, 135));
+    ventana.draw(sombra);
+
+    sf::RectangleShape boton(rect.size);
+    boton.setPosition(rect.position);
+    boton.setFillColor(seleccionado ? sf::Color(126, 142, 122, 238) : sf::Color(86, 86, 86, 232));
+    boton.setOutlineColor(seleccionado ? sf::Color(180, 255, 116) : sf::Color(36, 36, 36));
+    boton.setOutlineThickness(seleccionado ? 3.0f : 2.0f);
+    ventana.draw(boton);
+
+    sf::RectangleShape brillo({rect.size.x - 8.0f, 3.0f});
+    brillo.setPosition({rect.position.x + 4.0f, rect.position.y + 4.0f});
+    brillo.setFillColor(seleccionado ? sf::Color(230, 255, 196, 110) : sf::Color(210, 210, 210, 60));
+    ventana.draw(brillo);
+
+    sf::Text etiqueta(fuente, texto, tamTexto);
+    etiqueta.setFillColor(sf::Color::White);
+    etiqueta.setOutlineColor(sf::Color::Black);
+    etiqueta.setOutlineThickness(2.0f);
+    centrarTexto(etiqueta, {rect.position.x + rect.size.x * 0.5f, rect.position.y + rect.size.y * 0.48f});
+    ventana.draw(etiqueta);
+}
+
+inline void dibujarTituloSubmenu(sf::RenderWindow& ventana, sf::Font& fuente, const char* titulo) {
+    sf::RectangleShape velo({800.0f, 600.0f});
+    velo.setFillColor(sf::Color(0, 0, 0, 132));
+    ventana.draw(velo);
+
+    sf::Text texto(fuente, titulo, 32);
+    texto.setFillColor(sf::Color(232, 232, 232));
+    texto.setOutlineColor(sf::Color::Black);
+    texto.setOutlineThickness(3.0f);
+    centrarTexto(texto, {400.0f, 82.0f});
+    ventana.draw(texto);
+}
+
+inline void dibujarAyudaOpciones(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, int opcion, sf::Vector2i mouse) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Ayuda y Opciones");
+
+    const char* opciones[5] = {
+        "Como Jugar",
+        "Controles",
+        "Configuracion",
+        "Creditos",
+        "Atras"
+    };
+
+    int hover = indiceListaMenu(mouse, 5, 190.0f);
+    if (hover >= 0) {
+        opcion = hover;
+    }
+
+    for (int i = 0; i < 5; ++i) {
+        dibujarBotonRect(ventana, fuente, rectBotonLista(190.0f + static_cast<float>(i) * 48.0f), opciones[i], opcion == i);
+    }
+}
+
+inline void dibujarPanelLibro(sf::RenderWindow& ventana) {
+    sf::RectangleShape sombra({560.0f, 318.0f});
+    sombra.setPosition({124.0f, 126.0f});
+    sombra.setFillColor(sf::Color(0, 0, 0, 145));
+    ventana.draw(sombra);
+
+    sf::RectangleShape panel({560.0f, 318.0f});
+    panel.setPosition({120.0f, 120.0f});
+    panel.setFillColor(sf::Color(205, 190, 150, 238));
+    panel.setOutlineColor(sf::Color(68, 48, 32));
+    panel.setOutlineThickness(4.0f);
+    ventana.draw(panel);
+
+    sf::RectangleShape division({3.0f, 280.0f});
+    division.setPosition({398.0f, 138.0f});
+    division.setFillColor(sf::Color(120, 92, 58, 120));
+    ventana.draw(division);
+}
+
+inline void dibujarComoJugar(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, int pagina, sf::Vector2i mouse) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Como Jugar");
+    dibujarPanelLibro(ventana);
+
+    const char* titulos[3] = {"Movimiento", "Recolectar y Construir", "Noche y Supervivencia"};
+    const char* textos[3] = {
+        "Usa WASD o las flechas para moverte.\nMantener Ctrl te permite correr.\nEl agua reduce la velocidad y puede hundirte.",
+        "Corta arboles para obtener troncos.\nUsa el inventario y la mesa de crafteo\npara fabricar herramientas y bloques.",
+        "De noche aparecen zombies.\nCrea refugios, vigila tu vida y usa\nla cama cuando el sistema lo permita."
+    };
+
+    int p = std::clamp(pagina, 0, 2);
+    sf::Text titulo(fuente, titulos[p], 22);
+    titulo.setFillColor(sf::Color(46, 30, 18));
+    titulo.setOutlineColor(sf::Color(238, 218, 172));
+    titulo.setOutlineThickness(1.0f);
+    titulo.setPosition({150.0f, 150.0f});
+    ventana.draw(titulo);
+
+    sf::Text cuerpo(fuente, textos[p], 16);
+    cuerpo.setFillColor(sf::Color(42, 28, 18));
+    cuerpo.setLineSpacing(1.25f);
+    cuerpo.setPosition({150.0f, 196.0f});
+    ventana.draw(cuerpo);
+
+    sf::RectangleShape icono({170.0f, 170.0f});
+    icono.setPosition({454.0f, 172.0f});
+    icono.setFillColor(p == 0 ? sf::Color(72, 132, 86) : (p == 1 ? sf::Color(122, 78, 42) : sf::Color(42, 48, 86)));
+    icono.setOutlineColor(sf::Color(36, 24, 14));
+    icono.setOutlineThickness(3.0f);
+    ventana.draw(icono);
+
+    sf::Text numero(fuente, std::to_string(p + 1) + "/3", 26);
+    numero.setFillColor(sf::Color::White);
+    numero.setOutlineColor(sf::Color::Black);
+    numero.setOutlineThickness(2.0f);
+    centrarTexto(numero, {539.0f, 257.0f});
+    ventana.draw(numero);
+
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({128.0f, 472.0f}, {150.0f, 34.0f}), "Anterior", indiceBotonMenu(mouse) == -99, 15);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({326.0f, 472.0f}, {150.0f, 34.0f}), "Siguiente", false, 15);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({524.0f, 472.0f}, {150.0f, 34.0f}), "Atras", false, 15);
+}
+
+inline void dibujarSliderMenu(sf::RenderWindow& ventana, sf::Font& fuente, const char* etiqueta, float y, int valor) {
+    sf::Text t(fuente, etiqueta, 16);
+    t.setFillColor(sf::Color::White);
+    t.setOutlineColor(sf::Color::Black);
+    t.setOutlineThickness(2.0f);
+    t.setPosition({186.0f, y - 6.0f});
+    ventana.draw(t);
+
+    sf::RectangleShape barra({220.0f, 8.0f});
+    barra.setPosition({400.0f, y + 8.0f});
+    barra.setFillColor(sf::Color(32, 32, 32, 230));
+    barra.setOutlineColor(sf::Color(140, 140, 140));
+    barra.setOutlineThickness(2.0f);
+    ventana.draw(barra);
+
+    sf::RectangleShape lleno({2.2f * static_cast<float>(valor), 8.0f});
+    lleno.setPosition({400.0f, y + 8.0f});
+    lleno.setFillColor(sf::Color(132, 210, 84));
+    ventana.draw(lleno);
+
+    sf::Text porcentaje(fuente, std::to_string(valor) + "%", 14);
+    porcentaje.setFillColor(sf::Color::White);
+    porcentaje.setOutlineColor(sf::Color::Black);
+    porcentaje.setOutlineThickness(2.0f);
+    porcentaje.setPosition({636.0f, y - 4.0f});
+    ventana.draw(porcentaje);
+}
+
+inline void dibujarToggleMenu(sf::RenderWindow& ventana, sf::Font& fuente, const char* etiqueta, float y, bool activo) {
+    sf::Text t(fuente, etiqueta, 16);
+    t.setFillColor(sf::Color::White);
+    t.setOutlineColor(sf::Color::Black);
+    t.setOutlineThickness(2.0f);
+    t.setPosition({186.0f, y - 6.0f});
+    ventana.draw(t);
+
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({500.0f, y - 10.0f}, {120.0f, 32.0f}), activo ? "Activado" : "Desactivado", false, 13);
+}
+
+inline void dibujarControles(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, bool invertirY, int sensibilidad) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Controles");
+
+    sf::RectangleShape panel({580.0f, 330.0f});
+    panel.setPosition({110.0f, 126.0f});
+    panel.setFillColor(sf::Color(34, 34, 34, 218));
+    panel.setOutlineColor(sf::Color(142, 142, 142));
+    panel.setOutlineThickness(3.0f);
+    ventana.draw(panel);
+
+    sf::Text esquema(fuente,
+        "WASD / Flechas: Moverse\n"
+        "Mouse Izq: Golpear / Minar\n"
+        "Mouse Der: Usar / Colocar\n"
+        "Q: Inventario\n"
+        "F3: Depuracion\n"
+        "B: Dormir si es posible", 16);
+    esquema.setFillColor(sf::Color::White);
+    esquema.setOutlineColor(sf::Color::Black);
+    esquema.setOutlineThickness(2.0f);
+    esquema.setPosition({148.0f, 158.0f});
+    ventana.draw(esquema);
+
+    dibujarToggleMenu(ventana, fuente, "Invertir eje Y", 332.0f, invertirY);
+    dibujarSliderMenu(ventana, fuente, "Sensibilidad de mirada", 382.0f, sensibilidad);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({326.0f, 504.0f}, {150.0f, 34.0f}), "Atras", false, 15);
+}
+
+inline void dibujarConfiguracion(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, int brillo, bool balanceo, int musica, int efectos, int autosave, bool nombres) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Configuracion");
+
+    sf::RectangleShape panel({600.0f, 390.0f});
+    panel.setPosition({100.0f, 112.0f});
+    panel.setFillColor(sf::Color(34, 34, 34, 218));
+    panel.setOutlineColor(sf::Color(142, 142, 142));
+    panel.setOutlineThickness(3.0f);
+    ventana.draw(panel);
+
+    sf::Text g(fuente, "Graficos", 18);
+    g.setFillColor(sf::Color(255, 236, 120));
+    g.setPosition({130.0f, 132.0f});
+    ventana.draw(g);
+    dibujarSliderMenu(ventana, fuente, "Brillo", 172.0f, brillo);
+    dibujarToggleMenu(ventana, fuente, "Balanceo de camara", 222.0f, balanceo);
+
+    sf::Text a(fuente, "Audio", 18);
+    a.setFillColor(sf::Color(255, 236, 120));
+    a.setPosition({130.0f, 264.0f});
+    ventana.draw(a);
+    dibujarSliderMenu(ventana, fuente, "Volumen musica", 304.0f, musica);
+    dibujarSliderMenu(ventana, fuente, "Volumen efectos", 354.0f, efectos);
+
+    sf::Text j(fuente, "Juego", 18);
+    j.setFillColor(sf::Color(255, 236, 120));
+    j.setPosition({130.0f, 400.0f});
+    ventana.draw(j);
+
+    const char* autosaveTexto[4] = {"Desactivado", "15 min", "30 min", "1 hora"};
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({328.0f, 428.0f}, {130.0f, 30.0f}), autosaveTexto[std::clamp(autosave, 0, 3)], false, 13);
+    dibujarToggleMenu(ventana, fuente, "Nombres jugador", 470.0f, nombres);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({626.0f, 532.0f}, {130.0f, 34.0f}), "Atras", false, 15);
+}
+
+inline void dibujarCreditos(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, float scroll) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    sf::RectangleShape velo({800.0f, 600.0f});
+    velo.setFillColor(sf::Color(0, 0, 0, 190));
+    ventana.draw(velo);
+
+    sf::Text creditos(fuente,
+        "MINECRAFT 2D TOP-DOWN\n\n"
+        "Direccion y diseno\nRaymu\n\n"
+        "Programacion\nRaymu + Codex\n\n"
+        "Arte temporal\nCute Fantasy Free / Minecraft-like assets\n\n"
+        "Agradecimientos\nProfesor, testers y comunidad\n\n"
+        "Presiona cualquier tecla para volver", 18);
+    creditos.setFillColor(sf::Color::White);
+    creditos.setOutlineColor(sf::Color::Black);
+    creditos.setOutlineThickness(2.0f);
+    sf::FloatRect b = creditos.getLocalBounds();
+    creditos.setPosition({400.0f - b.size.x * 0.5f, 620.0f - scroll});
+    ventana.draw(creditos);
+}
 }
 
 inline Juego::Juego()
@@ -602,9 +866,20 @@ inline void Juego::ejecutar() {
     int contadorFrames = 0;
     int fpsActuales = 0;
     bool mostrandoMenuInicio = true;
+    int pantallaMenuInicio = 0;
     int opcionMenuInicio = 0;
     bool clickMenuAnterior = false;
     float tiempoMenuInicio = 0.0f;
+    int paginaComoJugar = 0;
+    bool invertirEjeY = false;
+    int sensibilidadMirada = 50;
+    int brilloMenu = 75;
+    bool balanceoCamara = true;
+    int volumenMusica = 70;
+    int volumenEfectos = 80;
+    int autosaveIndice = 1;
+    bool nombresJugador = true;
+    float scrollCreditos = 0.0f;
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
@@ -732,25 +1007,60 @@ inline void Juego::ejecutar() {
 
             if (const auto* botonTeclado = evento->getIf<sf::Event::KeyPressed>()) {
                 if (mostrandoMenuInicio) {
+                    if (pantallaMenuInicio == 5) {
+                        pantallaMenuInicio = 1;
+                        scrollCreditos = 0.0f;
+                        continue;
+                    }
+
+                    if (botonTeclado->code == sf::Keyboard::Key::Escape) {
+                        if (pantallaMenuInicio == 0) {
+                            ventana.close();
+                        } else if (pantallaMenuInicio == 1) {
+                            pantallaMenuInicio = 0;
+                            opcionMenuInicio = 2;
+                        } else {
+                            pantallaMenuInicio = 1;
+                            opcionMenuInicio = 0;
+                        }
+                        continue;
+                    }
+
                     if (botonTeclado->code == sf::Keyboard::Key::Up ||
                         botonTeclado->code == sf::Keyboard::Key::W) {
-                        opcionMenuInicio = (opcionMenuInicio + 3) % 4;
+                        int total = pantallaMenuInicio == 1 ? 5 : 4;
+                        opcionMenuInicio = (opcionMenuInicio + total - 1) % total;
                     }
                     if (botonTeclado->code == sf::Keyboard::Key::Down ||
                         botonTeclado->code == sf::Keyboard::Key::S) {
-                        opcionMenuInicio = (opcionMenuInicio + 1) % 4;
+                        int total = pantallaMenuInicio == 1 ? 5 : 4;
+                        opcionMenuInicio = (opcionMenuInicio + 1) % total;
                     }
                     if (botonTeclado->code == sf::Keyboard::Key::Enter ||
                         botonTeclado->code == sf::Keyboard::Key::Space) {
-                        if (opcionMenuInicio == 0) {
-                            mostrandoMenuInicio = false;
-                            reloj.restart();
-                        } else if (opcionMenuInicio == 3) {
-                            ventana.close();
+                        if (pantallaMenuInicio == 0) {
+                            if (opcionMenuInicio == 0) {
+                                mostrandoMenuInicio = false;
+                                reloj.restart();
+                            } else if (opcionMenuInicio == 2) {
+                                pantallaMenuInicio = 1;
+                                opcionMenuInicio = 0;
+                            } else if (opcionMenuInicio == 3) {
+                                ventana.close();
+                            }
+                        } else if (pantallaMenuInicio == 1) {
+                            if (opcionMenuInicio == 0) pantallaMenuInicio = 2;
+                            if (opcionMenuInicio == 1) pantallaMenuInicio = 3;
+                            if (opcionMenuInicio == 2) pantallaMenuInicio = 4;
+                            if (opcionMenuInicio == 3) {
+                                pantallaMenuInicio = 5;
+                                scrollCreditos = 0.0f;
+                            }
+                            if (opcionMenuInicio == 4) {
+                                pantallaMenuInicio = 0;
+                                opcionMenuInicio = 2;
+                            }
                         }
-                    }
-                    if (botonTeclado->code == sf::Keyboard::Key::Escape) {
-                        ventana.close();
                     }
                     continue;
                 }
@@ -796,23 +1106,107 @@ inline void Juego::ejecutar() {
         bool clickDerecho = sf::Mouse::isButtonPressed(sf::Mouse::Button::Right);
 
         if (mostrandoMenuInicio) {
-            int hover = indiceBotonMenu(mousePos);
-            if (hover >= 0) {
-                opcionMenuInicio = hover;
-            }
+            auto mouseDentro = [&](sf::FloatRect rect) {
+                return rect.contains(sf::Vector2f(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)));
+            };
+            auto valorSlider = [&](float xInicio) {
+                float t = (static_cast<float>(mousePos.x) - xInicio) / 220.0f;
+                return std::clamp(static_cast<int>(std::round(t * 100.0f)), 0, 100);
+            };
 
-            if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
-                if (hover == 0) {
-                    mostrandoMenuInicio = false;
-                    reloj.restart();
-                } else if (hover == 3) {
-                    ventana.close();
+            if (pantallaMenuInicio == 0) {
+                int hover = indiceBotonMenu(mousePos);
+                if (hover >= 0) {
+                    opcionMenuInicio = hover;
+                }
+                if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
+                    if (hover == 0) {
+                        mostrandoMenuInicio = false;
+                        reloj.restart();
+                    } else if (hover == 2) {
+                        pantallaMenuInicio = 1;
+                        opcionMenuInicio = 0;
+                    } else if (hover == 3) {
+                        ventana.close();
+                    }
+                }
+            } else if (pantallaMenuInicio == 1) {
+                int hover = indiceListaMenu(mousePos, 5, 190.0f);
+                if (hover >= 0) {
+                    opcionMenuInicio = hover;
+                }
+                if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
+                    if (hover == 0) pantallaMenuInicio = 2;
+                    if (hover == 1) pantallaMenuInicio = 3;
+                    if (hover == 2) pantallaMenuInicio = 4;
+                    if (hover == 3) {
+                        pantallaMenuInicio = 5;
+                        scrollCreditos = 0.0f;
+                    }
+                    if (hover == 4) {
+                        pantallaMenuInicio = 0;
+                        opcionMenuInicio = 2;
+                    }
+                }
+            } else if (pantallaMenuInicio == 2 && clickIzquierdo && !clickMenuAnterior) {
+                if (mouseDentro(sf::FloatRect({128.0f, 472.0f}, {150.0f, 34.0f}))) {
+                    paginaComoJugar = std::max(0, paginaComoJugar - 1);
+                } else if (mouseDentro(sf::FloatRect({326.0f, 472.0f}, {150.0f, 34.0f}))) {
+                    paginaComoJugar = std::min(2, paginaComoJugar + 1);
+                } else if (mouseDentro(sf::FloatRect({524.0f, 472.0f}, {150.0f, 34.0f}))) {
+                    pantallaMenuInicio = 1;
+                    opcionMenuInicio = 0;
+                }
+            } else if (pantallaMenuInicio == 3) {
+                if (clickIzquierdo) {
+                    if (mouseDentro(sf::FloatRect({500.0f, 322.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) {
+                        invertirEjeY = !invertirEjeY;
+                    }
+                    if (mouseDentro(sf::FloatRect({400.0f, 390.0f}, {220.0f, 18.0f}))) {
+                        sensibilidadMirada = valorSlider(400.0f);
+                    }
+                    if (mouseDentro(sf::FloatRect({326.0f, 504.0f}, {150.0f, 34.0f})) && !clickMenuAnterior) {
+                        pantallaMenuInicio = 1;
+                        opcionMenuInicio = 1;
+                    }
+                }
+            } else if (pantallaMenuInicio == 4) {
+                if (clickIzquierdo) {
+                    if (mouseDentro(sf::FloatRect({400.0f, 180.0f}, {220.0f, 18.0f}))) brilloMenu = valorSlider(400.0f);
+                    if (mouseDentro(sf::FloatRect({500.0f, 212.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) balanceoCamara = !balanceoCamara;
+                    if (mouseDentro(sf::FloatRect({400.0f, 312.0f}, {220.0f, 18.0f}))) volumenMusica = valorSlider(400.0f);
+                    if (mouseDentro(sf::FloatRect({400.0f, 362.0f}, {220.0f, 18.0f}))) volumenEfectos = valorSlider(400.0f);
+                    if (mouseDentro(sf::FloatRect({328.0f, 428.0f}, {130.0f, 30.0f})) && !clickMenuAnterior) autosaveIndice = (autosaveIndice + 1) % 4;
+                    if (mouseDentro(sf::FloatRect({500.0f, 460.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) nombresJugador = !nombresJugador;
+                    if (mouseDentro(sf::FloatRect({626.0f, 532.0f}, {130.0f, 34.0f})) && !clickMenuAnterior) {
+                        pantallaMenuInicio = 1;
+                        opcionMenuInicio = 2;
+                    }
+                }
+            } else if (pantallaMenuInicio == 5) {
+                scrollCreditos += dt * 36.0f;
+                if (clickIzquierdo && !clickMenuAnterior) {
+                    pantallaMenuInicio = 1;
+                    scrollCreditos = 0.0f;
+                    opcionMenuInicio = 3;
                 }
             }
             clickMenuAnterior = clickIzquierdo;
 
             ventana.clear(sf::Color(18, 18, 22));
-            dibujarMenuInicio(ventana, fuente, fuenteCargada, tiempoMenuInicio, opcionMenuInicio, mousePos);
+            if (pantallaMenuInicio == 0) {
+                dibujarMenuInicio(ventana, fuente, fuenteCargada, tiempoMenuInicio, opcionMenuInicio, mousePos);
+            } else if (fuenteCargada && pantallaMenuInicio == 1) {
+                dibujarAyudaOpciones(ventana, fuente, tiempoMenuInicio, opcionMenuInicio, mousePos);
+            } else if (fuenteCargada && pantallaMenuInicio == 2) {
+                dibujarComoJugar(ventana, fuente, tiempoMenuInicio, paginaComoJugar, mousePos);
+            } else if (fuenteCargada && pantallaMenuInicio == 3) {
+                dibujarControles(ventana, fuente, tiempoMenuInicio, invertirEjeY, sensibilidadMirada);
+            } else if (fuenteCargada && pantallaMenuInicio == 4) {
+                dibujarConfiguracion(ventana, fuente, tiempoMenuInicio, brilloMenu, balanceoCamara, volumenMusica, volumenEfectos, autosaveIndice, nombresJugador);
+            } else if (fuenteCargada && pantallaMenuInicio == 5) {
+                dibujarCreditos(ventana, fuente, tiempoMenuInicio, scrollCreditos);
+            }
             ventana.display();
             continue;
         }
