@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cmath>
 #include <cstdint>
+#include <vector>
 #include <SFML/Audio.hpp>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
@@ -656,7 +657,7 @@ inline void dibujarControles(sf::RenderWindow& ventana, sf::Font& fuente, float 
     dibujarBotonRect(ventana, fuente, sf::FloatRect({326.0f, 504.0f}, {150.0f, 34.0f}), "Atras", false, 15);
 }
 
-inline void dibujarConfiguracion(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, int brillo, bool balanceo, int musica, int efectos, int autosave, bool nombres) {
+inline void dibujarConfiguracion(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, int brillo, int musica, int efectos, int autosave, bool nombres) {
     dibujarPanoramaMenu(ventana, tiempo);
     dibujarTituloSubmenu(ventana, fuente, "Configuracion");
 
@@ -672,24 +673,39 @@ inline void dibujarConfiguracion(sf::RenderWindow& ventana, sf::Font& fuente, fl
     g.setPosition({130.0f, 132.0f});
     ventana.draw(g);
     dibujarSliderMenu(ventana, fuente, "Brillo", 172.0f, brillo);
-    dibujarToggleMenu(ventana, fuente, "Balanceo de camara", 222.0f, balanceo);
 
     sf::Text a(fuente, "Audio", 18);
     a.setFillColor(sf::Color(255, 236, 120));
-    a.setPosition({130.0f, 264.0f});
+    a.setPosition({130.0f, 230.0f});
     ventana.draw(a);
-    dibujarSliderMenu(ventana, fuente, "Volumen musica", 304.0f, musica);
-    dibujarSliderMenu(ventana, fuente, "Volumen efectos", 354.0f, efectos);
+    dibujarSliderMenu(ventana, fuente, "Volumen musica", 270.0f, musica);
+    dibujarSliderMenu(ventana, fuente, "Volumen efectos", 320.0f, efectos);
 
     sf::Text j(fuente, "Juego", 18);
     j.setFillColor(sf::Color(255, 236, 120));
-    j.setPosition({130.0f, 400.0f});
+    j.setPosition({130.0f, 366.0f});
     ventana.draw(j);
 
     const char* autosaveTexto[4] = {"Desactivado", "15 min", "30 min", "1 hora"};
-    dibujarBotonRect(ventana, fuente, sf::FloatRect({328.0f, 428.0f}, {130.0f, 30.0f}), autosaveTexto[std::clamp(autosave, 0, 3)], false, 13);
-    dibujarToggleMenu(ventana, fuente, "Nombres jugador", 470.0f, nombres);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({328.0f, 394.0f}, {130.0f, 30.0f}), autosaveTexto[std::clamp(autosave, 0, 3)], false, 13);
+    dibujarToggleMenu(ventana, fuente, "Nombres jugador", 436.0f, nombres);
     dibujarBotonRect(ventana, fuente, sf::FloatRect({626.0f, 532.0f}, {130.0f, 34.0f}), "Atras", false, 15);
+}
+
+inline void aplicarBrilloPantalla(sf::RenderWindow& ventana, int brillo) {
+    int b = std::clamp(brillo, 0, 100);
+    sf::RectangleShape filtro({800.0f, 600.0f});
+    filtro.setPosition({0.0f, 0.0f});
+
+    if (b < 75) {
+        float t = static_cast<float>(75 - b) / 75.0f;
+        filtro.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(std::clamp(t * 145.0f, 0.0f, 145.0f))));
+        ventana.draw(filtro);
+    } else if (b > 75) {
+        float t = static_cast<float>(b - 75) / 25.0f;
+        filtro.setFillColor(sf::Color(255, 246, 214, static_cast<std::uint8_t>(std::clamp(t * 42.0f, 0.0f, 42.0f))));
+        ventana.draw(filtro);
+    }
 }
 
 inline void dibujarCreditos(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, float scroll) {
@@ -875,7 +891,6 @@ inline void Juego::ejecutar() {
     bool invertirEjeY = false;
     int sensibilidadMirada = 50;
     int brilloMenu = 75;
-    bool balanceoCamara = true;
     int volumenMusica = 70;
     int volumenEfectos = 80;
     int autosaveIndice = 1;
@@ -890,6 +905,29 @@ inline void Juego::ejecutar() {
     } else {
         std::cout << "[Audio] No se pudo cargar assets/audio/menu_music.ogg" << std::endl;
     }
+    sf::SoundBuffer bufferClickMenu;
+    std::vector<std::int16_t> muestrasClick(2205);
+    for (std::size_t i = 0; i < muestrasClick.size(); ++i) {
+        float t = static_cast<float>(i) / 44100.0f;
+        float envolvente = 1.0f - static_cast<float>(i) / static_cast<float>(muestrasClick.size());
+        float onda = std::sin(t * 880.0f * 6.2831853f) * envolvente;
+        muestrasClick[i] = static_cast<std::int16_t>(onda * 7600.0f);
+    }
+    bool clickMenuListo = bufferClickMenu.loadFromSamples(
+        muestrasClick.data(),
+        muestrasClick.size(),
+        1,
+        44100,
+        std::vector<sf::SoundChannel>{sf::SoundChannel::Mono}
+    );
+    sf::Sound sonidoClickMenu(bufferClickMenu);
+    sonidoClickMenu.setVolume(static_cast<float>(volumenEfectos));
+    auto reproducirClickMenu = [&]() {
+        if (clickMenuListo && volumenEfectos > 0) {
+            sonidoClickMenu.setVolume(static_cast<float>(volumenEfectos));
+            sonidoClickMenu.play();
+        }
+    };
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
@@ -1040,14 +1078,17 @@ inline void Juego::ejecutar() {
                         botonTeclado->code == sf::Keyboard::Key::W) {
                         int total = pantallaMenuInicio == 1 ? 5 : 4;
                         opcionMenuInicio = (opcionMenuInicio + total - 1) % total;
+                        reproducirClickMenu();
                     }
                     if (botonTeclado->code == sf::Keyboard::Key::Down ||
                         botonTeclado->code == sf::Keyboard::Key::S) {
                         int total = pantallaMenuInicio == 1 ? 5 : 4;
                         opcionMenuInicio = (opcionMenuInicio + 1) % total;
+                        reproducirClickMenu();
                     }
                     if (botonTeclado->code == sf::Keyboard::Key::Enter ||
                         botonTeclado->code == sf::Keyboard::Key::Space) {
+                        reproducirClickMenu();
                         if (pantallaMenuInicio == 0) {
                             if (opcionMenuInicio == 0) {
                                 mostrandoMenuInicio = false;
@@ -1133,6 +1174,7 @@ inline void Juego::ejecutar() {
                     opcionMenuInicio = hover;
                 }
                 if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
+                    reproducirClickMenu();
                     if (hover == 0) {
                         mostrandoMenuInicio = false;
                         if (musicaMenuLista) {
@@ -1152,6 +1194,7 @@ inline void Juego::ejecutar() {
                     opcionMenuInicio = hover;
                 }
                 if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
+                    reproducirClickMenu();
                     if (hover == 0) pantallaMenuInicio = 2;
                     if (hover == 1) pantallaMenuInicio = 3;
                     if (hover == 2) pantallaMenuInicio = 4;
@@ -1166,22 +1209,27 @@ inline void Juego::ejecutar() {
                 }
             } else if (pantallaMenuInicio == 2 && clickIzquierdo && !clickMenuAnterior) {
                 if (mouseDentro(sf::FloatRect({128.0f, 472.0f}, {150.0f, 34.0f}))) {
+                    reproducirClickMenu();
                     paginaComoJugar = std::max(0, paginaComoJugar - 1);
                 } else if (mouseDentro(sf::FloatRect({326.0f, 472.0f}, {150.0f, 34.0f}))) {
+                    reproducirClickMenu();
                     paginaComoJugar = std::min(2, paginaComoJugar + 1);
                 } else if (mouseDentro(sf::FloatRect({524.0f, 472.0f}, {150.0f, 34.0f}))) {
+                    reproducirClickMenu();
                     pantallaMenuInicio = 1;
                     opcionMenuInicio = 0;
                 }
             } else if (pantallaMenuInicio == 3) {
                 if (clickIzquierdo) {
                     if (mouseDentro(sf::FloatRect({500.0f, 322.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) {
+                        reproducirClickMenu();
                         invertirEjeY = !invertirEjeY;
                     }
                     if (mouseDentro(sf::FloatRect({400.0f, 390.0f}, {220.0f, 18.0f}))) {
                         sensibilidadMirada = valorSlider(400.0f);
                     }
                     if (mouseDentro(sf::FloatRect({326.0f, 504.0f}, {150.0f, 34.0f})) && !clickMenuAnterior) {
+                        reproducirClickMenu();
                         pantallaMenuInicio = 1;
                         opcionMenuInicio = 1;
                     }
@@ -1189,17 +1237,26 @@ inline void Juego::ejecutar() {
             } else if (pantallaMenuInicio == 4) {
                 if (clickIzquierdo) {
                     if (mouseDentro(sf::FloatRect({400.0f, 180.0f}, {220.0f, 18.0f}))) brilloMenu = valorSlider(400.0f);
-                    if (mouseDentro(sf::FloatRect({500.0f, 212.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) balanceoCamara = !balanceoCamara;
-                    if (mouseDentro(sf::FloatRect({400.0f, 312.0f}, {220.0f, 18.0f}))) {
+                    if (mouseDentro(sf::FloatRect({400.0f, 278.0f}, {220.0f, 18.0f}))) {
                         volumenMusica = valorSlider(400.0f);
                         if (musicaMenuLista) {
                             musicaMenu.setVolume(static_cast<float>(volumenMusica));
                         }
                     }
-                    if (mouseDentro(sf::FloatRect({400.0f, 362.0f}, {220.0f, 18.0f}))) volumenEfectos = valorSlider(400.0f);
-                    if (mouseDentro(sf::FloatRect({328.0f, 428.0f}, {130.0f, 30.0f})) && !clickMenuAnterior) autosaveIndice = (autosaveIndice + 1) % 4;
-                    if (mouseDentro(sf::FloatRect({500.0f, 460.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) nombresJugador = !nombresJugador;
+                    if (mouseDentro(sf::FloatRect({400.0f, 328.0f}, {220.0f, 18.0f}))) {
+                        volumenEfectos = valorSlider(400.0f);
+                        sonidoClickMenu.setVolume(static_cast<float>(volumenEfectos));
+                    }
+                    if (mouseDentro(sf::FloatRect({328.0f, 394.0f}, {130.0f, 30.0f})) && !clickMenuAnterior) {
+                        reproducirClickMenu();
+                        autosaveIndice = (autosaveIndice + 1) % 4;
+                    }
+                    if (mouseDentro(sf::FloatRect({500.0f, 426.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) {
+                        reproducirClickMenu();
+                        nombresJugador = !nombresJugador;
+                    }
                     if (mouseDentro(sf::FloatRect({626.0f, 532.0f}, {130.0f, 34.0f})) && !clickMenuAnterior) {
+                        reproducirClickMenu();
                         pantallaMenuInicio = 1;
                         opcionMenuInicio = 2;
                     }
@@ -1224,10 +1281,11 @@ inline void Juego::ejecutar() {
             } else if (fuenteCargada && pantallaMenuInicio == 3) {
                 dibujarControles(ventana, fuente, tiempoMenuInicio, invertirEjeY, sensibilidadMirada);
             } else if (fuenteCargada && pantallaMenuInicio == 4) {
-                dibujarConfiguracion(ventana, fuente, tiempoMenuInicio, brilloMenu, balanceoCamara, volumenMusica, volumenEfectos, autosaveIndice, nombresJugador);
+                dibujarConfiguracion(ventana, fuente, tiempoMenuInicio, brilloMenu, volumenMusica, volumenEfectos, autosaveIndice, nombresJugador);
             } else if (fuenteCargada && pantallaMenuInicio == 5) {
                 dibujarCreditos(ventana, fuente, tiempoMenuInicio, scrollCreditos);
             }
+            aplicarBrilloPantalla(ventana, brilloMenu);
             ventana.display();
             continue;
         }
@@ -1775,6 +1833,7 @@ inline void Juego::ejecutar() {
             inventarioGrid.dibujar(ventana, fuente);
         }
 
+        aplicarBrilloPantalla(ventana, brilloMenu);
         ventana.display();
         clickIzquierdoAnterior = clickIzquierdo;
         clickDerechoAnterior = clickDerecho;
