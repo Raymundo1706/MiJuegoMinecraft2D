@@ -1051,6 +1051,9 @@ inline void Juego::ejecutar() {
                         if (pantallaMenuInicio == 0) {
                             if (opcionMenuInicio == 0) {
                                 mostrandoMenuInicio = false;
+                                if (musicaMenuLista) {
+                                    musicaMenu.stop();
+                                }
                                 reloj.restart();
                             } else if (opcionMenuInicio == 2) {
                                 pantallaMenuInicio = 1;
@@ -1132,6 +1135,9 @@ inline void Juego::ejecutar() {
                 if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
                     if (hover == 0) {
                         mostrandoMenuInicio = false;
+                        if (musicaMenuLista) {
+                            musicaMenu.stop();
+                        }
                         reloj.restart();
                     } else if (hover == 2) {
                         pantallaMenuInicio = 1;
@@ -1184,7 +1190,12 @@ inline void Juego::ejecutar() {
                 if (clickIzquierdo) {
                     if (mouseDentro(sf::FloatRect({400.0f, 180.0f}, {220.0f, 18.0f}))) brilloMenu = valorSlider(400.0f);
                     if (mouseDentro(sf::FloatRect({500.0f, 212.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) balanceoCamara = !balanceoCamara;
-                    if (mouseDentro(sf::FloatRect({400.0f, 312.0f}, {220.0f, 18.0f}))) volumenMusica = valorSlider(400.0f);
+                    if (mouseDentro(sf::FloatRect({400.0f, 312.0f}, {220.0f, 18.0f}))) {
+                        volumenMusica = valorSlider(400.0f);
+                        if (musicaMenuLista) {
+                            musicaMenu.setVolume(static_cast<float>(volumenMusica));
+                        }
+                    }
                     if (mouseDentro(sf::FloatRect({400.0f, 362.0f}, {220.0f, 18.0f}))) volumenEfectos = valorSlider(400.0f);
                     if (mouseDentro(sf::FloatRect({328.0f, 428.0f}, {130.0f, 30.0f})) && !clickMenuAnterior) autosaveIndice = (autosaveIndice + 1) % 4;
                     if (mouseDentro(sf::FloatRect({500.0f, 460.0f}, {120.0f, 32.0f})) && !clickMenuAnterior) nombresJugador = !nombresJugador;
