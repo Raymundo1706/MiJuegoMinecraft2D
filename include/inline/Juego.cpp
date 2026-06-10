@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cmath>
 #include <cstdint>
+#include <SFML/Audio.hpp>
 #include "SistemaHerramientas.hpp"
 #include "InventarioGrid.hpp"
 
@@ -880,6 +881,15 @@ inline void Juego::ejecutar() {
     int autosaveIndice = 1;
     bool nombresJugador = true;
     float scrollCreditos = 0.0f;
+    sf::Music musicaMenu;
+    bool musicaMenuLista = musicaMenu.openFromFile("assets/audio/menu_music.ogg");
+    if (musicaMenuLista) {
+        musicaMenu.setLooping(true);
+        musicaMenu.setVolume(static_cast<float>(volumenMusica));
+        musicaMenu.play();
+    } else {
+        std::cout << "[Audio] No se pudo cargar assets/audio/menu_music.ogg" << std::endl;
+    }
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
