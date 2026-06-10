@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include <SFML/Graphics.hpp>
 
 constexpr float TAMANIO_BLOQUE_JUEGO = 24.0f;
@@ -50,10 +51,12 @@ class Mundo {
 private:
     int ancho;
     int alto;
+    unsigned int semillaBase;
     std::vector<std::vector<Bloque>> cuadricula;
 
 public:
     Mundo(int ancho, int alto);
+    Mundo(int ancho, int alto, unsigned int semilla);
     ~Mundo();
 
     void generarMundo(bool esSubterraneo);
@@ -79,6 +82,9 @@ public:
 
     int getAncho() const;
     int getAlto() const;
+    unsigned int getSemilla() const;
+    bool guardarEstado(const std::string& ruta) const;
+    bool cargarEstado(const std::string& ruta);
 };
 
 #include "../inline/core/Mundo.cpp"
