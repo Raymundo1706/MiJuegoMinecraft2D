@@ -7,7 +7,7 @@
 #include "InventarioGrid.hpp"
 
 namespace {
-constexpr float TICKS_POR_SEGUNDO_MUNDO = 75.0f;
+constexpr float TICKS_POR_SEGUNDO_MUNDO = 216.67f;
 constexpr float TICKS_DIA_COMPLETO = 24000.0f;
 constexpr float TICK_FIN_DIA = 12000.0f;
 constexpr float TICK_INICIO_NOCHE = 13000.0f;
@@ -75,6 +75,29 @@ inline void dibujarPixelMundo(sf::RenderWindow& ventana, sf::Vector2f origen, in
 }
 
 inline void dibujarTroncoSuelo(sf::RenderWindow& ventana, sf::Vector2f centro) {
+    static sf::Texture texturaTroncoSuelo;
+    static bool intentoTextura = false;
+    static bool texturaLista = false;
+
+    if (!intentoTextura) {
+        intentoTextura = true;
+        texturaLista = texturaTroncoSuelo.loadFromFile("assets/items/log_bundle.png");
+        if (texturaLista) {
+            texturaTroncoSuelo.setSmooth(false);
+        }
+    }
+
+    if (texturaLista) {
+        sf::Vector2u tam = texturaTroncoSuelo.getSize();
+        float escala = 20.0f / static_cast<float>(std::max(tam.x, tam.y));
+        sf::Sprite sprite(texturaTroncoSuelo);
+        sprite.setOrigin({static_cast<float>(tam.x) * 0.5f, static_cast<float>(tam.y) * 0.5f});
+        sprite.setPosition(centro);
+        sprite.setScale({escala, escala});
+        ventana.draw(sprite);
+        return;
+    }
+
     const float escala = 1.0f;
     sf::Vector2f origen(centro.x - 8.0f, centro.y - 8.0f);
     sf::Color borde(20, 13, 11);
@@ -274,6 +297,156 @@ inline void dibujarBarraHambre(sf::RenderWindow& ventana, const Jugador& jugador
         dibujarMusloHambre(ventana, {origen.x + static_cast<float>(i) * 17.0f, origen.y}, estado, escala);
     }
 }
+
+inline sf::FloatRect rectBotonMenu(int indice) {
+    return sf::FloatRect({232.0f, 274.0f + static_cast<float>(indice) * 48.0f}, {336.0f, 36.0f});
+}
+
+inline int indiceBotonMenu(sf::Vector2i mouse) {
+    sf::Vector2f pos(static_cast<float>(mouse.x), static_cast<float>(mouse.y));
+    for (int i = 0; i < 4; ++i) {
+        if (rectBotonMenu(i).contains(pos)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+inline void centrarTexto(sf::Text& texto, sf::Vector2f posicion) {
+    sf::FloatRect bounds = texto.getLocalBounds();
+    texto.setOrigin({bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + bounds.size.y * 0.5f});
+    texto.setPosition(posicion);
+}
+
+inline void dibujarPanoramaMenu(sf::RenderWindow& ventana, float tiempo) {
+    sf::RectangleShape cielo({800.0f, 600.0f});
+    cielo.setFillColor(sf::Color(74, 137, 204));
+    ventana.draw(cielo);
+
+    float desplazamiento = std::fmod(tiempo * 18.0f, 800.0f);
+    for (int capa = 0; capa < 2; ++capa) {
+        float baseX = -desplazamiento + capa * 800.0f;
+
+        for (int i = 0; i < 9; ++i) {
+            float x = baseX + static_cast<float>(i) * 96.0f;
+            float y = 64.0f + std::sin(tiempo * 0.45f + static_cast<float>(i)) * 12.0f;
+            sf::RectangleShape nube({54.0f, 18.0f});
+            nube.setPosition({x, y});
+            nube.setFillColor(sf::Color(218, 232, 244, 150));
+            ventana.draw(nube);
+            nube.setSize({36.0f, 18.0f});
+            nube.setPosition({x + 26.0f, y - 12.0f});
+            ventana.draw(nube);
+        }
+
+        for (int i = 0; i < 18; ++i) {
+            float x = baseX + static_cast<float>(i) * 48.0f;
+            float altura = 70.0f + std::sin(tiempo * 0.25f + static_cast<float>(i) * 0.8f) * 34.0f;
+            sf::RectangleShape monte({54.0f, altura});
+            monte.setPosition({x, 310.0f - altura});
+            monte.setFillColor(i % 3 == 0 ? sf::Color(61, 104, 75) : sf::Color(50, 88, 68));
+            ventana.draw(monte);
+        }
+    }
+
+    for (int y = 330; y < 600; y += 24) {
+        for (int x = -24; x < 824; x += 24) {
+            int ruido = (x / 24 + y / 24) % 4;
+            sf::RectangleShape bloque({24.0f, 24.0f});
+            bloque.setPosition({static_cast<float>(x), static_cast<float>(y)});
+            bloque.setFillColor(ruido == 0 ? sf::Color(62, 139, 64) : sf::Color(48, 118, 54));
+            ventana.draw(bloque);
+        }
+    }
+
+    sf::RectangleShape filtro({800.0f, 600.0f});
+    filtro.setFillColor(sf::Color(0, 0, 0, 92));
+    ventana.draw(filtro);
+}
+
+inline void dibujarBotonMenu(sf::RenderWindow& ventana, sf::Font& fuente, int indice, const char* texto, bool seleccionado) {
+    sf::FloatRect rect = rectBotonMenu(indice);
+    sf::RectangleShape sombra(rect.size);
+    sombra.setPosition({rect.position.x + 4.0f, rect.position.y + 4.0f});
+    sombra.setFillColor(sf::Color(0, 0, 0, 135));
+    ventana.draw(sombra);
+
+    sf::RectangleShape boton(rect.size);
+    boton.setPosition(rect.position);
+    boton.setFillColor(seleccionado ? sf::Color(128, 142, 124, 238) : sf::Color(92, 92, 92, 226));
+    boton.setOutlineColor(seleccionado ? sf::Color(180, 255, 116) : sf::Color(38, 38, 38));
+    boton.setOutlineThickness(seleccionado ? 3.0f : 2.0f);
+    ventana.draw(boton);
+
+    sf::RectangleShape brillo({rect.size.x - 8.0f, 3.0f});
+    brillo.setPosition({rect.position.x + 4.0f, rect.position.y + 4.0f});
+    brillo.setFillColor(seleccionado ? sf::Color(230, 255, 196, 110) : sf::Color(210, 210, 210, 65));
+    ventana.draw(brillo);
+
+    sf::Text etiqueta(fuente, texto, 18);
+    etiqueta.setFillColor(sf::Color::White);
+    etiqueta.setOutlineColor(sf::Color::Black);
+    etiqueta.setOutlineThickness(2.0f);
+    centrarTexto(etiqueta, {rect.position.x + rect.size.x * 0.5f, rect.position.y + rect.size.y * 0.48f});
+    ventana.draw(etiqueta);
+}
+
+inline void dibujarMenuInicio(sf::RenderWindow& ventana, sf::Font& fuente, bool fuenteCargada, float tiempo, int opcionSeleccionada, sf::Vector2i mouse) {
+    ventana.setView(ventana.getDefaultView());
+    dibujarPanoramaMenu(ventana, tiempo);
+
+    int hover = indiceBotonMenu(mouse);
+    if (hover >= 0) {
+        opcionSeleccionada = hover;
+    }
+
+    if (fuenteCargada) {
+        float logoY = 112.0f + std::sin(tiempo * 1.25f) * 4.0f;
+        sf::Text sombraLogo(fuente, "MINECRAFT 2D", 54);
+        sombraLogo.setFillColor(sf::Color(0, 0, 0, 170));
+        sombraLogo.setOutlineColor(sf::Color(0, 0, 0));
+        sombraLogo.setOutlineThickness(4.0f);
+        centrarTexto(sombraLogo, {404.0f, logoY + 8.0f});
+        ventana.draw(sombraLogo);
+
+        sf::Text logo(fuente, "MINECRAFT 2D", 54);
+        logo.setFillColor(sf::Color(196, 196, 196));
+        logo.setOutlineColor(sf::Color(48, 48, 48));
+        logo.setOutlineThickness(4.0f);
+        centrarTexto(logo, {400.0f, logoY});
+        ventana.draw(logo);
+
+        float pulso = 1.0f + std::sin(tiempo * 5.8f) * 0.08f;
+        sf::Text splash(fuente, "Top-down survival!", 18);
+        splash.setFillColor(sf::Color(255, 234, 54));
+        splash.setOutlineColor(sf::Color(70, 48, 0));
+        splash.setOutlineThickness(2.0f);
+        centrarTexto(splash, {536.0f, logoY + 46.0f});
+        splash.setRotation(sf::degrees(-20.0f));
+        splash.setScale({pulso, pulso});
+        ventana.draw(splash);
+
+        dibujarBotonMenu(ventana, fuente, 0, "Jugar", opcionSeleccionada == 0);
+        dibujarBotonMenu(ventana, fuente, 1, "Tabla de Clasificacion / Logros", opcionSeleccionada == 1);
+        dibujarBotonMenu(ventana, fuente, 2, "Ayuda y Opciones", opcionSeleccionada == 2);
+        dibujarBotonMenu(ventana, fuente, 3, "Salir del Juego", opcionSeleccionada == 3);
+
+        sf::Text version(fuente, "v1.0.0", 13);
+        version.setFillColor(sf::Color(220, 220, 220));
+        version.setOutlineColor(sf::Color::Black);
+        version.setOutlineThickness(2.0f);
+        version.setPosition({12.0f, 572.0f});
+        ventana.draw(version);
+
+        sf::Text copy(fuente, "(c) 2026 Raymu Studio", 13);
+        copy.setFillColor(sf::Color(220, 220, 220));
+        copy.setOutlineColor(sf::Color::Black);
+        copy.setOutlineThickness(2.0f);
+        sf::FloatRect copyBounds = copy.getLocalBounds();
+        copy.setPosition({788.0f - copyBounds.size.x, 572.0f});
+        ventana.draw(copy);
+    }
+}
 }
 
 inline Juego::Juego()
@@ -428,6 +601,10 @@ inline void Juego::ejecutar() {
     float acumuladorFPS = 0.0f;
     int contadorFrames = 0;
     int fpsActuales = 0;
+    bool mostrandoMenuInicio = true;
+    int opcionMenuInicio = 0;
+    bool clickMenuAnterior = false;
+    float tiempoMenuInicio = 0.0f;
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
@@ -538,6 +715,7 @@ inline void Juego::ejecutar() {
         if (dt > 0.05f) {
             dt = 0.05f;
         }
+        tiempoMenuInicio += dt;
         actualizarTiempo(dt);
         acumuladorFPS += dt;
         contadorFrames++;
@@ -553,6 +731,30 @@ inline void Juego::ejecutar() {
             }
 
             if (const auto* botonTeclado = evento->getIf<sf::Event::KeyPressed>()) {
+                if (mostrandoMenuInicio) {
+                    if (botonTeclado->code == sf::Keyboard::Key::Up ||
+                        botonTeclado->code == sf::Keyboard::Key::W) {
+                        opcionMenuInicio = (opcionMenuInicio + 3) % 4;
+                    }
+                    if (botonTeclado->code == sf::Keyboard::Key::Down ||
+                        botonTeclado->code == sf::Keyboard::Key::S) {
+                        opcionMenuInicio = (opcionMenuInicio + 1) % 4;
+                    }
+                    if (botonTeclado->code == sf::Keyboard::Key::Enter ||
+                        botonTeclado->code == sf::Keyboard::Key::Space) {
+                        if (opcionMenuInicio == 0) {
+                            mostrandoMenuInicio = false;
+                            reloj.restart();
+                        } else if (opcionMenuInicio == 3) {
+                            ventana.close();
+                        }
+                    }
+                    if (botonTeclado->code == sf::Keyboard::Key::Escape) {
+                        ventana.close();
+                    }
+                    continue;
+                }
+
                 if (botonTeclado->code == sf::Keyboard::Key::Num1) {
                     inventarioGrid.seleccionarSlotHotbar(0);
                 }
@@ -592,6 +794,29 @@ inline void Juego::ejecutar() {
         sf::Vector2i mousePos = sf::Mouse::getPosition(ventana);
         bool clickIzquierdo = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         bool clickDerecho = sf::Mouse::isButtonPressed(sf::Mouse::Button::Right);
+
+        if (mostrandoMenuInicio) {
+            int hover = indiceBotonMenu(mousePos);
+            if (hover >= 0) {
+                opcionMenuInicio = hover;
+            }
+
+            if (clickIzquierdo && !clickMenuAnterior && hover >= 0) {
+                if (hover == 0) {
+                    mostrandoMenuInicio = false;
+                    reloj.restart();
+                } else if (hover == 3) {
+                    ventana.close();
+                }
+            }
+            clickMenuAnterior = clickIzquierdo;
+
+            ventana.clear(sf::Color(18, 18, 22));
+            dibujarMenuInicio(ventana, fuente, fuenteCargada, tiempoMenuInicio, opcionMenuInicio, mousePos);
+            ventana.display();
+            continue;
+        }
+
         inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
 
         bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta();
@@ -945,6 +1170,9 @@ inline void Juego::ejecutar() {
             if (posAnimal.x >= dibujoIzq && posAnimal.x <= dibujoDer &&
                 posAnimal.y >= dibujoArriba && posAnimal.y <= dibujoAbajo) {
                 animal->dibujar(ventana);
+                if (mapaSuperficie) {
+                    mapaSuperficie->dibujarArbolesSobreJugador(ventana, posAnimal.y + 28.0f);
+                }
             }
         }
 
@@ -954,6 +1182,9 @@ inline void Juego::ejecutar() {
             if (posZombie.x >= dibujoIzq && posZombie.x <= dibujoDer &&
                 posZombie.y >= dibujoArriba && posZombie.y <= dibujoAbajo) {
                 zombie->dibujar(ventana);
+                if (mapaSuperficie) {
+                    mapaSuperficie->dibujarArbolesSobreJugador(ventana, posZombie.y + 24.0f);
+                }
             }
         }
 

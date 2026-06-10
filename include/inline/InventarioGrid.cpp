@@ -162,6 +162,33 @@ inline void pixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, 
     ventana.draw(punto);
 }
 
+inline bool dibujarTexturaItem(sf::RenderWindow& ventana, const char* ruta, sf::Vector2f centro, float tamanoMaximo) {
+    static sf::Texture texturaTronco;
+    static bool intentoTronco = false;
+    static bool texturaTroncoLista = false;
+
+    if (!intentoTronco) {
+        intentoTronco = true;
+        texturaTroncoLista = texturaTronco.loadFromFile(ruta);
+        if (texturaTroncoLista) {
+            texturaTronco.setSmooth(false);
+        }
+    }
+
+    if (!texturaTroncoLista) {
+        return false;
+    }
+
+    sf::Vector2u tam = texturaTronco.getSize();
+    float escala = tamanoMaximo / static_cast<float>(std::max(tam.x, tam.y));
+    sf::Sprite sprite(texturaTronco);
+    sprite.setOrigin({static_cast<float>(tam.x) * 0.5f, static_cast<float>(tam.y) * 0.5f});
+    sprite.setPosition(centro);
+    sprite.setScale({escala, escala});
+    ventana.draw(sprite);
+    return true;
+}
+
 inline void lineaPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x1, int y1, int x2, int y2, sf::Color color, float escala) {
     int dx = std::abs(x2 - x1);
     int dy = -std::abs(y2 - y1);
@@ -380,6 +407,9 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
             lineaPixel(ventana, origen, 6, 13, 12, 3, sf::Color(100, 62, 28), escala);
             return;
         case ItemId::BloqueTronco:
+            if (dibujarTexturaItem(ventana, "assets/items/log_bundle.png", {origen.x + 8.0f * escala, origen.y + 8.0f * escala}, 15.0f * escala)) {
+                return;
+            }
             dibujarTroncoCortadoSprite(ventana, origen, escala);
             return;
         case ItemId::MapaInicial:
