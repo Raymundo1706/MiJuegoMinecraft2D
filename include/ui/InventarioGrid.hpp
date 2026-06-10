@@ -62,6 +62,7 @@ public:
 
     void agregarItem(ItemId item, int cantidad = 1);
     void agregarItem(TipoBloque bloque, int cantidad = 1);
+    bool puedeAgregarItem(ItemId item, int cantidad = 1) const;
 
     void manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho);
     void dibujar(sf::RenderWindow& ventana, sf::Font& fuente);

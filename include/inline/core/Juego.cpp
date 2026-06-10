@@ -70,6 +70,49 @@ inline void dibujarFiltroDiaNoche(sf::RenderWindow& ventana, const sf::View& cam
     ventana.draw(filtro);
 }
 
+inline void dibujarSelectorBloque(sf::RenderWindow& ventana, int bloqueX, int bloqueY, bool dentroRango, float tiempo) {
+    if (bloqueX < 0 || bloqueY < 0) {
+        return;
+    }
+
+    float x = static_cast<float>(bloqueX) * TAMANIO_BLOQUE_JUEGO;
+    float y = static_cast<float>(bloqueY) * TAMANIO_BLOQUE_JUEGO;
+    float pulso = 0.55f + 0.45f * (0.5f + 0.5f * std::sin(tiempo * 7.0f));
+    sf::Color color = dentroRango
+        ? sf::Color(245, 245, 245, static_cast<std::uint8_t>(115 + 70 * pulso))
+        : sf::Color(255, 80, 70, 115);
+
+    sf::RectangleShape relleno({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+    relleno.setPosition({x, y});
+    relleno.setFillColor(dentroRango ? sf::Color(255, 255, 255, 24) : sf::Color(255, 60, 50, 22));
+    ventana.draw(relleno);
+
+    sf::RectangleShape borde({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+    borde.setPosition({x, y});
+    borde.setFillColor(sf::Color::Transparent);
+    borde.setOutlineThickness(1.4f);
+    borde.setOutlineColor(color);
+    ventana.draw(borde);
+
+    const float esquina = 6.0f;
+    const float grosor = 2.0f;
+    auto pieza = [&](float px, float py, float w, float h) {
+        sf::RectangleShape r({w, h});
+        r.setPosition({x + px, y + py});
+        r.setFillColor(color);
+        ventana.draw(r);
+    };
+
+    pieza(0.0f, 0.0f, esquina, grosor);
+    pieza(0.0f, 0.0f, grosor, esquina);
+    pieza(TAMANIO_BLOQUE_JUEGO - esquina, 0.0f, esquina, grosor);
+    pieza(TAMANIO_BLOQUE_JUEGO - grosor, 0.0f, grosor, esquina);
+    pieza(0.0f, TAMANIO_BLOQUE_JUEGO - grosor, esquina, grosor);
+    pieza(0.0f, TAMANIO_BLOQUE_JUEGO - esquina, grosor, esquina);
+    pieza(TAMANIO_BLOQUE_JUEGO - esquina, TAMANIO_BLOQUE_JUEGO - grosor, esquina, grosor);
+    pieza(TAMANIO_BLOQUE_JUEGO - grosor, TAMANIO_BLOQUE_JUEGO - esquina, grosor, esquina);
+}
+
 inline void dibujarPixelMundo(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
     sf::RectangleShape pixel({escala, escala});
     pixel.setPosition({origen.x + static_cast<float>(x) * escala, origen.y + static_cast<float>(y) * escala});
@@ -77,32 +120,10 @@ inline void dibujarPixelMundo(sf::RenderWindow& ventana, sf::Vector2f origen, in
     ventana.draw(pixel);
 }
 
-inline void dibujarTroncoSuelo(sf::RenderWindow& ventana, sf::Vector2f centro) {
-    static sf::Texture texturaTroncoSuelo;
-    static bool intentoTextura = false;
-    static bool texturaLista = false;
-
-    if (!intentoTextura) {
-        intentoTextura = true;
-        texturaLista = texturaTroncoSuelo.loadFromFile("assets/items/log_bundle.png");
-        if (texturaLista) {
-            texturaTroncoSuelo.setSmooth(false);
-        }
-    }
-
-    if (texturaLista) {
-        sf::Vector2u tam = texturaTroncoSuelo.getSize();
-        float escala = 20.0f / static_cast<float>(std::max(tam.x, tam.y));
-        sf::Sprite sprite(texturaTroncoSuelo);
-        sprite.setOrigin({static_cast<float>(tam.x) * 0.5f, static_cast<float>(tam.y) * 0.5f});
-        sprite.setPosition(centro);
-        sprite.setScale({escala, escala});
-        ventana.draw(sprite);
-        return;
-    }
-
-    const float escala = 1.0f;
-    sf::Vector2f origen(centro.x - 8.0f, centro.y - 8.0f);
+inline void dibujarTroncoSuelo(sf::RenderWindow& ventana, sf::Vector2f centro, float escalaVisual = 1.0f, float giroY = 1.0f) {
+    const float escala = escalaVisual;
+    const float anchoVisual = std::max(0.24f, giroY);
+    sf::Vector2f origen(centro.x - 8.0f * escala * anchoVisual, centro.y - 8.0f * escala);
     sf::Color borde(20, 13, 11);
     sf::Color madera(112, 68, 48);
     sf::Color maderaLuz(150, 95, 66);
@@ -112,7 +133,10 @@ inline void dibujarTroncoSuelo(sf::RenderWindow& ventana, sf::Vector2f centro) {
     sf::Color cuerda(190, 144, 86);
 
     auto pixel = [&](int x, int y, sf::Color color) {
-        dibujarPixelMundo(ventana, origen, x, y, color, escala);
+        sf::RectangleShape px({escala * anchoVisual, escala});
+        px.setPosition({origen.x + static_cast<float>(x) * escala * anchoVisual, origen.y + static_cast<float>(y) * escala});
+        px.setFillColor(color);
+        ventana.draw(px);
     };
 
     auto barra = [&](int x, int y, int largo) {
@@ -157,6 +181,192 @@ inline void dibujarTroncoSuelo(sf::RenderWindow& ventana, sf::Vector2f centro) {
     for (int y = 4; y <= 12; ++y) {
         pixel(11, y, cuerda);
         if (y % 2 == 0) pixel(12, y, sf::Color(122, 84, 50));
+    }
+}
+
+inline void dibujarPixelItemSuelo(
+    sf::RenderWindow& ventana,
+    sf::Vector2f origen,
+    int x,
+    int y,
+    sf::Color color,
+    float escala,
+    float giroY
+) {
+    if (color.a == 0) return;
+    float ancho = std::max(0.24f, giroY);
+    sf::RectangleShape pixel({escala * ancho, escala});
+    pixel.setPosition({origen.x + static_cast<float>(x) * escala * ancho, origen.y + static_cast<float>(y) * escala});
+    pixel.setFillColor(color);
+    ventana.draw(pixel);
+}
+
+inline void lineaItemSuelo(
+    sf::RenderWindow& ventana,
+    sf::Vector2f origen,
+    int x1,
+    int y1,
+    int x2,
+    int y2,
+    sf::Color color,
+    float escala,
+    float giroY
+) {
+    int dx = std::abs(x2 - x1);
+    int dy = -std::abs(y2 - y1);
+    int sx = x1 < x2 ? 1 : -1;
+    int sy = y1 < y2 ? 1 : -1;
+    int err = dx + dy;
+    int x = x1;
+    int y = y1;
+
+    while (true) {
+        dibujarPixelItemSuelo(ventana, origen, x, y, color, escala, giroY);
+        if (x == x2 && y == y2) break;
+        int e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+
+inline sf::Color colorBloqueItem(ItemId item) {
+    switch (item) {
+        case ItemId::BloquePasto: return sf::Color(58, 150, 65);
+        case ItemId::BloqueTierra: return sf::Color(122, 78, 45);
+        case ItemId::BloquePiedra: return sf::Color(126, 126, 126);
+        case ItemId::TablonMadera: return sf::Color(182, 126, 62);
+        case ItemId::MineralHierro: return sf::Color(136, 126, 116);
+        case ItemId::MineralPlata: return sf::Color(176, 184, 188);
+        case ItemId::MineralOro: return sf::Color(191, 148, 55);
+        case ItemId::MineralDiamante: return sf::Color(70, 210, 225);
+        case ItemId::Lana:
+        case ItemId::LanaCruda: return sf::Color(226, 226, 218);
+        case ItemId::MesaCrafteo: return sf::Color(128, 82, 42);
+        case ItemId::Horno: return sf::Color(86, 86, 86);
+        case ItemId::Cama: return sf::Color(202, 66, 62);
+        default: return sf::Color(210, 180, 110);
+    }
+}
+
+inline void dibujarBloqueItemSuelo(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala, float giroY) {
+    sf::Color base = colorBloqueItem(item);
+    sf::Color luz(std::min(255, base.r + 36), std::min(255, base.g + 36), std::min(255, base.b + 36), base.a);
+    sf::Color sombra(base.r / 2, base.g / 2, base.b / 2, base.a);
+    sf::Color borde(34, 28, 24);
+
+    for (int y = 3; y < 13; ++y) {
+        for (int x = 3; x < 13; ++x) {
+            sf::Color c = base;
+            if ((x * 7 + y * 5) % 11 == 0) c = luz;
+            if ((x * 13 + y * 3) % 17 == 0) c = sombra;
+            if (item == ItemId::BloquePasto && y <= 5) c = ((x + y) % 3 == 0) ? sf::Color(72, 176, 73) : sf::Color(48, 136, 58);
+            if (item == ItemId::TablonMadera && y % 3 == 0) c = sf::Color(112, 70, 36);
+            if ((item == ItemId::MineralHierro || item == ItemId::MineralPlata || item == ItemId::MineralOro || item == ItemId::MineralDiamante) &&
+                ((x == 5 && y == 6) || (x == 9 && y == 9) || (x == 7 && y == 11))) {
+                c = colorBloqueItem(item);
+            }
+            dibujarPixelItemSuelo(ventana, origen, x, y, c, escala, giroY);
+        }
+    }
+
+    for (int i = 3; i < 13; ++i) {
+        dibujarPixelItemSuelo(ventana, origen, i, 3, borde, escala, giroY);
+        dibujarPixelItemSuelo(ventana, origen, i, 12, sombra, escala, giroY);
+        dibujarPixelItemSuelo(ventana, origen, 3, i, borde, escala, giroY);
+        dibujarPixelItemSuelo(ventana, origen, 12, i, sombra, escala, giroY);
+    }
+}
+
+inline void dibujarComidaItemSuelo(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala, float giroY) {
+    sf::Color carne(218, 102, 110);
+    if (item == ItemId::ChuletaCerdoCocinada) carne = sf::Color(135, 76, 43);
+    if (item == ItemId::CarneResCruda) carne = sf::Color(178, 58, 66);
+    if (item == ItemId::PolloCrudo) carne = sf::Color(232, 178, 156);
+    sf::Color borde(carne.r / 2, carne.g / 2, carne.b / 2);
+    sf::Color brillo(std::min(255, carne.r + 35), std::min(255, carne.g + 35), std::min(255, carne.b + 35));
+
+    for (int y = 5; y < 13; ++y) {
+        for (int x = 4; x < 13; ++x) {
+            if (!((x == 4 || x == 12) && (y == 5 || y == 12))) {
+                dibujarPixelItemSuelo(ventana, origen, x, y, carne, escala, giroY);
+            }
+        }
+    }
+    dibujarPixelItemSuelo(ventana, origen, 4, 8, borde, escala, giroY);
+    dibujarPixelItemSuelo(ventana, origen, 5, 12, borde, escala, giroY);
+    dibujarPixelItemSuelo(ventana, origen, 11, 6, brillo, escala, giroY);
+    dibujarPixelItemSuelo(ventana, origen, 10, 7, brillo, escala, giroY);
+}
+
+inline void dibujarItemSueloSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector2f centro, float escalaVisual, float giroY) {
+    float ancho = std::max(0.24f, giroY);
+    float escala = escalaVisual;
+    sf::Vector2f origen(centro.x - 8.0f * escala * ancho, centro.y - 8.0f * escala);
+
+    if (item == ItemId::BloqueTronco) {
+        dibujarTroncoSuelo(ventana, centro, escalaVisual, giroY);
+        return;
+    }
+
+    switch (item) {
+        case ItemId::BloquePasto:
+        case ItemId::BloqueTierra:
+        case ItemId::BloquePiedra:
+        case ItemId::TablonMadera:
+        case ItemId::MineralHierro:
+        case ItemId::MineralPlata:
+        case ItemId::MineralOro:
+        case ItemId::MineralDiamante:
+        case ItemId::Lana:
+        case ItemId::LanaCruda:
+        case ItemId::MesaCrafteo:
+        case ItemId::Horno:
+        case ItemId::Cama:
+            dibujarBloqueItemSuelo(ventana, origen, item, escala, giroY);
+            return;
+        case ItemId::ChuletaCerdoCruda:
+        case ItemId::ChuletaCerdoCocinada:
+        case ItemId::CarneResCruda:
+        case ItemId::PolloCrudo:
+            dibujarComidaItemSuelo(ventana, origen, item, escala, giroY);
+            return;
+        case ItemId::SemillaArbol:
+            dibujarPixelItemSuelo(ventana, origen, 8, 11, sf::Color(68, 110, 38), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 7, 10, sf::Color(68, 110, 38), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 8, 9, sf::Color(42, 145, 58), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 9, 8, sf::Color(70, 180, 76), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 7, 8, sf::Color(56, 156, 66), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 9, 10, sf::Color(52, 137, 56), escala, giroY);
+            return;
+        case ItemId::Pluma:
+            lineaItemSuelo(ventana, origen, 5, 12, 11, 4, sf::Color(220, 220, 210), escala, giroY);
+            lineaItemSuelo(ventana, origen, 6, 12, 12, 4, sf::Color(104, 104, 112), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 7, 8, sf::Color(245, 245, 236), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 8, 7, sf::Color(245, 245, 236), escala, giroY);
+            return;
+        case ItemId::PaloMadera:
+            lineaItemSuelo(ventana, origen, 5, 13, 11, 4, sf::Color(150, 88, 36), escala, giroY);
+            lineaItemSuelo(ventana, origen, 6, 13, 12, 4, sf::Color(82, 48, 24), escala, giroY);
+            return;
+        case ItemId::Zanahoria:
+            for (int y = 6; y < 14; ++y) {
+                int anchoZ = y < 9 ? 4 : (y < 12 ? 3 : 2);
+                for (int x = 7; x < 7 + anchoZ; ++x) {
+                    dibujarPixelItemSuelo(ventana, origen, x, y, sf::Color(232, 112, 35), escala, giroY);
+                }
+            }
+            dibujarPixelItemSuelo(ventana, origen, 7, 5, sf::Color(62, 158, 62), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 9, 4, sf::Color(62, 158, 62), escala, giroY);
+            return;
+        default:
+            dibujarBloqueItemSuelo(ventana, origen, item, escala, giroY);
+            return;
     }
 }
 
@@ -1181,6 +1391,30 @@ inline void Juego::ejecutar() {
             sonidoClickMenu.play();
         }
     };
+    sf::SoundBuffer bufferRecolectar;
+    std::vector<std::int16_t> muestrasRecolectar(3308);
+    for (std::size_t i = 0; i < muestrasRecolectar.size(); ++i) {
+        float t = static_cast<float>(i) / 44100.0f;
+        float progreso = static_cast<float>(i) / static_cast<float>(muestrasRecolectar.size());
+        float envolvente = std::sin(progreso * 3.1415926f);
+        float frecuencia = 580.0f + 360.0f * (1.0f - progreso);
+        float onda = std::sin(t * frecuencia * 6.2831853f) * envolvente;
+        muestrasRecolectar[i] = static_cast<std::int16_t>(onda * 9000.0f);
+    }
+    bool recolectarListo = bufferRecolectar.loadFromSamples(
+        muestrasRecolectar.data(),
+        muestrasRecolectar.size(),
+        1,
+        44100,
+        std::vector<sf::SoundChannel>{sf::SoundChannel::Mono}
+    );
+    sf::Sound sonidoRecolectar(bufferRecolectar);
+    auto reproducirRecolectar = [&]() {
+        if (recolectarListo && volumenEfectos > 0) {
+            sonidoRecolectar.setVolume(static_cast<float>(volumenEfectos));
+            sonidoRecolectar.play();
+        }
+    };
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
@@ -1224,19 +1458,6 @@ inline void Juego::ejecutar() {
                 return 9.0f;
             default:
                 return 1.0f;
-        }
-    };
-
-    auto colorItemSuelo = [](ItemId item) {
-        switch (item) {
-            case ItemId::ChuletaCerdoCruda: return sf::Color(217, 103, 111);
-            case ItemId::ChuletaCerdoCocinada: return sf::Color(139, 79, 45);
-            case ItemId::CarneResCruda: return sf::Color(178, 63, 70);
-            case ItemId::LanaCruda: return sf::Color(220, 220, 220);
-            case ItemId::PolloCrudo: return sf::Color(232, 180, 158);
-            case ItemId::Pluma: return sf::Color(240, 240, 230);
-            case ItemId::BloqueTronco: return sf::Color(120, 72, 35);
-            default: return sf::Color(230, 210, 120);
         }
     };
 
@@ -1717,15 +1938,84 @@ inline void Juego::ejecutar() {
         }
 
         if (jugador) {
-            sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+            sf::Vector2f pechoJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 10.0f);
             for (auto it = itemsSuelo.begin(); it != itemsSuelo.end();) {
-                sf::Vector2f delta = it->posicion - centroJugador;
-                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) <= 24.0f) {
-                    inventarioGrid.agregarItem(it->item, it->cantidad);
-                    it = itemsSuelo.erase(it);
-                } else {
-                    ++it;
+                if (!it->fisicaInicializada) {
+                    std::uniform_real_distribution<float> angulo(0.0f, 6.2831853f);
+                    std::uniform_real_distribution<float> fuerza(24.0f, 48.0f);
+                    std::uniform_real_distribution<float> impulso(28.0f, 44.0f);
+                    float a = angulo(genLoot);
+                    float f = fuerza(genLoot);
+                    it->velocidad = {std::cos(a) * f, std::sin(a) * f};
+                    it->velocidadAltura = impulso(genLoot);
+                    it->altura = 0.0f;
+                    it->rebotesRestantes = 2;
+                    it->fisicaInicializada = true;
                 }
+
+                it->tiempo += dt;
+                sf::Vector2f deltaBase = pechoJugador - it->posicionBase;
+                float distanciaBase = std::sqrt(deltaBase.x * deltaBase.x + deltaBase.y * deltaBase.y);
+                constexpr float RADIO_ABSORCION = 48.0f;
+
+                if (!it->absorbiendo &&
+                    distanciaBase <= RADIO_ABSORCION &&
+                    inventarioGrid.puedeAgregarItem(it->item, it->cantidad)) {
+                    it->absorbiendo = true;
+                }
+
+                if (it->absorbiendo) {
+                    sf::Vector2f delta = pechoJugador - it->posicionBase;
+                    float distancia = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+                    if (distancia > 0.01f) {
+                        sf::Vector2f direccion = delta / distancia;
+                        float avance = std::min(distancia, 420.0f * dt);
+                        it->posicionBase += direccion * avance;
+                    }
+
+                    it->altura = std::max(0.0f, it->altura - 90.0f * dt);
+                    it->escala = std::clamp(distancia / RADIO_ABSORCION, 0.05f, 1.0f);
+                    it->giroY = std::max(0.25f, std::abs(std::cos(it->tiempo * 8.0f)));
+                    it->posicion = it->posicionBase + sf::Vector2f(0.0f, -it->altura);
+
+                    if (distancia <= 5.0f || it->escala <= 0.08f) {
+                        inventarioGrid.agregarItem(it->item, it->cantidad);
+                        reproducirRecolectar();
+                        it = itemsSuelo.erase(it);
+                        continue;
+                    }
+                } else {
+                    if (it->rebotesRestantes > 0 || std::abs(it->velocidadAltura) > 0.01f || it->altura > 0.0f) {
+                        it->posicionBase += it->velocidad * dt;
+                        it->velocidad *= std::pow(0.18f, dt);
+                        it->velocidadAltura -= 120.0f * dt;
+                        it->altura += it->velocidadAltura * dt;
+
+                        if (it->altura <= 0.0f) {
+                            it->altura = 0.0f;
+                            if (it->rebotesRestantes > 0) {
+                                it->velocidadAltura = 17.0f + 7.0f * static_cast<float>(it->rebotesRestantes);
+                                it->velocidad *= 0.55f;
+                                --it->rebotesRestantes;
+                            } else {
+                                it->velocidad = {0.0f, 0.0f};
+                                it->velocidadAltura = 0.0f;
+                            }
+                        }
+                    }
+
+                    float flote = std::sin(it->tiempo * 3.0f) * 2.6f;
+                    it->escala = 1.0f;
+                    it->giroY = 0.35f + 0.65f * std::abs(std::cos(it->tiempo * 2.4f));
+                    it->posicion = it->posicionBase + sf::Vector2f(0.0f, -it->altura + flote);
+                }
+
+                if (it->absorbiendo && !inventarioGrid.puedeAgregarItem(it->item, it->cantidad)) {
+                    it->absorbiendo = false;
+                    it->escala = 1.0f;
+                }
+
+                ++it;
             }
         }
 
@@ -1743,6 +2033,7 @@ inline void Juego::ejecutar() {
         bool mostrandoBarraArbol = false;
         float progresoArbol = 0.0f;
         bool mapaEnSegundaMano = inventarioGrid.getItemSegundaMano() == ItemId::MapaInicial;
+        bool selectorBloqueEnRango = false;
 
         if (mapaEnSegundaMano && !mapaInicialGenerado) {
             generarMapaInicial();
@@ -1753,6 +2044,9 @@ inline void Juego::ejecutar() {
             bloqueJugadorX = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO));
             bloqueJugadorY = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
             jugadorSobreEntradaMina = mapaSuperficie->getTipoBloque(bloqueJugadorX, bloqueJugadorY) == TipoBloque::CuevaEntrada;
+            sf::Vector2f centroBloqueMouse((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+            sf::Vector2f deltaMouse = centroBloqueMouse - centroJugador;
+            selectorBloqueEnRango = std::sqrt(deltaMouse.x * deltaMouse.x + deltaMouse.y * deltaMouse.y) <= 115.0f;
 
             if (jugadorSobreEntradaMina) {
                 ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
@@ -1954,9 +2248,10 @@ inline void Juego::ejecutar() {
                             );
 
                             if (arbolCayo) {
-                                inventarioGrid.agregarItem(ItemId::BloqueTronco, troncosObtenidos);
+                                sf::Vector2f posDrop((bloqueX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+                                itemsSuelo.push_back({ItemId::BloqueTronco, troncosObtenidos, posDrop});
                                 if (soltoSemilla) {
-                                    inventarioGrid.agregarItem(ItemId::SemillaArbol, 1);
+                                    itemsSuelo.push_back({ItemId::SemillaArbol, 1, posDrop + sf::Vector2f(8.0f, -5.0f)});
                                 }
                             }
                             tipoActual = TipoBloque::Aire;
@@ -1976,7 +2271,8 @@ inline void Juego::ejecutar() {
                             if (destruido) {
                                 jugador->agregarAgotamiento(0.005f);
                                 if (herramientas.puedeRecolectar(tipoActual, itemEnMano)) {
-                                    inventarioGrid.agregarItem(itemDesdeBloque(tipoActual), 1);
+                                    sf::Vector2f posDrop((bloqueX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+                                    itemsSuelo.push_back({itemDesdeBloque(tipoActual), 1, posDrop});
                                 }
                             }
                         }
@@ -2004,6 +2300,12 @@ inline void Juego::ejecutar() {
 
         ventana.setView(camara);
         if (mapaSuperficie) mapaSuperficie->dibujar(ventana);
+        if (!uiAbierta && mapaSuperficie &&
+            bloqueMouseX >= 0 && bloqueMouseY >= 0 &&
+            bloqueMouseX < mapaSuperficie->getAncho() &&
+            bloqueMouseY < mapaSuperficie->getAlto()) {
+            dibujarSelectorBloque(ventana, bloqueMouseX, bloqueMouseY, selectorBloqueEnRango, tiempoMenuInicio);
+        }
 
         sf::Vector2f centroVista = camara.getCenter();
         sf::Vector2f tamanoVista = camara.getSize();
@@ -2043,27 +2345,20 @@ inline void Juego::ejecutar() {
                 continue;
             }
 
-            sf::RectangleShape sombra({16.0f, 5.0f});
-            sombra.setOrigin({8.0f, 2.5f});
-            sombra.setPosition({item.posicion.x, item.posicion.y + 9.0f});
+            float escalaItem = std::clamp(item.escala, 0.05f, 1.0f);
+            float giroItem = std::clamp(item.giroY, 0.24f, 1.0f);
+
+            sf::RectangleShape sombra({16.0f * escalaItem * giroItem, 5.0f * escalaItem});
+            sombra.setOrigin({8.0f * escalaItem * giroItem, 2.5f * escalaItem});
+            sombra.setPosition({item.posicionBase.x, item.posicionBase.y + 9.0f});
             sombra.setFillColor(sf::Color(20, 20, 20, 80));
             ventana.draw(sombra);
 
-            if (item.item == ItemId::BloqueTronco) {
-                dibujarTroncoSuelo(ventana, item.posicion);
-            } else {
-                sf::RectangleShape icono({12.0f, 9.0f});
-                icono.setOrigin({6.0f, 4.5f});
-                icono.setPosition(item.posicion);
-                icono.setFillColor(colorItemSuelo(item.item));
-                icono.setOutlineColor(sf::Color(70, 35, 35));
-                icono.setOutlineThickness(1.0f);
-                ventana.draw(icono);
-            }
+            dibujarItemSueloSprite(ventana, item.item, item.posicion, escalaItem, giroItem);
 
             if (item.cantidad > 1) {
-                sf::CircleShape brillo(2.0f);
-                brillo.setPosition({item.posicion.x + 3.0f, item.posicion.y - 4.0f});
+                sf::CircleShape brillo(2.0f * escalaItem);
+                brillo.setPosition({item.posicion.x + 3.0f * escalaItem, item.posicion.y - 4.0f * escalaItem});
                 brillo.setFillColor(sf::Color::White);
                 ventana.draw(brillo);
             }

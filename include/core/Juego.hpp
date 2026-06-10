@@ -14,6 +14,20 @@ struct ItemSuelo {
     ItemId item = ItemId::Ninguno;
     int cantidad = 1;
     sf::Vector2f posicion;
+    sf::Vector2f posicionBase;
+    sf::Vector2f velocidad;
+    float altura = 0.0f;
+    float velocidadAltura = 0.0f;
+    float tiempo = 0.0f;
+    float escala = 1.0f;
+    float giroY = 1.0f;
+    int rebotesRestantes = 2;
+    bool fisicaInicializada = false;
+    bool absorbiendo = false;
+
+    ItemSuelo() = default;
+    ItemSuelo(ItemId item_, int cantidad_, sf::Vector2f posicion_)
+        : item(item_), cantidad(cantidad_), posicion(posicion_), posicionBase(posicion_) {}
 };
 
 class Juego {

@@ -444,15 +444,18 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
         return;
     }
 
-    bool usarAccion = accionando && accionesLista;
+    bool usarAccion = false;
     int fila = 0;
     bool espejarHorizontal = false;
+    bool voltearSprite = false;
     int columna = 0;
     sf::Texture* texturaActiva = &texturaJugador;
+    int anchoFrame = 32;
     int altoFrame = 32;
 
     if (usarAccion) {
         texturaActiva = &texturaAcciones;
+        anchoFrame = 48;
         int fase = std::min(2, static_cast<int>(tiempoAccion / 0.105f));
 
         struct GrupoAccion {
@@ -482,37 +485,56 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
                 columna = 0;
             } else if (fase == 1) {
                 fila = grupo.abajoA;
-                columna = 2;
+                columna = 1;
             } else {
                 fila = grupo.abajoB;
-                columna = 2;
+                columna = 1;
             }
         } else if (direccionMirada == DireccionMirada::Arriba) {
             fila = grupo.arriba;
-            columna = fase == 0 ? 1 : 2;
+            columna = fase == 0 ? 0 : 1;
         } else if (direccionMirada == DireccionMirada::Derecha) {
             fila = grupo.lado;
-            columna = fase == 0 ? 0 : 2;
+            columna = 1;
         } else if (direccionMirada == DireccionMirada::Izquierda) {
             fila = grupo.lado;
-            columna = fase == 0 ? 2 : 0;
+            columna = 0;
         }
     } else {
-        if (direccionMirada == DireccionMirada::Abajo) fila = caminando ? 1 : 0;
-        if (direccionMirada == DireccionMirada::Arriba) fila = caminando ? 5 : 2;
-        if (direccionMirada == DireccionMirada::Derecha) fila = caminando ? 4 : 3;
-        if (direccionMirada == DireccionMirada::Izquierda) {
-            fila = caminando ? 4 : 3;
-            espejarHorizontal = true;
+        switch (direccionMirada) {
+            case DireccionMirada::Abajo:
+                fila = 0;
+                break;
+            case DireccionMirada::Arriba:
+                fila = caminando ? 5 : 2;
+                break;
+            case DireccionMirada::Derecha:
+                fila = 4;
+                break;
+            case DireccionMirada::Izquierda:
+                fila = 4;
+                espejarHorizontal = true;
+                break;
         }
 
-        columna = caminando ? static_cast<int>(tiempoAnimacion * 8.0f) % 6 : 0;
+        if (caminando) {
+            columna = static_cast<int>(tiempoAnimacion * 8.0f) % 6;
+        } else if (direccionMirada == DireccionMirada::Izquierda ||
+                   direccionMirada == DireccionMirada::Derecha) {
+            columna = 5;
+        } else {
+            columna = 0;
+        }
     }
 
     if (espejarHorizontal) {
-        texturaActiva = usarAccion ? &texturaAccionesEspejada : &texturaJugadorEspejada;
-        int columnasTotales = usarAccion ? 3 : 6;
-        columna = columnasTotales - 1 - columna;
+        if (usarAccion) {
+            texturaActiva = &texturaAccionesEspejada;
+            int columnasTotales = 3;
+            columna = columnasTotales - 1 - columna;
+        } else {
+            voltearSprite = true;
+        }
     }
 
     int altoVisible = altoFrame;
@@ -523,10 +545,10 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     }
 
     sf::Sprite sprite(*texturaActiva);
-    sprite.setTextureRect(sf::IntRect({columna * 32, fila * 32}, {32, altoVisible}));
-    sprite.setOrigin({16.0f, 30.0f});
+    sprite.setTextureRect(sf::IntRect({columna * anchoFrame, fila * 32}, {anchoFrame, altoVisible}));
+    sprite.setOrigin({usarAccion ? 24.0f : 16.0f, 30.0f});
     sprite.setPosition({posicion.x + 12.0f, posicion.y + 26.0f + hundimientoVisual});
-    sprite.setScale({1.2f, 1.2f});
+    sprite.setScale({voltearSprite ? -1.2f : 1.2f, 1.2f});
     if (hundido) {
         float alpha = std::max(45.0f, 255.0f - tiempoHundimiento * 90.0f);
         sprite.setColor(sf::Color(185, 220, 255, static_cast<std::uint8_t>(alpha)));

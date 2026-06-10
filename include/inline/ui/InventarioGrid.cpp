@@ -249,80 +249,75 @@ inline void dibujarBloqueSprite(sf::RenderWindow& ventana, sf::Vector2f origen, 
 }
 
 inline void dibujarTroncoCortadoSprite(sf::RenderWindow& ventana, sf::Vector2f origen, float escala) {
-    sf::Color borde(22, 14, 12);
-    sf::Color sombra(62, 36, 27);
-    sf::Color corte(178, 128, 77);
-    sf::Color corteOscuro(113, 75, 46);
-    sf::Color corteLuz(218, 166, 96);
-    sf::Color madera(112, 68, 48);
-    sf::Color maderaLuz(150, 95, 66);
-    sf::Color maderaOscura(68, 40, 34);
-    sf::Color cuerda(194, 148, 88);
-    sf::Color cuerdaSombra(118, 82, 48);
+    const sf::Color borde(25, 16, 12);
+    const sf::Color corte(181, 126, 72);
+    const sf::Color corteLuz(228, 170, 96);
+    const sf::Color anillo(111, 73, 45);
+    const sf::Color madera(112, 66, 44);
+    const sf::Color maderaLuz(158, 96, 62);
+    const sf::Color maderaOscura(62, 36, 28);
+    const sf::Color cuerda(201, 153, 91);
+    const sf::Color cuerdaSombra(116, 79, 45);
 
-    auto troncoHorizontal = [&](int x, int y, int largo) {
-        for (int py = y; py < y + 5; ++py) {
-            for (int px = x + 2; px < x + largo; ++px) {
-                pixel(ventana, origen, px, py, madera, escala);
-            }
-        }
-        for (int px = x + 2; px < x + largo; ++px) {
-            pixel(ventana, origen, px, y, borde, escala);
-            pixel(ventana, origen, px, y + 4, borde, escala);
-        }
-        for (int py = y; py < y + 5; ++py) {
-            pixel(ventana, origen, x + largo, py, borde, escala);
-            pixel(ventana, origen, x + largo - 1, py, maderaOscura, escala);
-        }
-
-        pixel(ventana, origen, x + 4, y + 1, maderaLuz, escala);
-        pixel(ventana, origen, x + 5, y + 1, maderaLuz, escala);
-        pixel(ventana, origen, x + 7, y + 2, maderaOscura, escala);
-        pixel(ventana, origen, x + 8, y + 2, maderaOscura, escala);
-        pixel(ventana, origen, x + 5, y + 3, maderaOscura, escala);
-        pixel(ventana, origen, x + 10, y + 1, maderaLuz, escala);
+    auto pos = [&](float x, float y) {
+        return sf::Vector2f(origen.x + x * escala, origen.y + y * escala);
     };
 
-    auto corteCircular = [&](int cx, int cy) {
-        pixel(ventana, origen, cx - 2, cy - 1, borde, escala);
-        pixel(ventana, origen, cx - 1, cy - 2, borde, escala);
-        pixel(ventana, origen, cx, cy - 2, borde, escala);
-        pixel(ventana, origen, cx + 1, cy - 1, borde, escala);
-        pixel(ventana, origen, cx + 1, cy, borde, escala);
-        pixel(ventana, origen, cx, cy + 1, borde, escala);
-        pixel(ventana, origen, cx - 1, cy + 1, borde, escala);
-        pixel(ventana, origen, cx - 2, cy, borde, escala);
-
-        pixel(ventana, origen, cx - 1, cy - 1, corte, escala);
-        pixel(ventana, origen, cx, cy - 1, corteLuz, escala);
-        pixel(ventana, origen, cx - 1, cy, corte, escala);
-        pixel(ventana, origen, cx, cy, corteOscuro, escala);
-        pixel(ventana, origen, cx - 1, cy + 1, corteOscuro, escala);
-
-        pixel(ventana, origen, cx - 1, cy, corteOscuro, escala);
-        pixel(ventana, origen, cx, cy, corteLuz, escala);
-        pixel(ventana, origen, cx, cy - 1, corteOscuro, escala);
+    auto rect = [&](float x, float y, float w, float h, sf::Color fill, sf::Color outline = sf::Color::Transparent, float outlineSize = 0.0f) {
+        sf::RectangleShape forma({w * escala, h * escala});
+        forma.setPosition(pos(x, y));
+        forma.setFillColor(fill);
+        forma.setOutlineColor(outline);
+        forma.setOutlineThickness(outlineSize * escala);
+        ventana.draw(forma);
     };
 
-    sf::RectangleShape sombraSuelo({12.0f * escala, 3.0f * escala});
-    sombraSuelo.setPosition({origen.x + 2.0f * escala, origen.y + 12.0f * escala});
-    sombraSuelo.setFillColor(sf::Color(0, 0, 0, 55));
-    ventana.draw(sombraSuelo);
+    auto circulo = [&](float cx, float cy, float radio, sf::Color fill, sf::Color outline = sf::Color::Transparent, float outlineSize = 0.0f) {
+        sf::CircleShape forma(radio * escala, 28);
+        forma.setOrigin({radio * escala, radio * escala});
+        forma.setPosition(pos(cx, cy));
+        forma.setFillColor(fill);
+        forma.setOutlineColor(outline);
+        forma.setOutlineThickness(outlineSize * escala);
+        ventana.draw(forma);
+    };
 
-    troncoHorizontal(2, 3, 11);
-    troncoHorizontal(4, 8, 10);
-    corteCircular(3, 5);
-    corteCircular(5, 10);
-    corteCircular(9, 11);
+    auto veta = [&](float x, float y, float w, sf::Color color) {
+        sf::RectangleShape linea({w * escala, 0.55f * escala});
+        linea.setPosition(pos(x, y));
+        linea.setFillColor(color);
+        ventana.draw(linea);
+    };
 
-    for (int y = 3; y <= 12; ++y) {
-        pixel(ventana, origen, 11, y, (y % 2 == 0) ? cuerda : cuerdaSombra, escala);
-    }
-    for (int y = 4; y <= 10; ++y) {
-        pixel(ventana, origen, 12, y, cuerda, escala);
-    }
-    pixel(ventana, origen, 13, 8, cuerdaSombra, escala);
-    pixel(ventana, origen, 13, 9, cuerda, escala);
+    auto tronco = [&](float x, float y, float largo, float alto) {
+        float radio = alto * 0.5f;
+        rect(x + radio, y, largo - radio, alto, madera, borde, 0.28f);
+        rect(x + largo - 1.3f, y + 0.55f, 1.3f, alto - 1.1f, maderaOscura);
+        veta(x + radio + 1.0f, y + 1.05f, largo - radio - 3.0f, maderaLuz);
+        veta(x + radio + 2.6f, y + alto * 0.52f, largo - radio - 4.5f, maderaOscura);
+        veta(x + radio + 0.7f, y + alto - 1.25f, largo - radio - 3.8f, maderaOscura);
+
+        circulo(x + radio, y + radio, radio, corte, borde, 0.32f);
+        circulo(x + radio, y + radio, radio * 0.56f, sf::Color::Transparent, anillo, 0.28f);
+        circulo(x + radio, y + radio, radio * 0.22f, sf::Color::Transparent, anillo, 0.22f);
+        circulo(x + radio - radio * 0.28f, y + radio - radio * 0.30f, radio * 0.18f, corteLuz);
+    };
+
+    sf::CircleShape sombra(7.1f * escala, 30);
+    sombra.setScale({1.0f, 0.28f});
+    sombra.setOrigin({7.1f * escala, 7.1f * escala});
+    sombra.setPosition(pos(8.0f, 13.2f));
+    sombra.setFillColor(sf::Color(0, 0, 0, 58));
+    ventana.draw(sombra);
+
+    tronco(3.0f, 2.4f, 10.4f, 4.4f);
+    tronco(2.0f, 7.7f, 9.2f, 4.7f);
+    tronco(6.0f, 8.9f, 7.8f, 4.0f);
+
+    rect(10.4f, 2.6f, 0.85f, 10.6f, cuerdaSombra);
+    rect(11.15f, 2.8f, 0.85f, 10.1f, cuerda);
+    rect(10.0f, 7.2f, 2.35f, 0.65f, cuerda);
+    rect(10.1f, 8.0f, 2.0f, 0.55f, cuerdaSombra);
 }
 
 inline void dibujarHerramientaSprite(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala) {
@@ -407,9 +402,6 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
             lineaPixel(ventana, origen, 6, 13, 12, 3, sf::Color(100, 62, 28), escala);
             return;
         case ItemId::BloqueTronco:
-            if (dibujarTexturaItem(ventana, "assets/items/log_bundle.png", {origen.x + 8.0f * escala, origen.y + 8.0f * escala}, 15.0f * escala)) {
-                return;
-            }
             dibujarTroncoCortadoSprite(ventana, origen, escala);
             return;
         case ItemId::MapaInicial:
@@ -611,23 +603,56 @@ inline void InventarioGrid::agregarItem(ItemId item, int cantidad) {
     if (esItemVacio(item) || cantidad <= 0) return;
 
     int restante = cantidad;
-    for (int i = 0; i < INDICE_CRAFTEO && restante > 0; ++i) {
-        if (slots[i].item == item && slots[i].cantidad < maxStack(item)) {
-            int espacio = maxStack(item) - slots[i].cantidad;
-            int mover = std::min(espacio, restante);
-            slots[i].cantidad += mover;
-            restante -= mover;
-        }
-    }
 
-    for (int i = 0; i < INDICE_CRAFTEO && restante > 0; ++i) {
-        if (esItemVacio(slots[i].item)) {
-            int mover = std::min(maxStack(item), restante);
-            slots[i].item = item;
-            slots[i].cantidad = mover;
-            restante -= mover;
+    auto apilarEnRango = [&](int inicio, int fin) {
+        for (int i = inicio; i < fin && restante > 0; ++i) {
+            if (slots[i].item == item && slots[i].cantidad < maxStack(item)) {
+                int espacio = maxStack(item) - slots[i].cantidad;
+                int mover = std::min(espacio, restante);
+                slots[i].cantidad += mover;
+                restante -= mover;
+            }
         }
-    }
+    };
+
+    auto ocuparVaciosEnRango = [&](int inicio, int fin) {
+        for (int i = inicio; i < fin && restante > 0; ++i) {
+            if (esItemVacio(slots[i].item)) {
+                int mover = std::min(maxStack(item), restante);
+                slots[i].item = item;
+                slots[i].cantidad = mover;
+                restante -= mover;
+            }
+        }
+    };
+
+    apilarEnRango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR);
+    apilarEnRango(0, SLOTS_INVENTARIO_PRINCIPAL);
+    ocuparVaciosEnRango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR);
+    ocuparVaciosEnRango(0, SLOTS_INVENTARIO_PRINCIPAL);
+}
+
+inline bool InventarioGrid::puedeAgregarItem(ItemId item, int cantidad) const {
+    if (esItemVacio(item) || cantidad <= 0) return false;
+
+    int restante = cantidad;
+    auto revisarRango = [&](int inicio, int fin, bool soloStacks) {
+        for (int i = inicio; i < fin && restante > 0; ++i) {
+            if (soloStacks) {
+                if (slots[i].item == item && slots[i].cantidad < maxStack(item)) {
+                    restante -= std::min(maxStack(item) - slots[i].cantidad, restante);
+                }
+            } else if (esItemVacio(slots[i].item)) {
+                restante -= std::min(maxStack(item), restante);
+            }
+        }
+    };
+
+    revisarRango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR, true);
+    revisarRango(0, SLOTS_INVENTARIO_PRINCIPAL, true);
+    revisarRango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR, false);
+    revisarRango(0, SLOTS_INVENTARIO_PRINCIPAL, false);
+    return restante <= 0;
 }
 
 inline void InventarioGrid::agregarItem(TipoBloque bloque, int cantidad) {
