@@ -453,27 +453,50 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
 
     if (usarAccion) {
         texturaActiva = &texturaAcciones;
-        columna = std::min(2, static_cast<int>(tiempoAccion / 0.11f));
+        int fase = std::min(2, static_cast<int>(tiempoAccion / 0.105f));
 
-        bool esHerramientaTrabajo = itemAccion == ItemId::PicoMadera ||
-                                    itemAccion == ItemId::PicoPiedra ||
-                                    itemAccion == ItemId::PicoDiamante ||
-                                    itemAccion == ItemId::HachaMadera ||
-                                    itemAccion == ItemId::HachaPiedra ||
-                                    itemAccion == ItemId::PalaMadera ||
-                                    itemAccion == ItemId::PalaPiedra ||
-                                    itemAccion == ItemId::Barreta;
-        int baseAccion = esHerramientaTrabajo ? 0 : 6;
+        struct GrupoAccion {
+            int lado;
+            int abajoA;
+            int abajoB;
+            int arriba;
+        };
 
-        if (direccionMirada == DireccionMirada::Abajo) fila = baseAccion + 0;
-        if (direccionMirada == DireccionMirada::Izquierda) {
-            fila = baseAccion + 1;
-            espejarHorizontal = true;
+        GrupoAccion grupo{5, 6, 7, 8};
+        if (itemAccion == ItemId::PicoMadera ||
+            itemAccion == ItemId::PicoPiedra ||
+            itemAccion == ItemId::PicoDiamante ||
+            itemAccion == ItemId::Barreta) {
+            grupo = {0, 1, 2, 3};
+        } else if (itemAccion == ItemId::PalaMadera ||
+                   itemAccion == ItemId::PalaPiedra) {
+            grupo = {9, 10, 11, 12};
+        } else if (itemAccion == ItemId::HachaMadera ||
+                   itemAccion == ItemId::HachaPiedra) {
+            grupo = {5, 6, 7, 8};
         }
-        if (direccionMirada == DireccionMirada::Derecha) {
-            fila = baseAccion + 1;
+
+        if (direccionMirada == DireccionMirada::Abajo) {
+            if (fase == 0) {
+                fila = grupo.abajoA;
+                columna = 0;
+            } else if (fase == 1) {
+                fila = grupo.abajoA;
+                columna = 2;
+            } else {
+                fila = grupo.abajoB;
+                columna = 2;
+            }
+        } else if (direccionMirada == DireccionMirada::Arriba) {
+            fila = grupo.arriba;
+            columna = fase == 0 ? 1 : 2;
+        } else if (direccionMirada == DireccionMirada::Derecha) {
+            fila = grupo.lado;
+            columna = fase == 0 ? 0 : 2;
+        } else if (direccionMirada == DireccionMirada::Izquierda) {
+            fila = grupo.lado;
+            columna = fase == 0 ? 2 : 0;
         }
-        if (direccionMirada == DireccionMirada::Arriba) fila = baseAccion + 2;
     } else {
         if (direccionMirada == DireccionMirada::Abajo) fila = caminando ? 1 : 0;
         if (direccionMirada == DireccionMirada::Arriba) fila = caminando ? 5 : 2;
