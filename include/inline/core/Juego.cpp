@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <random>
 #include <sstream>
 #include <cmath>
@@ -6,8 +6,8 @@
 #include <vector>
 #include <string>
 #include <SFML/Audio.hpp>
-#include "SistemaHerramientas.hpp"
-#include "InventarioGrid.hpp"
+#include "../../sistemas/SistemaHerramientas.hpp"
+#include "../../ui/InventarioGrid.hpp"
 
 namespace {
 constexpr float TICKS_POR_SEGUNDO_MUNDO = 216.67f;

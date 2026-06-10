@@ -1,5 +1,5 @@
-#include "Mundo.hpp"
-#include "Jugador.hpp"
+#include "../../core/Mundo.hpp"
+#include "../../entidades/Jugador.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

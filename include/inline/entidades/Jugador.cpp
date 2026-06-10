@@ -1,4 +1,4 @@
-﻿#include "Mundo.hpp"
+#include "../../core/Mundo.hpp"
 #include <cmath>
 #include <algorithm>
 #include <cstdint>
@@ -7,7 +7,7 @@ namespace {
 constexpr float MULTIPLICADOR_VELOCIDAD_JUGADOR = 1.75f;
 }
 
-// Constructor: Recibe la posiciÃ³n aleatoria de spawn
+// Constructor: Recibe la posición aleatoria de spawn
 inline Jugador::Jugador(float x, float y) {
     posicion = {x, y};
     velocidad = 4.317f * TAMANIO_BLOQUE_JUEGO * MULTIPLICADOR_VELOCIDAD_JUGADOR;
@@ -35,7 +35,7 @@ inline Jugador::Jugador(float x, float y) {
     corriendo = false;
     agachado = false;
 
-    // TamaÃ±o del personaje: 24x24 pÃ­xeles (cabe perfectamente dentro de un bloque de 32x32)
+    // Tamaño del personaje: 24x24 píxeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
     forma.setFillColor(sf::Color::Red); // Cuadro rojo identificador
     forma.setPosition(posicion);
@@ -185,7 +185,7 @@ inline void Jugador::actualizarNutricion(float dt) {
     }
 }
 
-// MÃ©todo para mover al personaje detectando colisiones sÃ³lidas con el terreno
+// Método para mover al personaje detectando colisiones sólidas con el terreno
 inline void Jugador::controlar(float dt, const Mundo& mundo) {
     tiempoDesdeAtaque = std::min(10.0f, tiempoDesdeAtaque + dt);
     actualizarNutricion(dt);
@@ -247,7 +247,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     bool agachadoPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) ||
                               sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift);
 
-    // DetecciÃ³n de teclas (WASD y Flechas)
+    // Detección de teclas (WASD y Flechas)
     if (arribaPresionado) {
         direccion.y -= 1.0f;
     }
@@ -261,7 +261,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
         direccion.x += 1.0f;
     }
 
-    // Si no hay teclas presionadas, no hacemos cÃ¡lculos
+    // Si no hay teclas presionadas, no hacemos cálculos
     if (direccion.x == 0.0f && direccion.y == 0.0f) {
         caminando = false;
         corriendo = false;
@@ -282,7 +282,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
         direccionMirada = direccion.y > 0.0f ? DireccionMirada::Abajo : DireccionMirada::Arriba;
     }
 
-    // Normalizamos el vector de direcciÃ³n para evitar que camine mÃ¡s rÃ¡pido en diagonal
+    // Normalizamos el vector de dirección para evitar que camine más rápido en diagonal
     float longitud = std::sqrt(direccion.x * direccion.x + direccion.y * direccion.y);
     direccion /= longitud;
     float velocidadActual = velocidad;
@@ -322,7 +322,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
         if (direccion.x > 0.0f && mundo.esBloqueSolido(bloqueDer, y)) colisionX = true;
     }
 
-    // Si no hay colisiÃ³n, aceptamos el movimiento en X
+    // Si no hay colisión, aceptamos el movimiento en X
     if (!colisionX) {
         posicion.x = nuevaPosicionX.x;
     }
@@ -344,12 +344,12 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
         if (direccion.y > 0.0f && mundo.esBloqueSolido(x, bloqueAbajo)) colisionY = true;
     }
 
-    // Si no hay colisiÃ³n, aceptamos el movimiento en Y
+    // Si no hay colisión, aceptamos el movimiento en Y
     if (!colisionY) {
         posicion.y = nuevaPosicionY.y;
     }
 
-    // Aplicamos la posiciÃ³n final validada a la figura del jugador
+    // Aplicamos la posición final validada a la figura del jugador
     forma.setPosition(posicion);
 
     if (corriendo) {
@@ -359,7 +359,7 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     }
 }
 
-// MÃ©todo para pintar al jugador encima del mundo
+// Método para pintar al jugador encima del mundo
 inline void Jugador::dibujar(sf::RenderWindow& ventana) {
     dibujarSpriteJugador(ventana);
 }

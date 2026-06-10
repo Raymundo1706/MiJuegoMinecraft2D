@@ -1,5 +1,5 @@
-﻿#include "Mundo.hpp"
-#include "Item.hpp"
+#include "../../core/Mundo.hpp"
+#include "../../core/Item.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <random>
@@ -232,7 +232,7 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
     float factorAgua = enAgua ? 0.33f : 1.0f;
     sf::Vector2f velocidadMovimiento = velocidad * factorAgua;
 
-    // --- COLISIÃ“N EN EJE X ---
+    // --- COLISIÓN EN EJE X ---
     posicion.x += velocidadMovimiento.x * dt;
     
     int blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
@@ -240,19 +240,19 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
     int blqArribaY = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
     int blqAbajoY = static_cast<int>((posicion.y + altoAnimal - 1.0f) / TAMANIO_BLOQUE);
 
-    if (velocidadMovimiento.x > 0) { // MoviÃ©ndose a la derecha
+    if (velocidadMovimiento.x > 0) { // Moviéndose a la derecha
         if (mundo.esBloqueSolido(blqDer, blqArribaY) || mundo.esBloqueSolido(blqDer, blqAbajoY)) {
             posicion.x = blqDer * TAMANIO_BLOQUE - anchoAnimal - 0.1f;
             elegirNuevaDireccion(); // Cambia de rumbo si choca
         }
-    } else if (velocidadMovimiento.x < 0) { // MoviÃ©ndose a la izquierda
+    } else if (velocidadMovimiento.x < 0) { // Moviéndose a la izquierda
         if (mundo.esBloqueSolido(blqIzq, blqArribaY) || mundo.esBloqueSolido(blqIzq, blqAbajoY)) {
             posicion.x = (blqIzq + 1) * TAMANIO_BLOQUE + 0.1f;
             elegirNuevaDireccion();
         }
     }
 
-    // --- COLISIÃ“N EN EJE Y ---
+    // --- COLISIÓN EN EJE Y ---
     posicion.y += velocidadMovimiento.y * dt;
     
     blqIzq = static_cast<int>(posicion.x / TAMANIO_BLOQUE);
@@ -260,12 +260,12 @@ inline void Animal::actualizar(float dt, const Mundo& mundo, sf::Vector2f posici
     int blqArriba = static_cast<int>(posicion.y / TAMANIO_BLOQUE);
     int blqAbajo = static_cast<int>((posicion.y + altoAnimal - 1.0f) / TAMANIO_BLOQUE);
 
-    if (velocidadMovimiento.y > 0) { // MoviÃ©ndose hacia abajo
+    if (velocidadMovimiento.y > 0) { // Moviéndose hacia abajo
         if (mundo.esBloqueSolido(blqIzq, blqAbajo) || mundo.esBloqueSolido(blqDer, blqAbajo)) {
             posicion.y = blqAbajo * TAMANIO_BLOQUE - altoAnimal - 0.1f;
             elegirNuevaDireccion();
         }
-    } else if (velocidadMovimiento.y < 0) { // MoviÃ©ndose hacia arriba
+    } else if (velocidadMovimiento.y < 0) { // Moviéndose hacia arriba
         if (mundo.esBloqueSolido(blqIzq, blqArriba) || mundo.esBloqueSolido(blqDer, blqArriba)) {
             posicion.y = (blqArriba + 1) * TAMANIO_BLOQUE + 0.1f;
             elegirNuevaDireccion();
