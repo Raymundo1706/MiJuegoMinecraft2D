@@ -1,6 +1,7 @@
-﻿#include <algorithm>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <random>
 
@@ -650,9 +651,17 @@ inline Bloque crearBloqueRevelado(TipoBioma bioma) {
     }
     return {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
 }
+
+inline unsigned int semillaAleatoriaMundo() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    return gen();
+}
 }
 
-inline Mundo::Mundo(int ancho, int alto) : ancho(ancho), alto(alto) {
+inline Mundo::Mundo(int ancho, int alto) : Mundo(ancho, alto, semillaAleatoriaMundo()) {}
+
+inline Mundo::Mundo(int ancho, int alto, unsigned int semilla) : ancho(ancho), alto(alto), semillaBase(semilla) {
     cuadricula.resize(alto);
     for (int i = 0; i < alto; ++i) {
         cuadricula[i].resize(ancho);
@@ -666,9 +675,8 @@ inline Mundo::~Mundo() {}
 
 inline void Mundo::generarMundo(bool esSubterraneo) {
     const int MARGEN_OCEANO = 15;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    unsigned int semillaBiomas = gen();
+    std::mt19937 gen(semillaBase + (esSubterraneo ? 50021u : 0u));
+    unsigned int semillaBiomas = semillaBase;
 
     for (int y = 0; y < alto; ++y) {
         for (int x = 0; x < ancho; ++x) {
@@ -1345,5 +1353,94 @@ inline int Mundo::getAncho() const {
 
 inline int Mundo::getAlto() const {
     return alto;
+}
+
+inline unsigned int Mundo::getSemilla() const {
+    return semillaBase;
+}
+
+inline bool Mundo::guardarEstado(const std::string& ruta) const {
+    std::ofstream out(ruta, std::ios::binary);
+    if (!out) {
+        return false;
+    }
+
+    const char firma[4] = {'M', '2', 'D', 'W'};
+    int version = 1;
+    out.write(firma, sizeof(firma));
+    out.write(reinterpret_cast<const char*>(&version), sizeof(version));
+    out.write(reinterpret_cast<const char*>(&ancho), sizeof(ancho));
+    out.write(reinterpret_cast<const char*>(&alto), sizeof(alto));
+    out.write(reinterpret_cast<const char*>(&semillaBase), sizeof(semillaBase));
+
+    for (int y = 0; y < alto; ++y) {
+        for (int x = 0; x < ancho; ++x) {
+            const Bloque& b = cuadricula[y][x];
+            int tipo = static_cast<int>(b.tipo);
+            int bioma = static_cast<int>(b.bioma);
+            out.write(reinterpret_cast<const char*>(&tipo), sizeof(tipo));
+            out.write(reinterpret_cast<const char*>(&b.esSolido), sizeof(b.esSolido));
+            out.write(reinterpret_cast<const char*>(&b.vida), sizeof(b.vida));
+            out.write(reinterpret_cast<const char*>(&b.estaHidratado), sizeof(b.estaHidratado));
+            out.write(reinterpret_cast<const char*>(&b.tiempoMinaRestante), sizeof(b.tiempoMinaRestante));
+            out.write(reinterpret_cast<const char*>(&b.minaAbierta), sizeof(b.minaAbierta));
+            out.write(reinterpret_cast<const char*>(&b.troncosAlTalar), sizeof(b.troncosAlTalar));
+            out.write(reinterpret_cast<const char*>(&b.vidaMaxima), sizeof(b.vidaMaxima));
+            out.write(reinterpret_cast<const char*>(&bioma), sizeof(bioma));
+            out.write(reinterpret_cast<const char*>(&b.varianteArbol), sizeof(b.varianteArbol));
+        }
+    }
+
+    return static_cast<bool>(out);
+}
+
+inline bool Mundo::cargarEstado(const std::string& ruta) {
+    std::ifstream in(ruta, std::ios::binary);
+    if (!in) {
+        return false;
+    }
+
+    char firma[4] = {};
+    int version = 0;
+    int anchoArchivo = 0;
+    int altoArchivo = 0;
+    unsigned int semillaArchivo = 0;
+    in.read(firma, sizeof(firma));
+    in.read(reinterpret_cast<char*>(&version), sizeof(version));
+    in.read(reinterpret_cast<char*>(&anchoArchivo), sizeof(anchoArchivo));
+    in.read(reinterpret_cast<char*>(&altoArchivo), sizeof(altoArchivo));
+    in.read(reinterpret_cast<char*>(&semillaArchivo), sizeof(semillaArchivo));
+
+    if (!in || firma[0] != 'M' || firma[1] != '2' || firma[2] != 'D' || firma[3] != 'W' ||
+        version != 1 || anchoArchivo != ancho || altoArchivo != alto) {
+        return false;
+    }
+
+    semillaBase = semillaArchivo;
+    for (int y = 0; y < alto; ++y) {
+        for (int x = 0; x < ancho; ++x) {
+            Bloque b;
+            int tipo = 0;
+            int bioma = 0;
+            in.read(reinterpret_cast<char*>(&tipo), sizeof(tipo));
+            in.read(reinterpret_cast<char*>(&b.esSolido), sizeof(b.esSolido));
+            in.read(reinterpret_cast<char*>(&b.vida), sizeof(b.vida));
+            in.read(reinterpret_cast<char*>(&b.estaHidratado), sizeof(b.estaHidratado));
+            in.read(reinterpret_cast<char*>(&b.tiempoMinaRestante), sizeof(b.tiempoMinaRestante));
+            in.read(reinterpret_cast<char*>(&b.minaAbierta), sizeof(b.minaAbierta));
+            in.read(reinterpret_cast<char*>(&b.troncosAlTalar), sizeof(b.troncosAlTalar));
+            in.read(reinterpret_cast<char*>(&b.vidaMaxima), sizeof(b.vidaMaxima));
+            in.read(reinterpret_cast<char*>(&bioma), sizeof(bioma));
+            in.read(reinterpret_cast<char*>(&b.varianteArbol), sizeof(b.varianteArbol));
+            if (!in) {
+                return false;
+            }
+            b.tipo = static_cast<TipoBloque>(tipo);
+            b.bioma = static_cast<TipoBioma>(bioma);
+            cuadricula[y][x] = b;
+        }
+    }
+
+    return true;
 }
 
