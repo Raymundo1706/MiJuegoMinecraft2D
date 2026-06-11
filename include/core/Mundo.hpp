@@ -61,13 +61,14 @@ public:
 
     void generarMundo(bool esSubterraneo);
     void dibujar(sf::RenderWindow& ventana);
-    void dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY);
+    void dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY, sf::Vector2f posicionJugador = {-99999.0f, -99999.0f});
 
     bool esBloqueSolido(int x, int y) const;
     bool puedeColocarBloque(int x, int y) const;
     bool colocarBloque(int x, int y, TipoBloque tipo);
     bool ararTierra(int x, int y);
     bool crearEntradaMina(int x, int y);
+    void crearZonaEntradaSubterranea(int x, int y);
     bool talarArbol(int x, int y, float segundosTrabajo, int& troncosObtenidos, bool& soltoSemilla);
     float getProgresoTala(int x, int y) const;
     bool picarEntradaMina(int x, int y, float segundosTrabajo);

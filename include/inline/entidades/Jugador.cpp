@@ -578,6 +578,15 @@ inline sf::Vector2f Jugador::getPosicion() const {
     return posicion;
 }
 
+inline void Jugador::setPosicion(sf::Vector2f nuevaPosicion) {
+    posicion = nuevaPosicion;
+    forma.setPosition(posicion);
+    enAgua = false;
+    hundido = false;
+    tiempoEnAgua = 0.0f;
+    tiempoHundimiento = 0.0f;
+}
+
 inline bool Jugador::estaEnAgua() const {
     return enAgua;
 }

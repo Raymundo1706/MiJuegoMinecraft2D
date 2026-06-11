@@ -1578,6 +1578,7 @@ inline void dibujarPausaConfirmarSalida(sf::RenderWindow& ventana, sf::Font& fue
         dibujarBotonRect(ventana, fuente, rectPausa(i, 244.0f), opciones[i], hover == i, 16);
     }
 }
+
 }
 
 inline Juego::Juego()
@@ -1586,7 +1587,9 @@ inline Juego::Juego()
       fuenteCargada(false),
       worldTime(0.0f),
       skyLight(15),
-      spawnHostilesHabilitado(false) {
+      spawnHostilesHabilitado(false),
+      enSubsuelo(false),
+      posicionEntradaSuperficie(0.0f, 0.0f) {
     mapaSuperficie = std::make_unique<Mundo>(1000, 1000);
 
     std::random_device rd;
@@ -1830,9 +1833,10 @@ inline void Juego::ejecutar() {
         if (!hayMundoActivo || !mapaSuperficie) {
             return;
         }
+        Mundo* mundoParaGuardar = (enSubsuelo && mapaExterior) ? mapaExterior.get() : mapaSuperficie.get();
         mundoActivo.ultimaVez = fechaActualTexto();
         guardarMetaMundo(mundoActivo);
-        mapaSuperficie->guardarEstado(rutaBloquesMundo(mundoActivo.carpeta).string());
+        mundoParaGuardar->guardarEstado(rutaBloquesMundo(mundoActivo.carpeta).string());
         {
             std::ofstream inv(rutaInventarioMundo(mundoActivo.carpeta));
             const auto& slots = inventarioGrid.getSlots();
@@ -1842,7 +1846,7 @@ inline void Juego::ejecutar() {
         }
         if (jugador) {
             std::ofstream pj(rutaJugadorMundo(mundoActivo.carpeta));
-            sf::Vector2f pos = jugador->getPosicion();
+            sf::Vector2f pos = enSubsuelo ? posicionEntradaSuperficie : jugador->getPosicion();
             pj << pos.x << ' ' << pos.y << '\n';
         }
         mundosGuardados = escanearMundosGuardados();
@@ -1854,6 +1858,9 @@ inline void Juego::ejecutar() {
         for (auto* zombie : zombis) delete zombie;
         zombis.clear();
         itemsSuelo.clear();
+        mapaExterior.reset();
+        enSubsuelo = false;
+        posicionEntradaSuperficie = {0.0f, 0.0f};
 
         mapaSuperficie = std::make_unique<Mundo>(1000, 1000, mundo.semilla);
         if (cargarBloques) {
@@ -2078,6 +2085,49 @@ inline void Juego::ejecutar() {
         iniciarPartidaDesdeMenu();
     };
 
+    auto entrarSubsuelo = [&]() {
+        if (!jugador || !mapaSuperficie || enSubsuelo) return;
+
+        sf::Vector2f posJugador = jugador->getPosicion();
+        sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
+        int bx = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO));
+        int by = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
+        if (!mapaSuperficie->esMinaAbierta(bx, by)) return;
+
+        posicionEntradaSuperficie = posJugador;
+        mapaExterior = std::move(mapaSuperficie);
+        unsigned int semillaCueva = mapaExterior->getSemilla() ^ 0xC0A7E5u ^
+                                    static_cast<unsigned int>(bx * 928371u + by * 1237u);
+        mapaSuperficie = std::make_unique<Mundo>(1000, 1000, semillaCueva);
+        mapaSuperficie->generarMundo(true);
+
+        int entradaX = mapaSuperficie->getAncho() / 2;
+        int entradaY = mapaSuperficie->getAlto() / 2;
+        mapaSuperficie->crearZonaEntradaSubterranea(entradaX, entradaY);
+        jugador->setPosicion({
+            static_cast<float>(entradaX) * TAMANIO_BLOQUE_JUEGO,
+            static_cast<float>(entradaY) * TAMANIO_BLOQUE_JUEGO
+        });
+        itemsSuelo.clear();
+        for (auto* zombie : zombis) delete zombie;
+        zombis.clear();
+        enSubsuelo = true;
+    };
+
+    auto salirSubsuelo = [&]() {
+        if (!jugador || !mapaExterior || !enSubsuelo) return;
+
+        sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+        int bx = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO));
+        int by = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
+        if (mapaSuperficie->getTipoBloque(bx, by) != TipoBloque::CuevaEntrada) return;
+
+        mapaSuperficie = std::move(mapaExterior);
+        jugador->setPosicion(posicionEntradaSuperficie + sf::Vector2f(0.0f, TAMANIO_BLOQUE_JUEGO));
+        itemsSuelo.clear();
+        enSubsuelo = false;
+    };
+
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
         if (dt > 0.05f) {
@@ -2254,6 +2304,17 @@ inline void Juego::ejecutar() {
                         inventarioGrid.cerrarMesaCrafteo();
                     } else {
                         inventarioGrid.alternarMenu();
+                    }
+                }
+
+                if (botonTeclado->code == sf::Keyboard::Key::E &&
+                    !menuPausaAbierto &&
+                    !inventarioGrid.esMenuAbierto() &&
+                    !inventarioGrid.esMesaCrafteoAbierta()) {
+                    if (enSubsuelo) {
+                        salirSubsuelo();
+                    } else {
+                        entrarSubsuelo();
                     }
                 }
 
@@ -2593,22 +2654,24 @@ inline void Juego::ejecutar() {
         float activoArriba = centroCamara.y - tamanoCamara.y / 2.0f - margenActivo;
         float activoAbajo = centroCamara.y + tamanoCamara.y / 2.0f + margenActivo;
 
-        for (auto* animal : animales) {
-            if (!animal) continue;
-            sf::Vector2f posAnimal = animal->getPosicion();
-            if (posAnimal.x >= activoIzq && posAnimal.x <= activoDer &&
-                posAnimal.y >= activoArriba && posAnimal.y <= activoAbajo) {
-                sf::Vector2f objetivoAnimal(-99999.0f, -99999.0f);
-                ItemId itemAtraccion = ItemId::Ninguno;
-                if (jugador) {
-                    objetivoAnimal = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
-                    itemAtraccion = inventarioGrid.getItemEnHotbar();
+        if (!enSubsuelo) {
+            for (auto* animal : animales) {
+                if (!animal) continue;
+                sf::Vector2f posAnimal = animal->getPosicion();
+                if (posAnimal.x >= activoIzq && posAnimal.x <= activoDer &&
+                    posAnimal.y >= activoArriba && posAnimal.y <= activoAbajo) {
+                    sf::Vector2f objetivoAnimal(-99999.0f, -99999.0f);
+                    ItemId itemAtraccion = ItemId::Ninguno;
+                    if (jugador) {
+                        objetivoAnimal = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+                        itemAtraccion = inventarioGrid.getItemEnHotbar();
+                    }
+                    animal->actualizar(dt, *mapaSuperficie, objetivoAnimal, itemAtraccion);
                 }
-                animal->actualizar(dt, *mapaSuperficie, objetivoAnimal, itemAtraccion);
             }
         }
 
-        if (spawnHostilesHabilitado && !uiAbierta) {
+        if (spawnHostilesHabilitado && !uiAbierta && !enSubsuelo) {
             acumuladorSpawnZombies += dt;
             if (acumuladorSpawnZombies >= 1.0f) {
                 acumuladorSpawnZombies = 0.0f;
@@ -3004,14 +3067,16 @@ inline void Juego::ejecutar() {
         float dibujoArriba = centroVista.y - tamanoVista.y / 2.0f - margenDibujo;
         float dibujoAbajo = centroVista.y + tamanoVista.y / 2.0f + margenDibujo;
 
-        for (auto* animal : animales) {
-            if (!animal) continue;
-            sf::Vector2f posAnimal = animal->getPosicion();
-            if (posAnimal.x >= dibujoIzq && posAnimal.x <= dibujoDer &&
-                posAnimal.y >= dibujoArriba && posAnimal.y <= dibujoAbajo) {
-                animal->dibujar(ventana);
-                if (mapaSuperficie) {
-                    mapaSuperficie->dibujarArbolesSobreJugador(ventana, posAnimal.y + 28.0f);
+        if (!enSubsuelo) {
+            for (auto* animal : animales) {
+                if (!animal) continue;
+                sf::Vector2f posAnimal = animal->getPosicion();
+                if (posAnimal.x >= dibujoIzq && posAnimal.x <= dibujoDer &&
+                    posAnimal.y >= dibujoArriba && posAnimal.y <= dibujoAbajo) {
+                    animal->dibujar(ventana);
+                    if (mapaSuperficie) {
+                        mapaSuperficie->dibujarArbolesSobreJugador(ventana, posAnimal.y + 28.0f);
+                    }
                 }
             }
         }
@@ -3161,7 +3226,7 @@ inline void Juego::ejecutar() {
                 progreso.setFillColor(minaAbierta ? sf::Color(80, 200, 120) : sf::Color(180, 140, 70));
                 ventana.draw(progreso);
 
-                sf::Text textoMina(fuente, minaAbierta ? "Mina abierta" : "Picando entrada de mina", 12);
+                sf::Text textoMina(fuente, minaAbierta ? (enSubsuelo ? "Salida de mina - presiona E" : "Mina abierta - presiona E") : "Picando entrada de mina", 12);
                 textoMina.setPosition({294.0f, 58.0f});
                 textoMina.setFillColor(sf::Color::White);
                 textoMina.setOutlineColor(sf::Color::Black);

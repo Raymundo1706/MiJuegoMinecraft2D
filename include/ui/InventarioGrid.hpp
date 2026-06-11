@@ -14,12 +14,15 @@ private:
     std::vector<SlotInventario> slots;
     bool menuAbierto;
     bool mesaCrafteoAbierta;
+    int categoriaMesa;
+    int recetaMesaSeleccionada;
     int slotSeleccionadoHotbar;
 
     SlotInventario itemCursor;
     bool manteniendoItem;
     bool clicIzquierdoAnterior;
     bool clicDerechoAnterior;
+    bool enterCatalogoAnterior;
 
     static constexpr int SLOTS_INVENTARIO_PRINCIPAL = 27;
     static constexpr int SLOTS_HOTBAR = 9;
@@ -49,6 +52,11 @@ private:
     void actualizarResultadoMesa();
     void consumirIngredientesMesa();
     void devolverMesaAlInventario();
+    int contarItemBanco(ItemId item) const;
+    bool tieneIngredientesCatalogo(const std::vector<SlotInventario>& ingredientes) const;
+    bool consumirIngredientesCatalogo(const std::vector<SlotInventario>& ingredientes);
+    bool fabricarRecetaCatalogo(int indiceReceta);
+    void manejarClickCatalogoMesa(sf::Vector2i posicionMouse);
 
 public:
     InventarioGrid();

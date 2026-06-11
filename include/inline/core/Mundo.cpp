@@ -6,7 +6,7 @@
 #include <random>
 
 namespace {
-constexpr float TIEMPO_MINA_BASE_SEGUNDOS = 900.0f;
+constexpr float TIEMPO_MINA_BASE_SEGUNDOS = 1.5f;
 
 inline float suavizar(float t) {
     return t * t * (3.0f - 2.0f * t);
@@ -1223,6 +1223,32 @@ inline bool Mundo::crearEntradaMina(int x, int y) {
     return true;
 }
 
+inline void Mundo::crearZonaEntradaSubterranea(int x, int y) {
+    if (x < 2 || x >= ancho - 2 || y < 2 || y >= alto - 2) {
+        return;
+    }
+
+    for (int by = y - 7; by <= y + 7; ++by) {
+        for (int bx = x - 7; bx <= x + 7; ++bx) {
+            if (bx < 0 || bx >= ancho || by < 0 || by >= alto) continue;
+
+            int dx = bx - x;
+            int dy = by - y;
+            float distancia = std::sqrt(static_cast<float>(dx * dx + dy * dy));
+            TipoBioma bioma = cuadricula[by][bx].bioma;
+
+            if (distancia <= 5.7f) {
+                cuadricula[by][bx] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+            } else if (distancia <= 7.2f) {
+                cuadricula[by][bx] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
+            }
+        }
+    }
+
+    TipoBioma bioma = cuadricula[y][x].bioma;
+    cuadricula[y][x] = {TipoBloque::CuevaEntrada, false, 9999.0f, false, 0.0f, true, 1, 9999.0f, bioma, 0};
+}
+
 inline bool Mundo::talarArbol(int x, int y, float segundosTrabajo, int& troncosObtenidos, bool& soltoSemilla) {
     troncosObtenidos = 0;
     soltoSemilla = false;
@@ -1276,6 +1302,9 @@ inline bool Mundo::picarEntradaMina(int x, int y, float segundosTrabajo) {
         return false;
     }
 
+    if (bloque.tiempoMinaRestante > TIEMPO_MINA_BASE_SEGUNDOS) {
+        bloque.tiempoMinaRestante = TIEMPO_MINA_BASE_SEGUNDOS;
+    }
     bloque.tiempoMinaRestante = std::max(0.0f, bloque.tiempoMinaRestante - segundosTrabajo);
     if (bloque.tiempoMinaRestante <= 0.0f) {
         bloque.minaAbierta = true;
@@ -1308,7 +1337,8 @@ inline float Mundo::getProgresoMina(int x, int y) const {
     if (cuadricula[y][x].tipo != TipoBloque::CuevaEntrada) {
         return 0.0f;
     }
-    return 1.0f - (cuadricula[y][x].tiempoMinaRestante / TIEMPO_MINA_BASE_SEGUNDOS);
+    float restante = std::min(cuadricula[y][x].tiempoMinaRestante, TIEMPO_MINA_BASE_SEGUNDOS);
+    return std::clamp(1.0f - (restante / TIEMPO_MINA_BASE_SEGUNDOS), 0.0f, 1.0f);
 }
 
 inline TipoBloque Mundo::getTipoBloque(int x, int y) const {

@@ -37,6 +37,7 @@ private:
     bool estaCorriendo;
 
     std::unique_ptr<Mundo> mapaSuperficie;
+    std::unique_ptr<Mundo> mapaExterior;
     std::unique_ptr<Jugador> jugador;
 
     sf::Font fuente;
@@ -50,6 +51,8 @@ private:
     float worldTime;
     int skyLight;
     bool spawnHostilesHabilitado;
+    bool enSubsuelo;
+    sf::Vector2f posicionEntradaSuperficie;
 
     void actualizarTiempo(float dt);
     bool puedeDormir() const;

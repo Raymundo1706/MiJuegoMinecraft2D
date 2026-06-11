@@ -55,6 +55,7 @@ public:
     void iniciarAccion(ItemId item);
 
     sf::Vector2f getPosicion() const;
+    void setPosicion(sf::Vector2f nuevaPosicion);
     bool estaEnAgua() const;
     bool estaHundido() const;
     float getTiempoEnAgua() const;

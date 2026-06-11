@@ -8,6 +8,116 @@ const sf::Vector2f PANEL_SIZE(736.0f, 552.0f);
 const sf::Vector2f PLAYER_POS(122.0f, 64.0f);
 const sf::Vector2f PLAYER_SIZE(170.0f, 206.0f);
 
+struct RecetaCatalogoMesa {
+    const char* nombre;
+    const char* descripcion;
+    int categoria;
+    ItemId resultado;
+    int cantidadResultado;
+    std::vector<SlotInventario> ingredientes;
+    ItemId matriz[9];
+};
+
+inline SlotInventario ingrediente(ItemId item, int cantidad) {
+    return {item, cantidad};
+}
+
+inline RecetaCatalogoMesa recetaCatalogo(
+    const char* nombre,
+    const char* descripcion,
+    int categoria,
+    ItemId resultado,
+    int cantidadResultado,
+    std::vector<SlotInventario> ingredientes,
+    std::vector<ItemId> matriz
+) {
+    RecetaCatalogoMesa receta{nombre, descripcion, categoria, resultado, cantidadResultado, ingredientes, {
+        ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno,
+        ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno,
+        ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno
+    }};
+    for (std::size_t i = 0; i < matriz.size() && i < 9; ++i) {
+        receta.matriz[i] = matriz[i];
+    }
+    return receta;
+}
+
+inline const std::vector<RecetaCatalogoMesa>& recetasCatalogoMesa() {
+    static const std::vector<RecetaCatalogoMesa> recetas = {
+        recetaCatalogo("Tablones de madera", "Refina un tronco en madera lista para construir.", 0,
+            ItemId::TablonMadera, 4, {ingrediente(ItemId::BloqueTronco, 1)},
+            {ItemId::BloqueTronco, ItemId::Ninguno, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
+        recetaCatalogo("Palos", "Componente basico para herramientas.", 0,
+            ItemId::PaloMadera, 4, {ingrediente(ItemId::TablonMadera, 2)},
+            {ItemId::Ninguno, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
+        recetaCatalogo("Mesa de crafteo", "Permite fabricar objetos avanzados.", 0,
+            ItemId::MesaCrafteo, 1, {ingrediente(ItemId::TablonMadera, 4)},
+            {ItemId::TablonMadera, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::TablonMadera, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
+        recetaCatalogo("Horno", "Bloque utilitario para cocinar y fundir.", 0,
+            ItemId::Horno, 1, {ingrediente(ItemId::BloquePiedra, 8)},
+            {ItemId::BloquePiedra, ItemId::BloquePiedra, ItemId::BloquePiedra,
+             ItemId::BloquePiedra, ItemId::Ninguno, ItemId::BloquePiedra,
+             ItemId::BloquePiedra, ItemId::BloquePiedra, ItemId::BloquePiedra}),
+        recetaCatalogo("Cama", "Guarda tu punto de reaparicion al dormir.", 0,
+            ItemId::Cama, 1, {ingrediente(ItemId::Lana, 3), ingrediente(ItemId::TablonMadera, 3)},
+            {ItemId::Lana, ItemId::Lana, ItemId::Lana,
+             ItemId::TablonMadera, ItemId::TablonMadera, ItemId::TablonMadera,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
+        recetaCatalogo("Pico de madera", "Herramienta inicial para minar piedra.", 1,
+            ItemId::PicoMadera, 1, {ingrediente(ItemId::TablonMadera, 3), ingrediente(ItemId::PaloMadera, 2)},
+            {ItemId::TablonMadera, ItemId::TablonMadera, ItemId::TablonMadera,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Pico de piedra", "Mina piedra y minerales basicos mas rapido.", 1,
+            ItemId::PicoPiedra, 1, {ingrediente(ItemId::BloquePiedra, 3), ingrediente(ItemId::PaloMadera, 2)},
+            {ItemId::BloquePiedra, ItemId::BloquePiedra, ItemId::BloquePiedra,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Barreta", "Herramienta pesada para abrir entradas al subsuelo.", 1,
+            ItemId::Barreta, 1, {ingrediente(ItemId::BloquePiedra, 9), ingrediente(ItemId::PaloMadera, 6)},
+            {ItemId::BloquePiedra, ItemId::BloquePiedra, ItemId::BloquePiedra,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Hacha de madera", "Corta madera con mas eficiencia.", 1,
+            ItemId::HachaMadera, 1, {ingrediente(ItemId::TablonMadera, 3), ingrediente(ItemId::PaloMadera, 2)},
+            {ItemId::TablonMadera, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::TablonMadera, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Hacha de piedra", "Corta madera mejor que el hacha de madera.", 1,
+            ItemId::HachaPiedra, 1, {ingrediente(ItemId::BloquePiedra, 3), ingrediente(ItemId::PaloMadera, 2)},
+            {ItemId::BloquePiedra, ItemId::BloquePiedra, ItemId::Ninguno,
+             ItemId::BloquePiedra, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Pala de madera", "Remueve tierra y arena.", 1,
+            ItemId::PalaMadera, 1, {ingrediente(ItemId::TablonMadera, 1), ingrediente(ItemId::PaloMadera, 2)},
+            {ItemId::Ninguno, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Pala de piedra", "Remueve tierra con mayor velocidad.", 1,
+            ItemId::PalaPiedra, 1, {ingrediente(ItemId::BloquePiedra, 1), ingrediente(ItemId::PaloMadera, 2)},
+            {ItemId::Ninguno, ItemId::BloquePiedra, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Espada de madera", "Arma basica para defenderte.", 1,
+            ItemId::EspadaMadera, 1, {ingrediente(ItemId::TablonMadera, 2), ingrediente(ItemId::PaloMadera, 1)},
+            {ItemId::Ninguno, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Espada de piedra", "Arma de piedra para mayor dano.", 1,
+            ItemId::EspadaPiedra, 1, {ingrediente(ItemId::BloquePiedra, 2), ingrediente(ItemId::PaloMadera, 1)},
+            {ItemId::Ninguno, ItemId::BloquePiedra, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::BloquePiedra, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+    };
+    return recetas;
+}
+
 inline sf::Vector2f posicionSlot(int indice) {
     const float paso = 48.0f;
 
@@ -538,10 +648,13 @@ inline bool contiene(sf::Vector2f pos, float tam, sf::Vector2i mouse) {
 inline InventarioGrid::InventarioGrid()
     : menuAbierto(false),
       mesaCrafteoAbierta(false),
+      categoriaMesa(0),
+      recetaMesaSeleccionada(0),
       slotSeleccionadoHotbar(0),
       manteniendoItem(false),
       clicIzquierdoAnterior(false),
-      clicDerechoAnterior(false) {
+      clicDerechoAnterior(false),
+      enterCatalogoAnterior(false) {
     slots.resize(TOTAL_SLOTS);
 }
 
@@ -569,8 +682,11 @@ inline void InventarioGrid::abrirMesaCrafteo() {
     }
     menuAbierto = false;
     mesaCrafteoAbierta = true;
+    categoriaMesa = 0;
+    recetaMesaSeleccionada = 0;
     clicIzquierdoAnterior = false;
     clicDerechoAnterior = false;
+    enterCatalogoAnterior = false;
     actualizarResultadoMesa();
 }
 
@@ -908,6 +1024,104 @@ inline void InventarioGrid::devolverMesaAlInventario() {
     slots[INDICE_RESULTADO_MESA] = {};
 }
 
+inline int InventarioGrid::contarItemBanco(ItemId item) const {
+    if (esItemVacio(item)) return 0;
+    int total = 0;
+    for (int i = INDICE_HOTBAR; i < INDICE_HOTBAR + SLOTS_HOTBAR; ++i) {
+        if (slots[i].item == item) total += slots[i].cantidad;
+    }
+    for (int i = 0; i < SLOTS_INVENTARIO_PRINCIPAL; ++i) {
+        if (slots[i].item == item) total += slots[i].cantidad;
+    }
+    return total;
+}
+
+inline bool InventarioGrid::tieneIngredientesCatalogo(const std::vector<SlotInventario>& ingredientes) const {
+    for (const SlotInventario& ingredienteActual : ingredientes) {
+        if (contarItemBanco(ingredienteActual.item) < ingredienteActual.cantidad) {
+            return false;
+        }
+    }
+    return true;
+}
+
+inline bool InventarioGrid::consumirIngredientesCatalogo(const std::vector<SlotInventario>& ingredientes) {
+    if (!tieneIngredientesCatalogo(ingredientes)) return false;
+
+    auto consumirEnRango = [&](ItemId item, int& restante, int inicio, int fin) {
+        for (int i = inicio; i < fin && restante > 0; ++i) {
+            if (slots[i].item != item) continue;
+            int quitar = std::min(slots[i].cantidad, restante);
+            slots[i].cantidad -= quitar;
+            restante -= quitar;
+            limpiarSlotSiVacio(slots[i]);
+        }
+    };
+
+    for (const SlotInventario& ingredienteActual : ingredientes) {
+        int restante = ingredienteActual.cantidad;
+        consumirEnRango(ingredienteActual.item, restante, INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR);
+        consumirEnRango(ingredienteActual.item, restante, 0, SLOTS_INVENTARIO_PRINCIPAL);
+    }
+    return true;
+}
+
+inline bool InventarioGrid::fabricarRecetaCatalogo(int indiceReceta) {
+    const auto& recetas = recetasCatalogoMesa();
+    if (indiceReceta < 0 || indiceReceta >= static_cast<int>(recetas.size())) return false;
+
+    const RecetaCatalogoMesa& receta = recetas[indiceReceta];
+    if (receta.categoria != categoriaMesa) return false;
+    if (!tieneIngredientesCatalogo(receta.ingredientes)) return false;
+    if (!puedeAgregarItem(receta.resultado, receta.cantidadResultado)) return false;
+
+    if (!consumirIngredientesCatalogo(receta.ingredientes)) return false;
+    agregarItem(receta.resultado, receta.cantidadResultado);
+    return true;
+}
+
+inline void InventarioGrid::manejarClickCatalogoMesa(sf::Vector2i posicionMouse) {
+    sf::Vector2f mouse(static_cast<float>(posicionMouse.x), static_cast<float>(posicionMouse.y));
+
+    for (int i = 0; i < 4; ++i) {
+        sf::FloatRect tab({34.0f + static_cast<float>(i) * 86.0f, 34.0f}, {72.0f, 42.0f});
+        if (tab.contains(mouse)) {
+            categoriaMesa = i;
+            recetaMesaSeleccionada = 0;
+            return;
+        }
+    }
+
+    const auto& recetas = recetasCatalogoMesa();
+    sf::FloatRect botonFabricar({570.0f, 506.0f}, {170.0f, 38.0f});
+    if (botonFabricar.contains(mouse)) {
+        int visible = 0;
+        for (int i = 0; i < static_cast<int>(recetas.size()); ++i) {
+            if (recetas[i].categoria != categoriaMesa) continue;
+            if (visible == recetaMesaSeleccionada) {
+                fabricarRecetaCatalogo(i);
+                return;
+            }
+            ++visible;
+        }
+        return;
+    }
+
+    int visible = 0;
+    for (int i = 0; i < static_cast<int>(recetas.size()); ++i) {
+        if (recetas[i].categoria != categoriaMesa) continue;
+
+        int col = visible % 4;
+        int fila = visible / 4;
+        sf::FloatRect celda({56.0f + static_cast<float>(col) * 74.0f, 128.0f + static_cast<float>(fila) * 72.0f}, {56.0f, 56.0f});
+        if (celda.contains(mouse)) {
+            recetaMesaSeleccionada = visible;
+            return;
+        }
+        ++visible;
+    }
+}
+
 inline void InventarioGrid::manejarClickIzquierdo(int indice) {
     if (indice < 0 || indice >= TOTAL_SLOTS) return;
 
@@ -1017,6 +1231,29 @@ inline void InventarioGrid::manejarClicks(sf::Vector2i posicionMouse, bool clicI
         return;
     }
 
+    if (mesaCrafteoAbierta) {
+        if (clicIzquierdo && !clicIzquierdoAnterior) {
+            manejarClickCatalogoMesa(posicionMouse);
+        }
+        bool enterCatalogo = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter);
+        if (enterCatalogo && !enterCatalogoAnterior) {
+            const auto& recetas = recetasCatalogoMesa();
+            int visible = 0;
+            for (int i = 0; i < static_cast<int>(recetas.size()); ++i) {
+                if (recetas[i].categoria != categoriaMesa) continue;
+                if (visible == recetaMesaSeleccionada) {
+                    fabricarRecetaCatalogo(i);
+                    break;
+                }
+                ++visible;
+            }
+        }
+        clicIzquierdoAnterior = clicIzquierdo;
+        clicDerechoAnterior = clicDerecho;
+        enterCatalogoAnterior = enterCatalogo;
+        return;
+    }
+
     int indice = obtenerSlotEnPosicion(posicionMouse);
 
     if (clicIzquierdo && !clicIzquierdoAnterior) {
@@ -1036,32 +1273,193 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
     int hover = obtenerSlotEnPosicion(mouse);
 
     if (mesaCrafteoAbierta) {
-        sf::RectangleShape fondo({500.0f, 430.0f});
-        fondo.setPosition({150.0f, 46.0f});
-        fondo.setFillColor(sf::Color(198, 198, 198, 248));
-        fondo.setOutlineColor(sf::Color(45, 45, 45));
-        fondo.setOutlineThickness(4.0f);
+        ventana.setView(ventana.getDefaultView());
+
+        sf::RectangleShape fondo({800.0f, 600.0f});
+        fondo.setFillColor(sf::Color(116, 116, 116, 246));
         ventana.draw(fondo);
 
-        sf::Text titulo(fuente, "Crafting", 18);
-        titulo.setPosition({184.0f, 56.0f});
-        titulo.setFillColor(sf::Color(70, 70, 70));
+        sf::RectangleShape panel({748.0f, 520.0f});
+        panel.setPosition({26.0f, 44.0f});
+        panel.setFillColor(sf::Color(198, 198, 198, 250));
+        panel.setOutlineColor(sf::Color(36, 36, 36));
+        panel.setOutlineThickness(4.0f);
+        ventana.draw(panel);
+
+        sf::Text titulo(fuente, "Mesa de Crafteo", 22);
+        titulo.setFillColor(sf::Color(62, 62, 62));
+        titulo.setOutlineColor(sf::Color(238, 238, 238));
+        titulo.setOutlineThickness(1.0f);
+        titulo.setPosition({40.0f, 10.0f});
         ventana.draw(titulo);
 
-        sf::Text inventarioTxt(fuente, "Inventory", 16);
-        inventarioTxt.setPosition({184.0f, 258.0f});
-        inventarioTxt.setFillColor(sf::Color(70, 70, 70));
-        ventana.draw(inventarioTxt);
+        const char* categorias[4] = {"Bloques", "Herr.", "Armad.", "Comida"};
+        ItemId iconosCategoria[4] = {ItemId::TablonMadera, ItemId::PicoMadera, ItemId::Lana, ItemId::Zanahoria};
+        for (int i = 0; i < 4; ++i) {
+            sf::Vector2f posTab(34.0f + static_cast<float>(i) * 86.0f, 34.0f);
+            bool activo = i == categoriaMesa;
+            sf::RectangleShape tab({72.0f, 42.0f});
+            tab.setPosition(posTab);
+            tab.setFillColor(activo ? sf::Color(232, 232, 232) : sf::Color(136, 136, 136));
+            tab.setOutlineColor(activo ? sf::Color(76, 190, 70) : sf::Color(35, 35, 35));
+            tab.setOutlineThickness(activo ? 3.0f : 2.0f);
+            ventana.draw(tab);
+            dibujarItemSprite(ventana, iconosCategoria[i], {posTab.x + 8.0f, posTab.y + 6.0f}, 1.2f);
+            sf::Text etiqueta(fuente, categorias[i], 9);
+            etiqueta.setFillColor(sf::Color(42, 42, 42));
+            etiqueta.setPosition({posTab.x + 30.0f, posTab.y + 16.0f});
+            ventana.draw(etiqueta);
+        }
 
-        sf::Text libro(fuente, "?", 22);
-        libro.setPosition({228.0f, 138.0f});
-        libro.setFillColor(sf::Color(45, 120, 55));
-        ventana.draw(libro);
+        sf::RectangleShape lista({350.0f, 422.0f});
+        lista.setPosition({40.0f, 104.0f});
+        lista.setFillColor(sf::Color(154, 154, 154));
+        lista.setOutlineColor(sf::Color(52, 52, 52));
+        lista.setOutlineThickness(3.0f);
+        ventana.draw(lista);
 
-        sf::Text flecha(fuente, "->", 34);
-        flecha.setPosition({438.0f, 136.0f});
-        flecha.setFillColor(sf::Color(110, 110, 110));
-        ventana.draw(flecha);
+        sf::RectangleShape panelInfo({330.0f, 422.0f});
+        panelInfo.setPosition({420.0f, 104.0f});
+        panelInfo.setFillColor(sf::Color(176, 176, 176));
+        panelInfo.setOutlineColor(sf::Color(52, 52, 52));
+        panelInfo.setOutlineThickness(3.0f);
+        ventana.draw(panelInfo);
+
+        std::vector<int> recetasVisibles;
+        const auto& recetas = recetasCatalogoMesa();
+        for (int i = 0; i < static_cast<int>(recetas.size()); ++i) {
+            if (recetas[i].categoria == categoriaMesa) recetasVisibles.push_back(i);
+        }
+        if (recetaMesaSeleccionada >= static_cast<int>(recetasVisibles.size())) {
+            recetaMesaSeleccionada = std::max(0, static_cast<int>(recetasVisibles.size()) - 1);
+        }
+
+        sf::Vector2f mouseF(static_cast<float>(mouse.x), static_cast<float>(mouse.y));
+        for (int visible = 0; visible < static_cast<int>(recetasVisibles.size()); ++visible) {
+            int recetaIndice = recetasVisibles[visible];
+            const RecetaCatalogoMesa& receta = recetas[recetaIndice];
+            int col = visible % 4;
+            int fila = visible / 4;
+            sf::Vector2f posCelda(56.0f + static_cast<float>(col) * 74.0f, 128.0f + static_cast<float>(fila) * 72.0f);
+            bool disponible = tieneIngredientesCatalogo(receta.ingredientes) && puedeAgregarItem(receta.resultado, receta.cantidadResultado);
+            bool seleccionado = visible == recetaMesaSeleccionada;
+            bool sobre = sf::FloatRect(posCelda, {56.0f, 56.0f}).contains(mouseF);
+
+            sf::RectangleShape celda({56.0f, 56.0f});
+            celda.setPosition(posCelda);
+            celda.setFillColor(seleccionado ? sf::Color(218, 218, 218) : sf::Color(96, 96, 96));
+            celda.setOutlineColor(seleccionado ? sf::Color(255, 255, 120) : (sobre ? sf::Color(235, 235, 235) : sf::Color(28, 28, 28)));
+            celda.setOutlineThickness(seleccionado ? 3.0f : 2.0f);
+            ventana.draw(celda);
+
+            dibujarItemSprite(ventana, receta.resultado, {posCelda.x + 10.0f, posCelda.y + 8.0f}, 1.9f);
+            if (!disponible) {
+                sf::RectangleShape bloqueo({56.0f, 56.0f});
+                bloqueo.setPosition(posCelda);
+                bloqueo.setFillColor(sf::Color(30, 30, 30, 138));
+                ventana.draw(bloqueo);
+            }
+            if (receta.cantidadResultado > 1) {
+                sf::Text cantidad(fuente, std::to_string(receta.cantidadResultado), 12);
+                cantidad.setFillColor(sf::Color::White);
+                cantidad.setOutlineColor(sf::Color::Black);
+                cantidad.setOutlineThickness(2.0f);
+                cantidad.setPosition({posCelda.x + 39.0f, posCelda.y + 38.0f});
+                ventana.draw(cantidad);
+            }
+        }
+
+        if (!recetasVisibles.empty()) {
+            const RecetaCatalogoMesa& seleccionada = recetas[recetasVisibles[recetaMesaSeleccionada]];
+            bool puedeFabricar = tieneIngredientesCatalogo(seleccionada.ingredientes) &&
+                                 puedeAgregarItem(seleccionada.resultado, seleccionada.cantidadResultado);
+
+            sf::Text nombre(fuente, seleccionada.nombre, 18);
+            nombre.setFillColor(sf::Color(45, 45, 45));
+            nombre.setOutlineColor(sf::Color(235, 235, 235));
+            nombre.setOutlineThickness(1.0f);
+            nombre.setPosition({442.0f, 124.0f});
+            ventana.draw(nombre);
+
+            sf::Text descripcion(fuente, seleccionada.descripcion, 11);
+            descripcion.setFillColor(sf::Color(70, 70, 70));
+            descripcion.setPosition({442.0f, 154.0f});
+            ventana.draw(descripcion);
+
+            sf::Text recetaTxt(fuente, "Receta", 14);
+            recetaTxt.setFillColor(sf::Color(55, 55, 55));
+            recetaTxt.setPosition({442.0f, 190.0f});
+            ventana.draw(recetaTxt);
+
+            for (int i = 0; i < 9; ++i) {
+                int col = i % 3;
+                int fila = i / 3;
+                sf::Vector2f posSlot(444.0f + static_cast<float>(col) * 38.0f, 218.0f + static_cast<float>(fila) * 38.0f);
+                sf::RectangleShape slot({32.0f, 32.0f});
+                slot.setPosition(posSlot);
+                slot.setFillColor(sf::Color(92, 92, 92));
+                slot.setOutlineColor(sf::Color(30, 30, 30));
+                slot.setOutlineThickness(2.0f);
+                ventana.draw(slot);
+                if (!esItemVacio(seleccionada.matriz[i])) {
+                    dibujarItemSprite(ventana, seleccionada.matriz[i], {posSlot.x + 2.0f, posSlot.y + 2.0f}, 1.25f);
+                }
+            }
+
+            dibujarItemSprite(ventana, seleccionada.resultado, {616.0f, 232.0f}, 2.0f);
+            sf::Text resultado(fuente, "Resultado", 12);
+            resultado.setFillColor(sf::Color(60, 60, 60));
+            resultado.setPosition({602.0f, 310.0f});
+            ventana.draw(resultado);
+
+            sf::Text materiales(fuente, "Materiales", 14);
+            materiales.setFillColor(sf::Color(55, 55, 55));
+            materiales.setPosition({442.0f, 348.0f});
+            ventana.draw(materiales);
+
+            for (int i = 0; i < static_cast<int>(seleccionada.ingredientes.size()); ++i) {
+                const SlotInventario& ing = seleccionada.ingredientes[i];
+                int tienes = contarItemBanco(ing.item);
+                sf::Vector2f posIng(442.0f, 376.0f + static_cast<float>(i) * 28.0f);
+                dibujarItemSprite(ventana, ing.item, posIng, 0.95f);
+                std::string texto = nombreItem(ing.item) + ": " + std::to_string(tienes) + " / " + std::to_string(ing.cantidad);
+                sf::Text linea(fuente, texto, 12);
+                linea.setFillColor(tienes >= ing.cantidad ? sf::Color(42, 105, 35) : sf::Color(155, 45, 45));
+                linea.setPosition({posIng.x + 28.0f, posIng.y + 5.0f});
+                ventana.draw(linea);
+            }
+
+            sf::FloatRect botonRect({570.0f, 506.0f}, {170.0f, 38.0f});
+            sf::RectangleShape boton(botonRect.size);
+            boton.setPosition(botonRect.position);
+            boton.setFillColor(puedeFabricar ? sf::Color(172, 172, 172) : sf::Color(88, 88, 88));
+            boton.setOutlineColor(botonRect.contains(mouseF) && puedeFabricar ? sf::Color(255, 255, 120) : sf::Color(28, 28, 28));
+            boton.setOutlineThickness(3.0f);
+            ventana.draw(boton);
+            sf::Text fabricar(fuente, "Fabricar", 16);
+            fabricar.setFillColor(puedeFabricar ? sf::Color::White : sf::Color(160, 160, 160));
+            fabricar.setOutlineColor(sf::Color::Black);
+            fabricar.setOutlineThickness(2.0f);
+            sf::FloatRect b = fabricar.getLocalBounds();
+            fabricar.setOrigin({b.position.x + b.size.x * 0.5f, b.position.y + b.size.y * 0.5f});
+            fabricar.setPosition({655.0f, 525.0f});
+            ventana.draw(fabricar);
+        }
+
+        sf::Text ayuda(fuente, "Click: seleccionar   Fabricar: crear objeto   ESC/E: cerrar", 12);
+        ayuda.setFillColor(sf::Color(38, 38, 38));
+        ayuda.setPosition({42.0f, 540.0f});
+        ventana.draw(ayuda);
+
+        if (manteniendoItem && !esItemVacio(itemCursor.item)) {
+            dibujarItemSprite(
+                ventana,
+                itemCursor.item,
+                {static_cast<float>(mouse.x - 14), static_cast<float>(mouse.y - 14)},
+                1.8f
+            );
+        }
+        return;
     } else if (menuAbierto) {
         sf::RectangleShape fondo(PANEL_SIZE);
         fondo.setPosition(PANEL_POS);
