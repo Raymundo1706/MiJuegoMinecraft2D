@@ -162,6 +162,45 @@ inline void pixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, 
     ventana.draw(punto);
 }
 
+inline sf::Color colorPixelTierraItem(int x, int y) {
+    static const char* patron[16] = {
+        "bbcbbdabbcabbdcb",
+        "bDaabbccbaadbbab",
+        "abbcCbbdabccadbb",
+        "cbbadbbcaabbcDab",
+        "bbccabbdabbcbaac",
+        "adbbcaabDcbbadbb",
+        "bbadbbcabbccabba",
+        "cabbadbbaacbbdCb",
+        "bbccbaadbCbbcaab",
+        "adbbcabbccabbdba",
+        "bbadCbbcaabbdabb",
+        "cabbccadbbaacbba",
+        "bbdabbcCbbadbbca",
+        "aabbcDabbccbaadb",
+        "bbcabbadbbcaabCb",
+        "cbaadbbccabbadbb"
+    };
+
+    switch (patron[y][x]) {
+        case 'a': return sf::Color(104, 67, 38);
+        case 'b': return sf::Color(126, 82, 46);
+        case 'c': return sf::Color(151, 99, 55);
+        case 'd': return sf::Color(82, 52, 31);
+        case 'C': return sf::Color(172, 114, 64);
+        case 'D': return sf::Color(57, 36, 24);
+        default: return sf::Color(126, 82, 46);
+    }
+}
+
+inline void dibujarBloqueTierraItemSprite(sf::RenderWindow& ventana, sf::Vector2f origen, float escala) {
+    for (int y = 0; y < 16; ++y) {
+        for (int x = 0; x < 16; ++x) {
+            pixel(ventana, origen, x, y, colorPixelTierraItem(x, y), escala);
+        }
+    }
+}
+
 inline bool dibujarTexturaItem(sf::RenderWindow& ventana, const char* ruta, sf::Vector2f centro, float tamanoMaximo) {
     static sf::Texture texturaTronco;
     static bool intentoTronco = false;
@@ -403,6 +442,9 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
             return;
         case ItemId::BloqueTronco:
             dibujarTroncoCortadoSprite(ventana, origen, escala);
+            return;
+        case ItemId::BloqueTierra:
+            dibujarBloqueTierraItemSprite(ventana, origen, escala);
             return;
         case ItemId::MapaInicial:
             for (int y = 2; y < 14; ++y) {

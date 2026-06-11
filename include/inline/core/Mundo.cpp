@@ -122,15 +122,40 @@ inline sf::Color colorPastoPixel(int x, int y, TipoBioma bioma) {
 }
 
 inline sf::Color colorTierraPixel(int x, int y, bool arada) {
-    int ruido = (x * 13 + y * 7 + x * y) % 11;
+    static const char* patron[16] = {
+        "bbdBbbdBbbbdBbbb",
+        "bDbbblbbDbbdbbLb",
+        "bbblbbdbbbLbbdBb",
+        "dBbbDbbbdbbbBbbb",
+        "bbdbbbLbbDbbblbb",
+        "bblbbbdbbbBbbDbb",
+        "DbbbdbbbLbbdbbbb",
+        "bbBbbbDbbblbbbdb",
+        "bbbLbbdbbbDbbbBb",
+        "dbbbBbbbdbbbLbbb",
+        "bbbdbbbDbbblbbdb",
+        "bLbbbdbbbBbbbDbb",
+        "bbdbbbLbbbdbbbBb",
+        "DbbbblbbDbbbdbbb",
+        "bbbBbbbdbbbLbbdb",
+        "bbdLbbbBbbdbbbDb"
+    };
+
     if (arada) {
+        int ruido = (x * 13 + y * 7 + x * y) % 11;
         if (ruido < 2) return sf::Color(62, 38, 24);
         if (ruido > 8) return sf::Color(122, 75, 42);
         return sf::Color(89, 54, 31);
     }
-    if (ruido < 2) return sf::Color(82, 52, 32);
-    if (ruido > 8) return sf::Color(151, 94, 53);
-    return sf::Color(118, 75, 43);
+
+    switch (patron[y % 16][x % 16]) {
+        case 'L': return sf::Color(156, 104, 65);
+        case 'l': return sf::Color(139, 91, 55);
+        case 'D': return sf::Color(73, 48, 34);
+        case 'd': return sf::Color(88, 58, 39);
+        case 'B': return sf::Color(101, 66, 43);
+        default: return sf::Color(119, 79, 49);
+    }
 }
 
 inline sf::Color colorPiedraPixel(int x, int y) {
@@ -285,14 +310,27 @@ inline void dibujarBloqueTierraElevado(sf::RenderWindow& ventana, int bloqueX, i
     rect(22.0f, -6.0f, 2.0f, 21.0f, sf::Color(35, 24, 17, 150));
     rect(0.0f, 14.0f, 24.0f, 2.0f, sf::Color(35, 24, 17, 170));
 
-    sf::RectangleShape tapa({24.0f, 20.0f});
-    tapa.setPosition({x, y - 6.0f});
-    tapa.setFillColor(conPasto ? ajustarPastoPorBioma(sf::Color(54, 154, 61), bioma) : sf::Color(128, 81, 46));
-    ventana.draw(tapa);
+    if (conPasto) {
+        sf::RectangleShape tapa({24.0f, 20.0f});
+        tapa.setPosition({x, y - 6.0f});
+        tapa.setFillColor(ajustarPastoPorBioma(sf::Color(54, 154, 61), bioma));
+        ventana.draw(tapa);
+    } else {
+        const float escalaPixelX = 24.0f / 16.0f;
+        const float escalaPixelY = 20.0f / 16.0f;
+        for (int py = 0; py < 16; ++py) {
+            for (int px = 0; px < 16; ++px) {
+                sf::RectangleShape pixelTierra({escalaPixelX + 0.15f, escalaPixelY + 0.15f});
+                pixelTierra.setPosition({x + static_cast<float>(px) * escalaPixelX, y - 6.0f + static_cast<float>(py) * escalaPixelY});
+                pixelTierra.setFillColor(colorTierraPixel(px, py, false));
+                ventana.draw(pixelTierra);
+            }
+        }
+    }
 
     sf::RectangleShape bordeSuperior({24.0f, 2.0f});
     bordeSuperior.setPosition({x, y - 6.0f});
-    bordeSuperior.setFillColor(conPasto ? ajustarPastoPorBioma(sf::Color(104, 202, 84), bioma) : sf::Color(198, 124, 67));
+    bordeSuperior.setFillColor(conPasto ? ajustarPastoPorBioma(sf::Color(104, 202, 84), bioma) : sf::Color(157, 101, 62));
     ventana.draw(bordeSuperior);
 
     if (conPasto) {

@@ -365,6 +365,45 @@ inline void dibujarPixelItemSuelo(
     ventana.draw(pixel);
 }
 
+inline sf::Color colorPixelTierraItemSuelo(int x, int y) {
+    static const char* patron[16] = {
+        "bbcbbdabbcabbdcb",
+        "bDaabbccbaadbbab",
+        "abbcCbbdabccadbb",
+        "cbbadbbcaabbcDab",
+        "bbccabbdabbcbaac",
+        "adbbcaabDcbbadbb",
+        "bbadbbcabbccabba",
+        "cabbadbbaacbbdCb",
+        "bbccbaadbCbbcaab",
+        "adbbcabbccabbdba",
+        "bbadCbbcaabbdabb",
+        "cabbccadbbaacbba",
+        "bbdabbcCbbadbbca",
+        "aabbcDabbccbaadb",
+        "bbcabbadbbcaabCb",
+        "cbaadbbccabbadbb"
+    };
+
+    switch (patron[y][x]) {
+        case 'a': return sf::Color(104, 67, 38);
+        case 'b': return sf::Color(126, 82, 46);
+        case 'c': return sf::Color(151, 99, 55);
+        case 'd': return sf::Color(82, 52, 31);
+        case 'C': return sf::Color(172, 114, 64);
+        case 'D': return sf::Color(57, 36, 24);
+        default: return sf::Color(126, 82, 46);
+    }
+}
+
+inline void dibujarBloqueTierraItemSuelo(sf::RenderWindow& ventana, sf::Vector2f origen, float escala, float giroY) {
+    for (int y = 0; y < 16; ++y) {
+        for (int x = 0; x < 16; ++x) {
+            dibujarPixelItemSuelo(ventana, origen, x, y, colorPixelTierraItemSuelo(x, y), escala, giroY);
+        }
+    }
+}
+
 inline void lineaItemSuelo(
     sf::RenderWindow& ventana,
     sf::Vector2f origen,
@@ -480,7 +519,6 @@ inline void dibujarItemSueloSprite(sf::RenderWindow& ventana, ItemId item, sf::V
 
     switch (item) {
         case ItemId::BloquePasto:
-        case ItemId::BloqueTierra:
         case ItemId::BloquePiedra:
         case ItemId::TablonMadera:
         case ItemId::MineralHierro:
@@ -493,6 +531,9 @@ inline void dibujarItemSueloSprite(sf::RenderWindow& ventana, ItemId item, sf::V
         case ItemId::Horno:
         case ItemId::Cama:
             dibujarBloqueItemSuelo(ventana, origen, item, escala, giroY);
+            return;
+        case ItemId::BloqueTierra:
+            dibujarBloqueTierraItemSuelo(ventana, origen, escala, giroY);
             return;
         case ItemId::ChuletaCerdoCruda:
         case ItemId::ChuletaCerdoCocinada:
@@ -1360,6 +1401,183 @@ inline void dibujarCreditos(sf::RenderWindow& ventana, sf::Font& fuente, float t
     creditos.setPosition({400.0f - b.size.x * 0.5f, 620.0f - scroll});
     ventana.draw(creditos);
 }
+
+inline void dibujarFondoPausa(sf::RenderWindow& ventana, sf::Font& fuente, const char* titulo) {
+    ventana.setView(ventana.getDefaultView());
+
+    sf::RectangleShape velo({800.0f, 600.0f});
+    velo.setFillColor(sf::Color(0, 0, 0, 118));
+    ventana.draw(velo);
+
+    sf::RectangleShape sombra({468.0f, 394.0f});
+    sombra.setPosition({170.0f, 112.0f});
+    sombra.setFillColor(sf::Color(0, 0, 0, 145));
+    ventana.draw(sombra);
+
+    sf::RectangleShape panel({468.0f, 394.0f});
+    panel.setPosition({166.0f, 108.0f});
+    panel.setFillColor(sf::Color(68, 68, 68, 242));
+    panel.setOutlineColor(sf::Color(25, 25, 25));
+    panel.setOutlineThickness(4.0f);
+    ventana.draw(panel);
+
+    sf::Text texto(fuente, titulo, 28);
+    texto.setFillColor(sf::Color(232, 232, 232));
+    texto.setOutlineColor(sf::Color::Black);
+    texto.setOutlineThickness(3.0f);
+    centrarTexto(texto, {400.0f, 144.0f});
+    ventana.draw(texto);
+}
+
+inline sf::FloatRect rectPausa(int indice, float yInicial = 190.0f, float ancho = 320.0f) {
+    return sf::FloatRect({400.0f - ancho * 0.5f, yInicial + static_cast<float>(indice) * 48.0f}, {ancho, 36.0f});
+}
+
+inline int hoverPausa(sf::Vector2i mouse, int cantidad, float yInicial = 190.0f, float ancho = 320.0f) {
+    sf::Vector2f p(static_cast<float>(mouse.x), static_cast<float>(mouse.y));
+    for (int i = 0; i < cantidad; ++i) {
+        if (rectPausa(i, yInicial, ancho).contains(p)) return i;
+    }
+    return -1;
+}
+
+inline void dibujarMenuPausaPrincipal(sf::RenderWindow& ventana, sf::Font& fuente, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Menu de Pausa");
+    const char* opciones[4] = {"Volver al juego", "Logros", "Ayuda y Opciones", "Salir del juego"};
+    int hover = hoverPausa(mouse, 4);
+    for (int i = 0; i < 4; ++i) {
+        dibujarBotonRect(ventana, fuente, rectPausa(i), opciones[i], hover == i, 17);
+    }
+}
+
+inline void dibujarPausaLogros(sf::RenderWindow& ventana, sf::Font& fuente, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Logros");
+    struct LogroVista { const char* titulo; const char* descripcion; bool listo; };
+    LogroVista logros[4] = {
+        {"Primer tronco", "Pica tu primer bloque de madera", true},
+        {"Hora de minar", "Consigue piedra con un pico", false},
+        {"Artesano", "Crea una mesa de crafteo", false},
+        {"Sobrevive la noche", "Derrota o evita a un zombie", false}
+    };
+
+    for (int i = 0; i < 4; ++i) {
+        sf::FloatRect r({196.0f, 178.0f + static_cast<float>(i) * 58.0f}, {408.0f, 48.0f});
+        sf::RectangleShape fila(r.size);
+        fila.setPosition(r.position);
+        fila.setFillColor(sf::Color(48, 48, 48, 225));
+        fila.setOutlineColor(sf::Color(22, 22, 22));
+        fila.setOutlineThickness(2.0f);
+        ventana.draw(fila);
+
+        sf::RectangleShape icono({30.0f, 30.0f});
+        icono.setPosition({r.position.x + 10.0f, r.position.y + 9.0f});
+        icono.setFillColor(logros[i].listo ? sf::Color(76, 160, 70) : sf::Color(82, 82, 82));
+        icono.setOutlineColor(sf::Color(20, 20, 20));
+        icono.setOutlineThickness(2.0f);
+        ventana.draw(icono);
+
+        sf::Text titulo(fuente, logros[i].titulo, 14);
+        titulo.setFillColor(logros[i].listo ? sf::Color(255, 236, 120) : sf::Color(190, 190, 190));
+        titulo.setOutlineColor(sf::Color::Black);
+        titulo.setOutlineThickness(1.0f);
+        titulo.setPosition({r.position.x + 52.0f, r.position.y + 6.0f});
+        ventana.draw(titulo);
+
+        sf::Text desc(fuente, logros[i].descripcion, 11);
+        desc.setFillColor(sf::Color(220, 220, 220));
+        desc.setPosition({r.position.x + 52.0f, r.position.y + 26.0f});
+        ventana.draw(desc);
+    }
+
+    dibujarBotonRect(ventana, fuente, rectPausa(0, 438.0f, 160.0f), "Atras",
+                     rectPausa(0, 438.0f, 160.0f).contains(sf::Vector2f(mouse)), 15);
+}
+
+inline void dibujarPausaAyuda(sf::RenderWindow& ventana, sf::Font& fuente, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Ayuda y Opciones");
+    const char* opciones[6] = {"Como jugar", "Controles", "Configuracion", "Cambiar de aspecto", "Creditos", "Atras"};
+    int hover = hoverPausa(mouse, 6, 176.0f, 320.0f);
+    for (int i = 0; i < 6; ++i) {
+        dibujarBotonRect(ventana, fuente, rectPausa(i, 176.0f, 320.0f), opciones[i], hover == i, 16);
+    }
+}
+
+inline void dibujarPausaConfiguracion(sf::RenderWindow& ventana, sf::Font& fuente, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Configuracion");
+    const char* opciones[4] = {"Audio", "Graficos", "Opciones de Juego", "Atras"};
+    int hover = hoverPausa(mouse, 4);
+    for (int i = 0; i < 4; ++i) {
+        dibujarBotonRect(ventana, fuente, rectPausa(i), opciones[i], hover == i, 17);
+    }
+}
+
+inline void dibujarPausaAudio(sf::RenderWindow& ventana, sf::Font& fuente, int musica, int efectos, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Audio");
+    dibujarSliderMenu(ventana, fuente, "Volumen de Musica", 218.0f, musica);
+    dibujarSliderMenu(ventana, fuente, "Volumen de Sonidos", 292.0f, efectos);
+    dibujarBotonRect(ventana, fuente, rectPausa(0, 418.0f, 160.0f), "Atras",
+                     rectPausa(0, 418.0f, 160.0f).contains(sf::Vector2f(mouse)), 15);
+}
+
+inline void dibujarPausaGraficos(sf::RenderWindow& ventana, sf::Font& fuente, int brillo, bool balanceo, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Graficos");
+    dibujarSliderMenu(ventana, fuente, "Brillo", 218.0f, brillo);
+    dibujarCheckboxMenu(ventana, fuente, {236.0f, 306.0f}, balanceo ? "Balanceo de camara: Si" : "Balanceo de camara: No", balanceo);
+    dibujarBotonRect(ventana, fuente, rectPausa(0, 418.0f, 160.0f), "Atras",
+                     rectPausa(0, 418.0f, 160.0f).contains(sf::Vector2f(mouse)), 15);
+}
+
+inline void dibujarPausaJuego(sf::RenderWindow& ventana, sf::Font& fuente, int dificultad, bool nombres, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Opciones de Juego");
+    sf::Text d(fuente, "Dificultad", 16);
+    d.setFillColor(sf::Color::White);
+    d.setOutlineColor(sf::Color::Black);
+    d.setOutlineThickness(2.0f);
+    d.setPosition({236.0f, 218.0f});
+    ventana.draw(d);
+    std::string dificultadActual = dificultadTexto(dificultad);
+    dibujarBotonRect(ventana, fuente, sf::FloatRect({410.0f, 210.0f}, {150.0f, 34.0f}),
+                     dificultadActual.c_str(), sf::FloatRect({410.0f, 210.0f}, {150.0f, 34.0f}).contains(sf::Vector2f(mouse)), 15);
+    dibujarCheckboxMenu(ventana, fuente, {236.0f, 292.0f}, "Nombres de jugador", nombres);
+    dibujarBotonRect(ventana, fuente, rectPausa(0, 418.0f, 160.0f), "Atras",
+                     rectPausa(0, 418.0f, 160.0f).contains(sf::Vector2f(mouse)), 15);
+}
+
+inline void dibujarPausaSkins(sf::RenderWindow& ventana, sf::Font& fuente, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Cambiar de aspecto");
+    for (int i = 0; i < 4; ++i) {
+        sf::RectangleShape skin({74.0f, 96.0f});
+        skin.setPosition({194.0f + static_cast<float>(i) * 104.0f, 220.0f});
+        skin.setFillColor(i == 0 ? sf::Color(54, 168, 190) : sf::Color(78 + i * 30, 92, 120 + i * 22));
+        skin.setOutlineColor(i == 0 ? sf::Color(180, 255, 116) : sf::Color(25, 25, 25));
+        skin.setOutlineThickness(3.0f);
+        ventana.draw(skin);
+    }
+    sf::Text nota(fuente, "Galeria lista para conectar mas sprites.", 13);
+    nota.setFillColor(sf::Color(220, 220, 220));
+    nota.setOutlineColor(sf::Color::Black);
+    nota.setOutlineThickness(1.0f);
+    centrarTexto(nota, {400.0f, 356.0f});
+    ventana.draw(nota);
+    dibujarBotonRect(ventana, fuente, rectPausa(0, 418.0f, 160.0f), "Atras",
+                     rectPausa(0, 418.0f, 160.0f).contains(sf::Vector2f(mouse)), 15);
+}
+
+inline void dibujarPausaConfirmarSalida(sf::RenderWindow& ventana, sf::Font& fuente, sf::Vector2i mouse) {
+    dibujarFondoPausa(ventana, fuente, "Salir del juego");
+    sf::Text advertencia(fuente, "Quieres guardar antes de volver al menu principal?", 14);
+    advertencia.setFillColor(sf::Color::White);
+    advertencia.setOutlineColor(sf::Color::Black);
+    advertencia.setOutlineThickness(2.0f);
+    centrarTexto(advertencia, {400.0f, 194.0f});
+    ventana.draw(advertencia);
+
+    const char* opciones[3] = {"Guardar y salir", "Salir sin guardar", "Cancelar"};
+    int hover = hoverPausa(mouse, 3, 244.0f);
+    for (int i = 0; i < 3; ++i) {
+        dibujarBotonRect(ventana, fuente, rectPausa(i, 244.0f), opciones[i], hover == i, 16);
+    }
+}
 }
 
 inline Juego::Juego()
@@ -1537,6 +1755,11 @@ inline void Juego::ejecutar() {
     std::vector<MundoGuardado> mundosGuardados = escanearMundosGuardados();
     MundoGuardado mundoActivo;
     bool hayMundoActivo = false;
+    bool menuPausaAbierto = false;
+    int pantallaPausa = 0;
+    int paginaPausaComoJugar = 0;
+    bool invertirEjesPausa = false;
+    bool balanceoCamara = false;
     sf::Music musicaMenu;
     bool musicaMenuLista = musicaMenu.openFromFile("assets/audio/menu_music.ogg");
     if (musicaMenuLista) {
@@ -1861,7 +2084,12 @@ inline void Juego::ejecutar() {
             dt = 0.05f;
         }
         tiempoMenuInicio += dt;
-        actualizarTiempo(dt);
+        if (!mostrandoMenuInicio && !menuPausaAbierto) {
+            actualizarTiempo(dt);
+        }
+        if (menuPausaAbierto && pantallaPausa == 11) {
+            scrollCreditos += dt * 36.0f;
+        }
         if (hayMundoActivo && mundoActivo.dificultad == 0) {
             spawnHostilesHabilitado = false;
             for (auto* zombie : zombis) {
@@ -1982,6 +2210,23 @@ inline void Juego::ejecutar() {
                         } else if (pantallaMenuInicio == 8) {
                             pantallaMenuInicio = 6;
                         }
+                    }
+                    continue;
+                }
+
+                if (botonTeclado->code == sf::Keyboard::Key::Escape) {
+                    reproducirClickMenu();
+                    if (!menuPausaAbierto) {
+                        menuPausaAbierto = true;
+                        pantallaPausa = 0;
+                    } else if (pantallaPausa == 0) {
+                        menuPausaAbierto = false;
+                    } else if (pantallaPausa == 3 || pantallaPausa == 4 || pantallaPausa == 5) {
+                        pantallaPausa = 2;
+                    } else if (pantallaPausa >= 6 && pantallaPausa <= 8) {
+                        pantallaPausa = 5;
+                    } else {
+                        pantallaPausa = 0;
                     }
                     continue;
                 }
@@ -2239,9 +2484,101 @@ inline void Juego::ejecutar() {
             continue;
         }
 
-        inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
+        auto mouseDentro = [&](sf::FloatRect rect) {
+            return rect.contains(sf::Vector2f(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)));
+        };
+        auto valorSlider = [&](float xInicio) {
+            float t = (static_cast<float>(mousePos.x) - xInicio) / 220.0f;
+            return std::clamp(static_cast<int>(std::round(t * 100.0f)), 0, 100);
+        };
 
-        bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta();
+        if (menuPausaAbierto && clickIzquierdo && !clickMenuAnterior) {
+            reproducirClickMenu();
+            if (pantallaPausa == 0) {
+                int h = hoverPausa(mousePos, 4);
+                if (h == 0) menuPausaAbierto = false;
+                if (h == 1) pantallaPausa = 1;
+                if (h == 2) pantallaPausa = 2;
+                if (h == 3) pantallaPausa = 9;
+            } else if (pantallaPausa == 1) {
+                if (mouseDentro(rectPausa(0, 438.0f, 160.0f))) pantallaPausa = 0;
+            } else if (pantallaPausa == 2) {
+                int h = hoverPausa(mousePos, 6, 176.0f, 320.0f);
+                if (h == 0) pantallaPausa = 3;
+                if (h == 1) pantallaPausa = 4;
+                if (h == 2) pantallaPausa = 5;
+                if (h == 3) pantallaPausa = 10;
+                if (h == 4) {
+                    pantallaPausa = 11;
+                    scrollCreditos = 0.0f;
+                }
+                if (h == 5) pantallaPausa = 0;
+            } else if (pantallaPausa == 3) {
+                if (mouseDentro(sf::FloatRect({128.0f, 472.0f}, {150.0f, 34.0f}))) paginaPausaComoJugar = std::max(0, paginaPausaComoJugar - 1);
+                else if (mouseDentro(sf::FloatRect({326.0f, 472.0f}, {150.0f, 34.0f}))) paginaPausaComoJugar = std::min(2, paginaPausaComoJugar + 1);
+                else if (mouseDentro(sf::FloatRect({524.0f, 472.0f}, {150.0f, 34.0f}))) pantallaPausa = 2;
+            } else if (pantallaPausa == 4) {
+                if (mouseDentro(sf::FloatRect({400.0f, 390.0f}, {220.0f, 18.0f}))) sensibilidadMirada = valorSlider(400.0f);
+                else if (mouseDentro(sf::FloatRect({500.0f, 322.0f}, {120.0f, 32.0f}))) invertirEjesPausa = !invertirEjesPausa;
+                else if (mouseDentro(sf::FloatRect({326.0f, 504.0f}, {150.0f, 34.0f}))) pantallaPausa = 2;
+            } else if (pantallaPausa == 5) {
+                int h = hoverPausa(mousePos, 4);
+                if (h == 0) pantallaPausa = 6;
+                if (h == 1) pantallaPausa = 7;
+                if (h == 2) pantallaPausa = 8;
+                if (h == 3) pantallaPausa = 2;
+            } else if (pantallaPausa == 6) {
+                if (mouseDentro(sf::FloatRect({400.0f, 226.0f}, {220.0f, 18.0f}))) {
+                    volumenMusica = valorSlider(400.0f);
+                    if (musicaMenuLista) musicaMenu.setVolume(static_cast<float>(volumenMusica));
+                } else if (mouseDentro(sf::FloatRect({400.0f, 300.0f}, {220.0f, 18.0f}))) {
+                    volumenEfectos = valorSlider(400.0f);
+                } else if (mouseDentro(rectPausa(0, 418.0f, 160.0f))) pantallaPausa = 5;
+            } else if (pantallaPausa == 7) {
+                if (mouseDentro(sf::FloatRect({400.0f, 226.0f}, {220.0f, 18.0f}))) brilloMenu = valorSlider(400.0f);
+                else if (mouseDentro(sf::FloatRect({236.0f, 306.0f}, {260.0f, 28.0f}))) balanceoCamara = !balanceoCamara;
+                else if (mouseDentro(rectPausa(0, 418.0f, 160.0f))) pantallaPausa = 5;
+            } else if (pantallaPausa == 8) {
+                if (mouseDentro(sf::FloatRect({410.0f, 210.0f}, {150.0f, 34.0f}))) {
+                    dificultadMundoNuevo = (dificultadMundoNuevo + 1) % 4;
+                    if (hayMundoActivo) mundoActivo.dificultad = dificultadMundoNuevo;
+                } else if (mouseDentro(sf::FloatRect({236.0f, 292.0f}, {220.0f, 28.0f}))) {
+                    nombresJugador = !nombresJugador;
+                } else if (mouseDentro(rectPausa(0, 418.0f, 160.0f))) pantallaPausa = 5;
+            } else if (pantallaPausa == 9) {
+                int h = hoverPausa(mousePos, 3, 244.0f);
+                if (h == 0) {
+                    guardarMundoActivo();
+                    menuPausaAbierto = false;
+                    if (inventarioGrid.esMesaCrafteoAbierta()) inventarioGrid.cerrarMesaCrafteo();
+                    if (inventarioGrid.esMenuAbierto()) inventarioGrid.alternarMenu();
+                    mostrandoMenuInicio = true;
+                    pantallaMenuInicio = 0;
+                    if (musicaMenuLista) musicaMenu.play();
+                }
+                if (h == 1) {
+                    menuPausaAbierto = false;
+                    if (inventarioGrid.esMesaCrafteoAbierta()) inventarioGrid.cerrarMesaCrafteo();
+                    if (inventarioGrid.esMenuAbierto()) inventarioGrid.alternarMenu();
+                    mostrandoMenuInicio = true;
+                    pantallaMenuInicio = 0;
+                    if (musicaMenuLista) musicaMenu.play();
+                }
+                if (h == 2) pantallaPausa = 0;
+            } else if (pantallaPausa == 10) {
+                if (mouseDentro(rectPausa(0, 418.0f, 160.0f))) pantallaPausa = 2;
+            } else if (pantallaPausa == 11) {
+                pantallaPausa = 2;
+            }
+        }
+
+        clickMenuAnterior = clickIzquierdo;
+
+        if (!menuPausaAbierto) {
+            inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
+        }
+
+        bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta() || menuPausaAbierto;
 
         if (jugador && !uiAbierta) {
             jugador->controlar(dt, *mapaSuperficie);
@@ -2854,6 +3191,34 @@ inline void Juego::ejecutar() {
             }
 
             inventarioGrid.dibujar(ventana, fuente);
+
+            if (menuPausaAbierto) {
+                if (pantallaPausa == 0) {
+                    dibujarMenuPausaPrincipal(ventana, fuente, mousePos);
+                } else if (pantallaPausa == 1) {
+                    dibujarPausaLogros(ventana, fuente, mousePos);
+                } else if (pantallaPausa == 2) {
+                    dibujarPausaAyuda(ventana, fuente, mousePos);
+                } else if (pantallaPausa == 3) {
+                    dibujarComoJugar(ventana, fuente, tiempoMenuInicio, paginaPausaComoJugar, mousePos);
+                } else if (pantallaPausa == 4) {
+                    dibujarControles(ventana, fuente, tiempoMenuInicio, invertirEjesPausa, sensibilidadMirada);
+                } else if (pantallaPausa == 5) {
+                    dibujarPausaConfiguracion(ventana, fuente, mousePos);
+                } else if (pantallaPausa == 6) {
+                    dibujarPausaAudio(ventana, fuente, volumenMusica, volumenEfectos, mousePos);
+                } else if (pantallaPausa == 7) {
+                    dibujarPausaGraficos(ventana, fuente, brilloMenu, balanceoCamara, mousePos);
+                } else if (pantallaPausa == 8) {
+                    dibujarPausaJuego(ventana, fuente, hayMundoActivo ? mundoActivo.dificultad : dificultadMundoNuevo, nombresJugador, mousePos);
+                } else if (pantallaPausa == 9) {
+                    dibujarPausaConfirmarSalida(ventana, fuente, mousePos);
+                } else if (pantallaPausa == 10) {
+                    dibujarPausaSkins(ventana, fuente, mousePos);
+                } else if (pantallaPausa == 11) {
+                    dibujarCreditos(ventana, fuente, tiempoMenuInicio, scrollCreditos);
+                }
+            }
         }
 
         aplicarBrilloPantalla(ventana, brilloMenu);
