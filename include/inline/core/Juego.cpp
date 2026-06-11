@@ -234,6 +234,44 @@ inline void dibujarFiltroDiaNoche(sf::RenderWindow& ventana, const sf::View& cam
     ventana.draw(filtro);
 }
 
+inline void dibujarOscuridadSubsuelo(sf::RenderWindow& ventana, const sf::View& camara, const Mundo& mundo, sf::Vector2f posicionJugador) {
+    sf::Vector2f centro = camara.getCenter();
+    sf::Vector2f tam = camara.getSize();
+    int inicioX = std::max(0, static_cast<int>((centro.x - tam.x * 0.5f) / TAMANIO_BLOQUE_JUEGO) - 2);
+    int finX = std::min(mundo.getAncho(), static_cast<int>((centro.x + tam.x * 0.5f) / TAMANIO_BLOQUE_JUEGO) + 3);
+    int inicioY = std::max(0, static_cast<int>((centro.y - tam.y * 0.5f) / TAMANIO_BLOQUE_JUEGO) - 2);
+    int finY = std::min(mundo.getAlto(), static_cast<int>((centro.y + tam.y * 0.5f) / TAMANIO_BLOQUE_JUEGO) + 3);
+
+    sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 12.0f);
+    sf::RectangleShape sombra({TAMANIO_BLOQUE_JUEGO + 1.0f, TAMANIO_BLOQUE_JUEGO + 1.0f});
+
+    for (int y = inicioY; y < finY; ++y) {
+        for (int x = inicioX; x < finX; ++x) {
+            sf::Vector2f centroBloque((x + 0.5f) * TAMANIO_BLOQUE_JUEGO, (y + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+            float dx = centroBloque.x - centroJugador.x;
+            float dy = centroBloque.y - centroJugador.y;
+            float distanciaJugador = std::sqrt(dx * dx + dy * dy) / TAMANIO_BLOQUE_JUEGO;
+            float luz = std::max(0.0f, 1.0f - distanciaJugador / 7.5f);
+
+            for (int ty = y - 7; ty <= y + 7; ++ty) {
+                for (int tx = x - 7; tx <= x + 7; ++tx) {
+                    if (mundo.getTipoBloque(tx, ty) != TipoBloque::Antorcha) continue;
+                    sf::Vector2f centroAntorcha((tx + 0.5f) * TAMANIO_BLOQUE_JUEGO, (ty + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+                    float adx = centroBloque.x - centroAntorcha.x;
+                    float ady = centroBloque.y - centroAntorcha.y;
+                    float distanciaAntorcha = std::sqrt(adx * adx + ady * ady) / TAMANIO_BLOQUE_JUEGO;
+                    luz = std::max(luz, 1.0f - distanciaAntorcha / 8.5f);
+                }
+            }
+
+            int alpha = std::clamp(static_cast<int>(205.0f - luz * 190.0f), 18, 220);
+            sombra.setPosition({x * TAMANIO_BLOQUE_JUEGO, y * TAMANIO_BLOQUE_JUEGO});
+            sombra.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(alpha)));
+            ventana.draw(sombra);
+        }
+    }
+}
+
 inline void dibujarSelectorBloque(sf::RenderWindow& ventana, int bloqueX, int bloqueY, bool dentroRango, float tiempo) {
     if (bloqueX < 0 || bloqueY < 0) {
         return;
@@ -448,6 +486,8 @@ inline sf::Color colorBloqueItem(ItemId item) {
         case ItemId::MineralPlata: return sf::Color(176, 184, 188);
         case ItemId::MineralOro: return sf::Color(191, 148, 55);
         case ItemId::MineralDiamante: return sf::Color(70, 210, 225);
+        case ItemId::Carbon: return sf::Color(32, 32, 30);
+        case ItemId::Antorcha: return sf::Color(238, 166, 44);
         case ItemId::Lana:
         case ItemId::LanaCruda: return sf::Color(226, 226, 218);
         case ItemId::MesaCrafteo: return sf::Color(128, 82, 42);
@@ -470,7 +510,7 @@ inline void dibujarBloqueItemSuelo(sf::RenderWindow& ventana, sf::Vector2f orige
             if ((x * 13 + y * 3) % 17 == 0) c = sombra;
             if (item == ItemId::BloquePasto && y <= 5) c = ((x + y) % 3 == 0) ? sf::Color(72, 176, 73) : sf::Color(48, 136, 58);
             if (item == ItemId::TablonMadera && y % 3 == 0) c = sf::Color(112, 70, 36);
-            if ((item == ItemId::MineralHierro || item == ItemId::MineralPlata || item == ItemId::MineralOro || item == ItemId::MineralDiamante) &&
+            if ((item == ItemId::MineralHierro || item == ItemId::MineralPlata || item == ItemId::MineralOro || item == ItemId::MineralDiamante || item == ItemId::Carbon) &&
                 ((x == 5 && y == 6) || (x == 9 && y == 9) || (x == 7 && y == 11))) {
                 c = colorBloqueItem(item);
             }
@@ -525,6 +565,7 @@ inline void dibujarItemSueloSprite(sf::RenderWindow& ventana, ItemId item, sf::V
         case ItemId::MineralPlata:
         case ItemId::MineralOro:
         case ItemId::MineralDiamante:
+        case ItemId::Carbon:
         case ItemId::Lana:
         case ItemId::LanaCruda:
         case ItemId::MesaCrafteo:
@@ -558,6 +599,15 @@ inline void dibujarItemSueloSprite(sf::RenderWindow& ventana, ItemId item, sf::V
         case ItemId::PaloMadera:
             lineaItemSuelo(ventana, origen, 5, 13, 11, 4, sf::Color(150, 88, 36), escala, giroY);
             lineaItemSuelo(ventana, origen, 6, 13, 12, 4, sf::Color(82, 48, 24), escala, giroY);
+            return;
+        case ItemId::Antorcha:
+            for (int y = 6; y < 14; ++y) {
+                dibujarPixelItemSuelo(ventana, origen, 8, y, sf::Color(126, 76, 30), escala, giroY);
+                dibujarPixelItemSuelo(ventana, origen, 9, y, sf::Color(77, 43, 22), escala, giroY);
+            }
+            dibujarPixelItemSuelo(ventana, origen, 8, 2, sf::Color(255, 238, 116), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 7, 3, sf::Color(255, 210, 66), escala, giroY);
+            dibujarPixelItemSuelo(ventana, origen, 9, 3, sf::Color(240, 118, 36), escala, giroY);
             return;
         case ItemId::Zanahoria:
             for (int y = 6; y < 14; ++y) {
@@ -3125,7 +3175,11 @@ inline void Juego::ejecutar() {
             }
         }
 
-        dibujarFiltroDiaNoche(ventana, camara, worldTime, skyLight);
+        if (enSubsuelo && jugador && mapaSuperficie) {
+            dibujarOscuridadSubsuelo(ventana, camara, *mapaSuperficie, jugador->getPosicion());
+        } else {
+            dibujarFiltroDiaNoche(ventana, camara, worldTime, skyLight);
+        }
 
         ventana.setView(ventana.getDefaultView());
 

@@ -45,6 +45,7 @@ inline float SistemaHerramientas::calcularDanio(TipoBloque tipo, ItemId itemEnMa
             vidaReferencia = 300.0f;
             break;
         case TipoBloque::MineralHierro:
+        case TipoBloque::MineralCarbon:
         case TipoBloque::MineralPlata:
         case TipoBloque::MineralOro:
             vidaReferencia = 450.0f;
@@ -82,7 +83,7 @@ inline float SistemaHerramientas::calcularTiempoMinado(TipoBloque tipo, ItemId i
         return 7.5f;
     }
 
-    if (tipo == TipoBloque::MineralHierro || tipo == TipoBloque::MineralPlata ||
+    if (tipo == TipoBloque::MineralHierro || tipo == TipoBloque::MineralCarbon || tipo == TipoBloque::MineralPlata ||
         tipo == TipoBloque::MineralOro || tipo == TipoBloque::Redstone) {
         if (itemEnMano == ItemId::PicoMadera) return 2.25f;
         if (itemEnMano == ItemId::PicoPiedra) return 1.15f;
@@ -108,6 +109,7 @@ inline float SistemaHerramientas::calcularTiempoMinado(TipoBloque tipo, ItemId i
 inline bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnMano) const {
     bool requierePico = (tipo == TipoBloque::Piedra ||
                          tipo == TipoBloque::MineralHierro ||
+                         tipo == TipoBloque::MineralCarbon ||
                          tipo == TipoBloque::MineralPlata ||
                          tipo == TipoBloque::MineralOro ||
                          tipo == TipoBloque::MineralDiamante ||
@@ -123,6 +125,7 @@ inline bool SistemaHerramientas::puedeRecolectar(TipoBloque tipo, ItemId itemEnM
 inline void SistemaHerramientas::agregarAlInventario(TipoBloque tipo, int herramientaUsada) {
     bool esMineral = (tipo == TipoBloque::Piedra ||
                       tipo == TipoBloque::MineralHierro ||
+                      tipo == TipoBloque::MineralCarbon ||
                       tipo == TipoBloque::MineralPlata ||
                       tipo == TipoBloque::MineralDiamante);
 

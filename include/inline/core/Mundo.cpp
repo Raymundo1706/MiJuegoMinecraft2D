@@ -1057,9 +1057,36 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::AguaProfunda) {
                 dibujarAguaAnimada(ventana, x, y, true);
                 continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::CuevaSuelo) {
+                sf::RectangleShape suelo({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+                suelo.setPosition({x * TAMANIO_BLOQUE_JUEGO, y * TAMANIO_BLOQUE_JUEGO});
+                int ruido = static_cast<int>((x * 17 + y * 31 + x * y) % 5);
+                suelo.setFillColor(ruido == 0 ? sf::Color(58, 55, 52) : (ruido == 1 ? sf::Color(74, 70, 64) : sf::Color(47, 45, 43)));
+                ventana.draw(suelo);
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Madera) {
                 dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
                 dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
+                continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::Antorcha) {
+                sf::RectangleShape suelo({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+                suelo.setPosition({x * TAMANIO_BLOQUE_JUEGO, y * TAMANIO_BLOQUE_JUEGO});
+                suelo.setFillColor(sf::Color(54, 51, 47));
+                ventana.draw(suelo);
+                sf::CircleShape luz(16.0f);
+                luz.setOrigin({16.0f, 16.0f});
+                luz.setPosition({x * TAMANIO_BLOQUE_JUEGO + 12.0f, y * TAMANIO_BLOQUE_JUEGO + 12.0f});
+                luz.setFillColor(sf::Color(255, 172, 54, 55));
+                ventana.draw(luz);
+                sf::RectangleShape palo({4.0f, 16.0f});
+                palo.setPosition({x * TAMANIO_BLOQUE_JUEGO + 10.0f, y * TAMANIO_BLOQUE_JUEGO + 6.0f});
+                palo.setFillColor(sf::Color(126, 76, 30));
+                ventana.draw(palo);
+                sf::CircleShape llama(4.0f);
+                llama.setOrigin({4.0f, 4.0f});
+                llama.setPosition({x * TAMANIO_BLOQUE_JUEGO + 12.0f, y * TAMANIO_BLOQUE_JUEGO + 5.0f});
+                llama.setFillColor(sf::Color(255, 224, 74));
+                ventana.draw(llama);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MesaCrafteo) {
                 sf::RectangleShape sombraObjeto({TAMANIO_BLOQUE + 3.0f, 6.0f});
@@ -1119,6 +1146,8 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                     sf::Color(210, 214, 210, 90), sf::Color(50, 52, 53, 115)
                 );
                 continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::MineralCarbon) {
+                formaBlq.setFillColor(sf::Color(38, 38, 36));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralHierro) {
                 formaBlq.setFillColor(sf::Color(210, 180, 140));
             } else if (cuadricula[y][x].tipo == TipoBloque::MineralPlata) {
@@ -1165,6 +1194,9 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 } else if (cuadricula[y][x].tipo == TipoBloque::MineralPlata) {
                     luz = sf::Color(245, 250, 250, 90);
                     sombra = sf::Color(76, 84, 88, 105);
+                } else if (cuadricula[y][x].tipo == TipoBloque::MineralCarbon) {
+                    luz = sf::Color(150, 150, 140, 70);
+                    sombra = sf::Color(10, 10, 10, 130);
                 }
                 dibujarRelieveMuro(
                     ventana, x, y,
@@ -1236,6 +1268,9 @@ inline int Mundo::getVidaMaximaBloque(TipoBloque tipo) const {
         case TipoBloque::Cristal: return 30;
         case TipoBloque::TierraArada: return 30;
         case TipoBloque::CuevaEntrada: return 9999;
+        case TipoBloque::Antorcha: return 20;
+        case TipoBloque::CuevaSuelo: return 30;
+        case TipoBloque::MineralCarbon: return 360;
         case TipoBloque::Piedra: return 300;
         case TipoBloque::MineralHierro: return 450;
         case TipoBloque::MineralPlata: return 420;
@@ -1260,7 +1295,8 @@ inline bool Mundo::puedeColocarBloque(int x, int y) const {
     return tipo == TipoBloque::Aire ||
            tipo == TipoBloque::Pasto ||
            tipo == TipoBloque::Tierra ||
-           tipo == TipoBloque::TierraArada;
+           tipo == TipoBloque::TierraArada ||
+           tipo == TipoBloque::CuevaSuelo;
 }
 
 inline bool Mundo::colocarBloque(int x, int y, TipoBloque tipo) {
@@ -1268,7 +1304,7 @@ inline bool Mundo::colocarBloque(int x, int y, TipoBloque tipo) {
         return false;
     }
 
-    bool solido = true;
+    bool solido = tipo != TipoBloque::Antorcha;
     float vida = static_cast<float>(getVidaMaximaBloque(tipo));
     TipoBioma bioma = cuadricula[y][x].bioma;
     cuadricula[y][x] = {tipo, solido, vida, false, 0.0f, false, 1, vida, bioma, 0};
@@ -1320,7 +1356,7 @@ inline void Mundo::crearZonaEntradaSubterranea(int x, int y) {
             TipoBioma bioma = cuadricula[by][bx].bioma;
 
             if (distancia <= 5.7f) {
-                cuadricula[by][bx] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+                cuadricula[by][bx] = {TipoBloque::CuevaSuelo, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
             } else if (distancia <= 7.2f) {
                 cuadricula[by][bx] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
             }
@@ -1329,6 +1365,8 @@ inline void Mundo::crearZonaEntradaSubterranea(int x, int y) {
 
     TipoBioma bioma = cuadricula[y][x].bioma;
     cuadricula[y][x] = {TipoBloque::CuevaEntrada, false, 9999.0f, false, 0.0f, true, 1, 9999.0f, bioma, 0};
+    if (x + 2 < ancho) cuadricula[y][x + 2] = {TipoBloque::Antorcha, false, 20.0f, false, 0.0f, false, 1, 20.0f, bioma, 0};
+    if (x - 2 >= 0) cuadricula[y][x - 2] = {TipoBloque::Antorcha, false, 20.0f, false, 0.0f, false, 1, 20.0f, bioma, 0};
 }
 
 inline bool Mundo::talarArbol(int x, int y, float segundosTrabajo, int& troncosObtenidos, bool& soltoSemilla) {
@@ -1439,7 +1477,12 @@ inline sf::Color Mundo::getColorMapa(int x, int y) const {
             return sf::Color(36, 124, 210);
         case TipoBloque::AguaProfunda:
             return sf::Color(18, 54, 145);
+        case TipoBloque::CuevaSuelo:
+            return sf::Color(58, 55, 52);
+        case TipoBloque::Antorcha:
+            return sf::Color(235, 170, 50);
         case TipoBloque::Piedra:
+        case TipoBloque::MineralCarbon:
         case TipoBloque::MineralHierro:
         case TipoBloque::MineralPlata:
         case TipoBloque::MineralOro:
@@ -1489,6 +1532,11 @@ inline bool Mundo::daniarBloque(int x, int y, float cantidadDanio) {
             cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
         } else if (tipoOriginal == TipoBloque::MineralPlata || tipoOriginal == TipoBloque::MineralOro) {
             cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+        } else if (tipoOriginal == TipoBloque::MineralCarbon ||
+                   tipoOriginal == TipoBloque::MineralHierro ||
+                   tipoOriginal == TipoBloque::MineralDiamante ||
+                   tipoOriginal == TipoBloque::Antorcha) {
+            cuadricula[y][x] = {TipoBloque::CuevaSuelo, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
         } else {
             cuadricula[y][x] = {TipoBloque::Aire, false, 0.0f, false, 0.0f, false, 1, 0.0f, bioma, 0};
         }
