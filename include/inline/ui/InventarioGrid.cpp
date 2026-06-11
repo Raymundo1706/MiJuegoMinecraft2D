@@ -64,6 +64,11 @@ inline const std::vector<RecetaCatalogoMesa>& recetasCatalogoMesa() {
             {ItemId::BloquePiedra, ItemId::BloquePiedra, ItemId::BloquePiedra,
              ItemId::BloquePiedra, ItemId::Ninguno, ItemId::BloquePiedra,
              ItemId::BloquePiedra, ItemId::BloquePiedra, ItemId::BloquePiedra}),
+        recetaCatalogo("Antorchas", "Iluminan cuevas y zonas oscuras.", 0,
+            ItemId::Antorcha, 4, {ingrediente(ItemId::Carbon, 1), ingrediente(ItemId::PaloMadera, 1)},
+            {ItemId::Ninguno, ItemId::Carbon, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
         recetaCatalogo("Cama", "Guarda tu punto de reaparicion al dormir.", 0,
             ItemId::Cama, 1, {ingrediente(ItemId::Lana, 3), ingrediente(ItemId::TablonMadera, 3)},
             {ItemId::Lana, ItemId::Lana, ItemId::Lana,
@@ -206,6 +211,8 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::PolloCrudo: return sf::Color(232, 180, 158);
         case ItemId::Pluma: return sf::Color(240, 240, 230);
         case ItemId::Barreta: return sf::Color(105, 108, 112);
+        case ItemId::Carbon: return sf::Color(36, 35, 34);
+        case ItemId::Antorcha: return sf::Color(235, 168, 48);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
@@ -260,6 +267,8 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::HachaPiedra: return "Hp";
         case ItemId::EspadaMadera: return "Em";
         case ItemId::EspadaPiedra: return "Ep";
+        case ItemId::Carbon: return "Co";
+        case ItemId::Antorcha: return "An";
         default: return "?";
     }
 }
@@ -549,6 +558,26 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
         case ItemId::PaloMadera:
             lineaPixel(ventana, origen, 5, 13, 11, 3, sf::Color(154, 93, 39), escala);
             lineaPixel(ventana, origen, 6, 13, 12, 3, sf::Color(100, 62, 28), escala);
+            return;
+        case ItemId::Carbon:
+            for (int y = 5; y < 13; ++y) {
+                for (int x = 5; x < 13; ++x) {
+                    if (!((x == 5 || x == 12) && (y == 5 || y == 12))) {
+                        pixel(ventana, origen, x, y, ((x + y) % 3 == 0) ? sf::Color(62, 61, 58) : sf::Color(28, 27, 26), escala);
+                    }
+                }
+            }
+            pixel(ventana, origen, 7, 6, sf::Color(92, 90, 84), escala);
+            return;
+        case ItemId::Antorcha:
+            for (int y = 6; y < 15; ++y) {
+                pixel(ventana, origen, 8, y, sf::Color(126, 76, 30), escala);
+                pixel(ventana, origen, 9, y, sf::Color(77, 43, 22), escala);
+            }
+            pixel(ventana, origen, 7, 3, sf::Color(255, 210, 66), escala);
+            pixel(ventana, origen, 8, 2, sf::Color(255, 238, 116), escala);
+            pixel(ventana, origen, 9, 3, sf::Color(240, 118, 36), escala);
+            pixel(ventana, origen, 8, 4, sf::Color(232, 82, 28), escala);
             return;
         case ItemId::BloqueTronco:
             dibujarTroncoCortadoSprite(ventana, origen, escala);

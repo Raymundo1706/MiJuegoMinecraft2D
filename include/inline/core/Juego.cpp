@@ -3121,7 +3121,7 @@ inline void Juego::ejecutar() {
         if (jugador) {
             jugador->dibujar(ventana);
             if (mapaSuperficie) {
-                mapaSuperficie->dibujarArbolesSobreJugador(ventana, jugador->getPosicion().y + 24.0f);
+                mapaSuperficie->dibujarArbolesSobreJugador(ventana, jugador->getPosicion().y + 24.0f, jugador->getPosicion());
             }
         }
 

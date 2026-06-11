@@ -24,7 +24,10 @@ enum class TipoBloque {
     MineralDiamante,
     Redstone,
     TierraArada,
-    CuevaEntrada
+    CuevaEntrada,
+    MineralCarbon,
+    Antorcha,
+    CuevaSuelo
 };
 
 enum class TipoBioma {

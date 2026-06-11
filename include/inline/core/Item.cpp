@@ -56,6 +56,8 @@ inline ItemId itemDesdeBloque(TipoBloque bloque) {
         case TipoBloque::MineralOro: return ItemId::MineralOro;
         case TipoBloque::MineralDiamante: return ItemId::MineralDiamante;
         case TipoBloque::Redstone: return ItemId::Redstone;
+        case TipoBloque::MineralCarbon: return ItemId::Carbon;
+        case TipoBloque::Antorcha: return ItemId::Antorcha;
         default: return ItemId::Ninguno;
     }
 }
@@ -75,6 +77,7 @@ inline TipoBloque bloqueDesdeItem(ItemId item) {
         case ItemId::MineralOro: return TipoBloque::MineralOro;
         case ItemId::MineralDiamante: return TipoBloque::MineralDiamante;
         case ItemId::Redstone: return TipoBloque::Redstone;
+        case ItemId::Antorcha: return TipoBloque::Antorcha;
         default: return TipoBloque::Aire;
     }
 }
@@ -97,6 +100,8 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::MineralOro: return "Oro";
         case ItemId::MineralDiamante: return "Diamante";
         case ItemId::Redstone: return "Redstone";
+        case ItemId::Carbon: return "Carbon";
+        case ItemId::Antorcha: return "Antorcha";
         case ItemId::Cristal: return "Cristal";
         case ItemId::Lana: return "Lana";
         case ItemId::PaloMadera: return "Palo";

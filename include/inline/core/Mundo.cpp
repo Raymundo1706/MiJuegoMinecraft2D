@@ -599,8 +599,13 @@ inline void dibujarTextura16Lenta(sf::RenderWindow& ventana, int bloqueX, int bl
     }
 }
 
+inline sf::Color conAlpha(sf::Color color, std::uint8_t alpha) {
+    color.a = alpha;
+    return color;
+}
+
 inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, const Bloque& bloque,
-                         bool dibujarBase, bool dibujarCopa) {
+                         bool dibujarBase, bool dibujarCopa, std::uint8_t alphaCopa = 255) {
     const float baseX = bloqueX * TAMANIO_BLOQUE_JUEGO - 20.0f;
     const float baseY = bloqueY * TAMANIO_BLOQUE_JUEGO - 46.0f;
     const int variante = bloque.varianteArbol % 3;
@@ -643,19 +648,31 @@ inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, co
     }
 
     if (dibujarCopa) {
+        hojaOscura = conAlpha(hojaOscura, alphaCopa);
+        hojaBase = conAlpha(hojaBase, alphaCopa);
+        hojaClara = conAlpha(hojaClara, alphaCopa);
+        sf::Color hojaMedia1 = conAlpha(sf::Color(43, 125, 61), alphaCopa);
+        sf::Color hojaMedia2 = conAlpha(sf::Color(50, 149, 69), alphaCopa);
+        sf::Color hojaSombra1 = conAlpha(sf::Color(38, 111, 55), alphaCopa);
+        sf::Color hojaSombra2 = conAlpha(sf::Color(30, 88, 46), alphaCopa);
+        sf::Color hojaLuz1 = conAlpha(sf::Color(73, 166, 73), alphaCopa);
+        sf::Color hojaLuz2 = conAlpha(sf::Color(75, 169, 75), alphaCopa);
+        sf::Color hojaSombra3 = conAlpha(sf::Color(31, 95, 48), alphaCopa);
+        sf::Color hojaSombra4 = conAlpha(sf::Color(29, 82, 44), alphaCopa);
+
         rect(18.0f, variante == 1 ? 2.0f : 7.0f, 36.0f, 7.0f, hojaOscura);
-        rect(variante == 2 ? 7.0f : 10.0f, 14.0f, variante == 2 ? 58.0f : 52.0f, 9.0f, sf::Color(43, 125, 61));
-        rect(4.0f, 23.0f, 64.0f, 12.0f, sf::Color(50, 149, 69));
+        rect(variante == 2 ? 7.0f : 10.0f, 14.0f, variante == 2 ? 58.0f : 52.0f, 9.0f, hojaMedia1);
+        rect(4.0f, 23.0f, 64.0f, 12.0f, hojaMedia2);
         rect(variante == 1 ? 4.0f : 0.0f, 35.0f, variante == 1 ? 64.0f : 72.0f, 12.0f, hojaBase);
-        rect(7.0f, 47.0f, 58.0f, 11.0f, sf::Color(38, 111, 55));
-        rect(17.0f, 58.0f, 38.0f, 8.0f, sf::Color(30, 88, 46));
+        rect(7.0f, 47.0f, 58.0f, 11.0f, hojaSombra1);
+        rect(17.0f, 58.0f, 38.0f, 8.0f, hojaSombra2);
 
         rect(24.0f, variante == 1 ? 5.0f : 10.0f, 12.0f, 6.0f, hojaClara);
-        rect(42.0f, 20.0f, 12.0f, 7.0f, sf::Color(73, 166, 73));
-        rect(13.0f, 28.0f, 10.0f, 7.0f, sf::Color(75, 169, 75));
-        rect(26.0f, 35.0f, 9.0f, 8.0f, sf::Color(30, 88, 46));
-        rect(52.0f, 37.0f, 8.0f, 7.0f, sf::Color(31, 95, 48));
-        rect(13.0f, 48.0f, 9.0f, 6.0f, sf::Color(29, 82, 44));
+        rect(42.0f, 20.0f, 12.0f, 7.0f, hojaLuz1);
+        rect(13.0f, 28.0f, 10.0f, 7.0f, hojaLuz2);
+        rect(26.0f, 35.0f, 9.0f, 8.0f, hojaSombra2);
+        rect(52.0f, 37.0f, 8.0f, 7.0f, hojaSombra3);
+        rect(13.0f, 48.0f, 9.0f, 6.0f, hojaSombra4);
 
         if (variante == 1) {
             rect(27.0f, -2.0f, 18.0f, 6.0f, hojaOscura);
@@ -731,35 +748,93 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
     }
 
     if (esSubterraneo) {
-        std::uniform_int_distribution<> disX(10, ancho - 10);
+        auto ponerBloque = [&](int bx, int by, TipoBloque tipo, bool solido, float vida) {
+            if (bx < 2 || bx >= ancho - 2 || by < 2 || by >= alto - 2) return;
+            TipoBioma bioma = cuadricula[by][bx].bioma;
+            cuadricula[by][bx] = {tipo, solido, vida, false, 0.0f, false, 1, vida, bioma, 0};
+        };
 
-        for (int i = 0; i < 800; ++i) {
-            int centroX = disX(gen);
-            std::uniform_int_distribution<> disY(10, alto - 10);
-            int centroY = disY(gen);
-
-            for (int dy = 0; dy <= 1; ++dy) {
-                for (int dx = 0; dx <= 1; ++dx) {
-                    int nx = centroX + dx;
-                    int ny = centroY + dy;
-                    if (nx >= 0 && nx < ancho && ny >= 0 && ny < alto) {
-                        cuadricula[ny][nx] = {TipoBloque::MineralHierro, true, 450.0f, false};
+        auto excavarCirculo = [&](int cx, int cy, int radio) {
+            for (int dy = -radio; dy <= radio; ++dy) {
+                for (int dx = -radio; dx <= radio; ++dx) {
+                    int nx = cx + dx;
+                    int ny = cy + dy;
+                    if (nx < 2 || nx >= ancho - 2 || ny < 2 || ny >= alto - 2) continue;
+                    float distancia = std::sqrt(static_cast<float>(dx * dx + dy * dy));
+                    float bordeIrregular = 0.35f + hash01(nx, ny, semillaBase + 8803u) * 0.85f;
+                    if (distancia <= static_cast<float>(radio) - bordeIrregular) {
+                        ponerBloque(nx, ny, TipoBloque::CuevaSuelo, false, 30.0f);
                     }
+                }
+            }
+        };
+
+        int centroX = ancho / 2;
+        int centroY = alto / 2;
+        excavarCirculo(centroX, centroY, 9);
+
+        std::uniform_int_distribution<> giro(-1, 1);
+        std::uniform_int_distribution<> paso(0, 3);
+        std::uniform_int_distribution<> radioTunel(2, 3);
+        std::uniform_int_distribution<> salaRadio(5, 11);
+
+        for (int ruta = 0; ruta < 26; ++ruta) {
+            int x = centroX;
+            int y = centroY;
+            float angulo = (static_cast<float>(ruta) / 26.0f) * 6.28318f;
+            int dx = static_cast<int>(std::round(std::cos(angulo)));
+            int dy = static_cast<int>(std::round(std::sin(angulo)));
+            if (dx == 0 && dy == 0) dx = 1;
+
+            int largo = 85 + static_cast<int>(gen() % 130);
+            for (int i = 0; i < largo; ++i) {
+                if (paso(gen) == 0) {
+                    int g = giro(gen);
+                    if (std::abs(dx) > std::abs(dy)) {
+                        dy = std::clamp(dy + g, -1, 1);
+                    } else {
+                        dx = std::clamp(dx + g, -1, 1);
+                    }
+                    if (dx == 0 && dy == 0) dx = 1;
+                }
+
+                x = std::clamp(x + dx, 12, ancho - 13);
+                y = std::clamp(y + dy, 12, alto - 13);
+                excavarCirculo(x, y, radioTunel(gen));
+                if (i % 28 == 0 || (gen() % 100) < 4) {
+                    excavarCirculo(x, y, salaRadio(gen));
                 }
             }
         }
 
-        for (int i = 0; i < 250; ++i) {
-            int centroX = disX(gen);
-            std::uniform_int_distribution<> disYProfundo(alto / 2, alto - 10);
-            int centroY = disYProfundo(gen);
+        auto esSueloCueva = [&](int bx, int by) {
+            if (bx < 0 || bx >= ancho || by < 0 || by >= alto) return false;
+            TipoBloque t = cuadricula[by][bx].tipo;
+            return t == TipoBloque::CuevaSuelo || t == TipoBloque::CuevaEntrada || t == TipoBloque::Antorcha;
+        };
+        auto juntoACamino = [&](int bx, int by) {
+            return esSueloCueva(bx + 1, by) || esSueloCueva(bx - 1, by) ||
+                   esSueloCueva(bx, by + 1) || esSueloCueva(bx, by - 1);
+        };
 
-            if (centroX >= 0 && centroX < ancho && centroY >= 0 && centroY < alto) {
-                cuadricula[centroY][centroX] = {TipoBloque::MineralDiamante, true, 600.0f, false};
-                if (centroX + 1 < ancho && (gen() % 2 == 0)) {
-                    cuadricula[centroY][centroX + 1] = {TipoBloque::MineralDiamante, true, 600.0f, false};
-                }
+        for (int y = 3; y < alto - 3; ++y) {
+            for (int x = 3; x < ancho - 3; ++x) {
+                if (cuadricula[y][x].tipo != TipoBloque::Piedra || !juntoACamino(x, y)) continue;
+                float r = hash01(x, y, semillaBase + 54021u);
+                float profundidad = static_cast<float>(y) / static_cast<float>(alto);
+                if (r < 0.070f) ponerBloque(x, y, TipoBloque::MineralCarbon, true, 360.0f);
+                else if (r < 0.104f) ponerBloque(x, y, TipoBloque::MineralHierro, true, 450.0f);
+                else if (r < 0.116f && profundidad > 0.22f) ponerBloque(x, y, TipoBloque::MineralPlata, true, 420.0f);
+                else if (r < 0.124f && profundidad > 0.36f) ponerBloque(x, y, TipoBloque::MineralOro, true, 450.0f);
+                else if (r < 0.129f && profundidad > 0.58f) ponerBloque(x, y, TipoBloque::MineralDiamante, true, 600.0f);
             }
+        }
+
+        for (int i = 0; i < 18; ++i) {
+            float a = static_cast<float>(i) / 18.0f * 6.28318f;
+            int tx = centroX + static_cast<int>(std::round(std::cos(a) * 6.0f));
+            int ty = centroY + static_cast<int>(std::round(std::sin(a) * 6.0f));
+            if (esSueloCueva(tx, ty)) ponerBloque(tx, ty, TipoBloque::Antorcha, false, 20.0f);
         }
         std::cout << "Subterraneo generado con exito." << std::endl;
         return;
@@ -921,6 +996,7 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
         TipoBloque tipo = cuadricula[by][bx].tipo;
         return tipo == TipoBloque::Piedra ||
                tipo == TipoBloque::MineralHierro ||
+               tipo == TipoBloque::MineralCarbon ||
                tipo == TipoBloque::MineralPlata ||
                tipo == TipoBloque::MineralOro ||
                tipo == TipoBloque::MineralDiamante;
@@ -937,6 +1013,7 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                bloque.tipo == TipoBloque::Tierra ||
                bloque.tipo == TipoBloque::Piedra ||
                bloque.tipo == TipoBloque::MineralHierro ||
+               bloque.tipo == TipoBloque::MineralCarbon ||
                bloque.tipo == TipoBloque::MineralPlata ||
                bloque.tipo == TipoBloque::MineralOro ||
                bloque.tipo == TipoBloque::MineralDiamante ||
@@ -1116,7 +1193,7 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
     }
 }
 
-inline void Mundo::dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY) {
+inline void Mundo::dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY, sf::Vector2f posicionJugador) {
     sf::View vistaActual = ventana.getView();
     sf::Vector2f centro = vistaActual.getCenter();
     sf::Vector2f tamanio = vistaActual.getSize();
@@ -1139,7 +1216,12 @@ inline void Mundo::dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float p
 
             float profundidadArbol = y * TAMANIO_BLOQUE_JUEGO + TAMANIO_BLOQUE_JUEGO * 0.8f;
             if (piesJugadorY < profundidadArbol) {
-                dibujarArbol(ventana, x, y, cuadricula[y][x], false, true);
+                float baseX = x * TAMANIO_BLOQUE_JUEGO - 20.0f;
+                float baseY = y * TAMANIO_BLOQUE_JUEGO - 46.0f;
+                sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 14.0f);
+                sf::FloatRect zonaCopa({baseX - 4.0f, baseY - 4.0f}, {80.0f, 78.0f});
+                bool tapaJugador = posicionJugador.x > -90000.0f && zonaCopa.contains(centroJugador);
+                dibujarArbol(ventana, x, y, cuadricula[y][x], false, true, tapaJugador ? 112 : 255);
             }
         }
     }

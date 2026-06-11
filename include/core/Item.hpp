@@ -42,7 +42,9 @@ enum class ItemId {
     HachaMadera,
     HachaPiedra,
     EspadaMadera,
-    EspadaPiedra
+    EspadaPiedra,
+    Carbon,
+    Antorcha
 };
 
 enum class TipoHerramienta {
