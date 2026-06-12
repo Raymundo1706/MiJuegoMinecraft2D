@@ -1,6 +1,5 @@
 @startuml MiJuegoMinecraft2D
 
-' --- CONFIGURACIÓN VISUAL ---
 skinparam backgroundColor #2D2D2D
 skinparam class {
     BackgroundColor #454545
@@ -9,56 +8,45 @@ skinparam class {
     FontColor White
     FontName "Courier New"
 }
-skinparam stereotypeFontColor #Yellow
 
-title Estructura Completa del Motor - MiJuegoMinecraft2D (Fase 1 Crafteo)
+title Estructura actual - MiJuegoMinecraft2D
 
-' --- ENUMS Y STRUCTS ---
 enum TipoBloque {
     Aire
     Pasto
+    Tierra
     Madera
     Piedra
-    MineralHierro
-    MineralDiamante
     Agua
 }
 
-enum TipoAnimal {
-    Cerdo
-    Oveja
+enum ItemId {
+    Ninguno
+    BloqueTronco
+    Tierra
+    Piedra
+    Palo
+    PicoMadera
+    PicoPiedra
+    Antorcha
 }
 
 struct SlotInventario {
-    + tipo : TipoBloque
+    + item : ItemId
     + cantidad : int
 }
 
-struct RecetaMatriz {
-    + matriz : TipoBloque[3][3]
-    + operator<() : bool
-}
-
-struct ResultadoCrafteo {
-    + tipo : TipoBloque
-    + cantidad : int
-}
-
-' --- CLASES PRINCIPALES ---
 class Juego {
     - ventana : sf::RenderWindow
-    
     - camara : sf::View
-    - estaCorriendo : bool
     - fuente : sf::Font
-    - fuenteCargada : bool
-    - textoCoordenadas : std::optional<sf::Text>
     - mapaSuperficie : unique_ptr<Mundo>
+    - mapaSubsuelo : unique_ptr<Mundo>
     - jugador : unique_ptr<Jugador>
-    - animales : vector<Animal*>
+    - animales : vector<Animal>
+    - zombies : vector<Zombie>
     --
     + Juego()
-    + ~Juego()
     + ejecutar()
 }
 
@@ -66,21 +54,22 @@ class Mundo {
     - ancho : int
     - alto : int
     - bloques : vector<vector<TipoBloque>>
-    - mapaDanio : map<string, float>
     --
-    + Mundo(ancho: int, alto: int)
+    + Mundo(ancho: int, alto: int, semilla: unsigned int)
     + getTipoBloque(x: int, y: int) : TipoBloque
-    + daniarBloque(x: int, y: int, danio: float) : bool
+    + setBloque(x: int, y: int, tipo: TipoBloque)
+    + esBloqueSolido(x: int, y: int) : bool
     + dibujar(ventana: sf::RenderWindow&)
 }
 
 class Jugador {
     - posicion : sf::Vector2f
-    - velocidad : sf::Vector2f
-    ' Aquí se integra Box2D indirectamente o la lógica de colisión por mapa
+    - direccionMirada : DireccionJugador
+    - salud : int
+    - hambre : int
     --
-    + Jugador(x: float, y: float)
     + controlar(dt: float, mundo: Mundo&)
+    + recibirDanio(cantidad: int)
     + dibujar(ventana: sf::RenderWindow&)
     + getPosicion() : sf::Vector2f
 }
@@ -88,84 +77,56 @@ class Jugador {
 class Animal {
     - posicion : sf::Vector2f
     - tipo : TipoAnimal
-    - tiempoCambioDireccion : float
-    - direccionActual : sf::Vector2f
+    - salud : int
+    - estado : EstadoAnimal
     --
-    + Animal(x: float, y: float, tipo: TipoAnimal)
-    + actualizar(dt: float, mundo: Mundo&)
+    + actualizar(dt: float, mundo: Mundo&, jugador: Jugador&)
+    + recibirDanio(cantidad: int, origen: sf::Vector2f)
     + dibujar(ventana: sf::RenderWindow&)
 }
 
-' --- SISTEMAS MODULARES ---
-class SistemaHerramientas {
-    - herramientaActiva : int
-    - inventarioViejoContadores : map<TipoBloque, int>
+class Zombie {
+    - posicion : sf::Vector2f
+    - salud : int
+    - tiempoAtaque : float
     --
-    + cambiarHerramienta(slot: int)
-    + calcularDanio(tipo: TipoBloque) : float
-    + agregarAlInventario(tipo: TipoBloque, herramienta: int)
-    + getCantidad(tipo: TipoBloque) : int
-    + getHerramientaActiva() : int
+    + actualizar(dt: float, mundo: Mundo&, jugador: Jugador&)
+    + recibirDanio(cantidad: int)
+    + dibujar(ventana: sf::RenderWindow&)
 }
 
 class InventarioGrid {
     - slots : vector<SlotInventario>
+    - itemCursor : SlotInventario
     - menuAbierto : bool
-    - slotSeleccionadoHotbar : int
-    - slotArrastrando : int
-    - manteniendoItem : bool
-    - TAMANIO_CUADRO : const float
+    - mesaCrafteoAbierta : bool
+    - categoriaMesa : int
+    - recetaMesaSeleccionada : int
     --
-    + InventarioGrid()
-    + alternarMenu()
-    + esMenuAbierto() : bool
-    + agregarItem(tipo: TipoBloque, cantidad: int)
-    + manejarClicks(posicionMouse: sf::Vector2i, clickPresionado: bool)
-    + dibujar(ventana: sf::RenderWindow&, fuente: sf::Font&)
-    + getTipoEnHotbar() : TipoBloque
-    + seleccionarSlotHotbar(slot: int)
-    ' Conectores públicos nuevos:
-    + tieneItemEnMano() : bool
-    + getSlotArrastrando() : SlotInventario&
-    + soltarItemEnMano()
-    + getSlots() : vector<SlotInventario>&
-}
-
-class SistemaCrafteo {
-    - menuAbierto : bool
-    - matrizEntrada : TipoBloque[3][3]
-    - ranuraSalida : ResultadoCrafteo
-    - libroRecetas : map<RecetaMatriz, ResultadoCrafteo>
-    - TAMANIO_CUADRO : const float
-    --
-    + SistemaCrafteo()
-    + alternarMenu()
-    + esMenuAbierto() : bool
-    + registrarReceta(patron: RecetaMatriz, resultado: TipoBloque, cantidad: int)
-    + inicializarRecetasBase()
-    + verificarCrafteo()
-    + manejarClicks(posicionMouse: sf::Vector2i, clickPresionado: bool, itemEnMano: TipoBloque)
+    + agregarItem(item: ItemId, cantidad: int)
+    + puedeAgregarItem(item: ItemId, cantidad: int) : bool
+    + manejarClicks(mouse: sf::Vector2i, izquierdo: bool, derecho: bool)
+    + abrirMesaCrafteo()
+    + cerrarMesaCrafteo()
     + dibujar(ventana: sf::RenderWindow&, fuente: sf::Font&)
 }
 
-' --- RELACIONES Y DEPENDENCIAS ---
-Juego *-- "1" Mundo : Posee y gestiona >
-Juego *-- "1" Jugador : Controla >
-Juego *-- "0..*" Animal : Despliega en bucle >
+class SistemaHerramientas {
+    --
+    + tiempoMinado(bloque: TipoBloque, herramienta: ItemId) : float
+    + puedeSoltarItem(bloque: TipoBloque, herramienta: ItemId) : bool
+}
 
-' Inyecciones dentro del bucle ejecutar()
-Juego ..> SistemaHerramientas : "Instancia local"
-Juego ..> InventarioGrid : "Instancia local"
-Juego ..> SistemaCrafteo : "Instancia local"
-
-' Interacciones de lógica
-Jugador ..> Mundo : "Consulta límites"
-Animal ..> Mundo : "Colisiona"
-InventarioGrid ..> SlotInventario : "Usa lista de"
-SistemaCrafteo ..> RecetaMatriz : "Registra patrones con"
-SistemaCrafteo ..> ResultadoCrafteo : "Produce"
-
-' La conexión clave de la Fase 2
-InventarioGrid .right.> SistemaCrafteo : "Inyecta itemEnMano"
+Juego *-- Mundo
+Juego *-- Jugador
+Juego *-- Animal
+Juego *-- Zombie
+Juego ..> InventarioGrid
+Juego ..> SistemaHerramientas
+Jugador ..> Mundo
+Animal ..> Mundo
+Zombie ..> Mundo
+InventarioGrid ..> SlotInventario
+InventarioGrid ..> ItemId
 
 @enduml

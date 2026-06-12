@@ -13,14 +13,6 @@
 #include "../../sistemas/SistemaHerramientas.hpp"
 #include "../../ui/InventarioGrid.hpp"
 
-namespace {
-constexpr float TICKS_POR_SEGUNDO_MUNDO = 216.67f;
-constexpr float TICKS_DIA_COMPLETO = 24000.0f;
-constexpr float TICK_FIN_DIA = 12000.0f;
-constexpr float TICK_INICIO_NOCHE = 13000.0f;
-constexpr float TICK_FIN_NOCHE = 22000.0f;
-constexpr float TICK_PUEDE_DORMIR = 12542.0f;
-
 struct MundoGuardado {
     std::string nombre;
     std::string carpeta;
@@ -38,6 +30,23 @@ struct ParticulaBloque {
     float vidaMaxima = 0.0f;
     float tamano = 2.0f;
 };
+
+struct EstadoJuegoGuardado {
+    bool existe = false;
+    bool enSubsuelo = false;
+    float worldTime = 0.0f;
+    sf::Vector2f posicionSuperficie{0.0f, 0.0f};
+    sf::Vector2f posicionJugador{0.0f, 0.0f};
+    unsigned int semillaCueva = 0;
+};
+
+namespace {
+constexpr float TICKS_POR_SEGUNDO_MUNDO = 216.67f;
+constexpr float TICKS_DIA_COMPLETO = 24000.0f;
+constexpr float TICK_FIN_DIA = 12000.0f;
+constexpr float TICK_INICIO_NOCHE = 13000.0f;
+constexpr float TICK_FIN_NOCHE = 22000.0f;
+constexpr float TICK_PUEDE_DORMIR = 12542.0f;
 
 inline std::string dificultadTexto(int dificultad) {
     static const char* nombres[4] = {"Pacifico", "Facil", "Normal", "Dificil"};
@@ -125,12 +134,41 @@ inline std::filesystem::path rutaBloquesMundo(const std::string& carpeta) {
     return carpetaSaves() / carpeta / "blocks.bin";
 }
 
+inline std::filesystem::path rutaBloquesCuevaMundo(const std::string& carpeta) {
+    return carpetaSaves() / carpeta / "cave_blocks.bin";
+}
+
 inline std::filesystem::path rutaInventarioMundo(const std::string& carpeta) {
     return carpetaSaves() / carpeta / "inventory.txt";
 }
 
 inline std::filesystem::path rutaJugadorMundo(const std::string& carpeta) {
     return carpetaSaves() / carpeta / "player.txt";
+}
+
+inline std::filesystem::path rutaEstadoMundo(const std::string& carpeta) {
+    return carpetaSaves() / carpeta / "state.txt";
+}
+
+inline std::filesystem::path rutaEntidadesMundo(const std::string& carpeta) {
+    return carpetaSaves() / carpeta / "entities.txt";
+}
+
+inline EstadoJuegoGuardado leerEstadoJuego(const std::string& carpeta) {
+    EstadoJuegoGuardado estado;
+    std::ifstream in(rutaEstadoMundo(carpeta));
+    if (!in) {
+        return estado;
+    }
+
+    estado.existe = true;
+    int subsuelo = 0;
+    in >> estado.worldTime >> subsuelo;
+    in >> estado.posicionSuperficie.x >> estado.posicionSuperficie.y;
+    in >> estado.posicionJugador.x >> estado.posicionJugador.y;
+    in >> estado.semillaCueva;
+    estado.enSubsuelo = subsuelo != 0;
+    return estado;
 }
 
 inline MundoGuardado leerMetaMundo(const std::filesystem::path& ruta) {
@@ -215,32 +253,6 @@ inline const char* nombreMomentoDia(float worldTime) {
     if (worldTime <= TICK_INICIO_NOCHE) return "Atardecer";
     if (worldTime <= TICK_FIN_NOCHE) return "Noche";
     return "Amanecer";
-}
-
-inline void dibujarFiltroDiaNoche(sf::RenderWindow& ventana, const sf::View& camara, float worldTime, int skyLight) {
-    float oscuridad = 1.0f - (static_cast<float>(skyLight) / 15.0f);
-    if (oscuridad <= 0.01f) {
-        return;
-    }
-
-    std::uint8_t alphaAzul = static_cast<std::uint8_t>(std::clamp(oscuridad * 170.0f, 0.0f, 170.0f));
-    sf::Color colorFiltro(8, 18, 54, alphaAzul);
-
-    if (worldTime > TICK_FIN_DIA && worldTime <= TICK_INICIO_NOCHE) {
-        float t = (worldTime - TICK_FIN_DIA) / (TICK_INICIO_NOCHE - TICK_FIN_DIA);
-        std::uint8_t alphaCalido = static_cast<std::uint8_t>(std::clamp(45.0f * (1.0f - std::abs(t - 0.45f) * 1.8f), 0.0f, 45.0f));
-        sf::RectangleShape atardecer(camara.getSize());
-        atardecer.setOrigin(camara.getSize() * 0.5f);
-        atardecer.setPosition(camara.getCenter());
-        atardecer.setFillColor(sf::Color(255, 112, 42, alphaCalido));
-        ventana.draw(atardecer);
-    }
-
-    sf::RectangleShape filtro(camara.getSize());
-    filtro.setOrigin(camara.getSize() * 0.5f);
-    filtro.setPosition(camara.getCenter());
-    filtro.setFillColor(colorFiltro);
-    ventana.draw(filtro);
 }
 
 inline float luzAntorchasCercanas(const Mundo& mundo, int x, int y, sf::Vector2f centroBloque, int radioBusqueda) {
@@ -1842,10 +1854,9 @@ inline void dibujarPausaAudio(sf::RenderWindow& ventana, sf::Font& fuente, int m
                      rectPausa(0, 418.0f, 160.0f).contains(sf::Vector2f(mouse)), 15);
 }
 
-inline void dibujarPausaGraficos(sf::RenderWindow& ventana, sf::Font& fuente, int brillo, bool balanceo, sf::Vector2i mouse) {
+inline void dibujarPausaGraficos(sf::RenderWindow& ventana, sf::Font& fuente, int brillo, sf::Vector2i mouse) {
     dibujarFondoPausa(ventana, fuente, "Graficos");
     dibujarSliderMenu(ventana, fuente, "Brillo", 218.0f, brillo);
-    dibujarCheckboxMenu(ventana, fuente, {236.0f, 306.0f}, balanceo ? "Balanceo de camara: Si" : "Balanceo de camara: No", balanceo);
     dibujarBotonRect(ventana, fuente, rectPausa(0, 418.0f, 160.0f), "Atras",
                      rectPausa(0, 418.0f, 160.0f).contains(sf::Vector2f(mouse)), 15);
 }
@@ -2085,7 +2096,6 @@ inline void Juego::ejecutar() {
     int pantallaPausa = 0;
     int paginaPausaComoJugar = 0;
     bool invertirEjesPausa = false;
-    bool balanceoCamara = false;
     sf::Music musicaMenu;
     bool musicaMenuLista = musicaMenu.openFromFile("assets/audio/menu_music.ogg");
     if (musicaMenuLista) {
@@ -2328,6 +2338,9 @@ inline void Juego::ejecutar() {
         mundoActivo.ultimaVez = fechaActualTexto();
         guardarMetaMundo(mundoActivo);
         mundoParaGuardar->guardarEstado(rutaBloquesMundo(mundoActivo.carpeta).string());
+        if (enSubsuelo) {
+            mapaSuperficie->guardarEstado(rutaBloquesCuevaMundo(mundoActivo.carpeta).string());
+        }
         {
             std::ofstream inv(rutaInventarioMundo(mundoActivo.carpeta));
             const auto& slots = inventarioGrid.getSlots();
@@ -2337,8 +2350,45 @@ inline void Juego::ejecutar() {
         }
         if (jugador) {
             std::ofstream pj(rutaJugadorMundo(mundoActivo.carpeta));
-            sf::Vector2f pos = enSubsuelo ? posicionEntradaSuperficie : jugador->getPosicion();
+            sf::Vector2f pos = jugador->getPosicion();
             pj << pos.x << ' ' << pos.y << '\n';
+
+            std::ofstream st(rutaEstadoMundo(mundoActivo.carpeta));
+            st << worldTime << ' ' << (enSubsuelo ? 1 : 0) << '\n';
+            st << posicionEntradaSuperficie.x << ' ' << posicionEntradaSuperficie.y << '\n';
+            st << pos.x << ' ' << pos.y << '\n';
+            st << (enSubsuelo ? mapaSuperficie->getSemilla() : 0u) << '\n';
+
+            sf::Vector2f referencia = enSubsuelo ? posicionEntradaSuperficie : pos;
+            constexpr float RADIO_GUARDADO_ENTIDADES = 42.0f * TAMANIO_BLOQUE_JUEGO;
+            std::vector<Animal*> animalesCercanos;
+            for (auto* animal : animales) {
+                if (!animal || !animal->estaVivo()) continue;
+                sf::Vector2f delta = animal->getPosicion() - referencia;
+                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) <= RADIO_GUARDADO_ENTIDADES) {
+                    animalesCercanos.push_back(animal);
+                }
+            }
+            std::vector<Zombie*> zombisCercanos;
+            for (auto* zombie : zombis) {
+                if (!zombie || !zombie->estaVivo()) continue;
+                sf::Vector2f delta = zombie->getPosicion() - pos;
+                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) <= RADIO_GUARDADO_ENTIDADES) {
+                    zombisCercanos.push_back(zombie);
+                }
+            }
+
+            std::ofstream ent(rutaEntidadesMundo(mundoActivo.carpeta));
+            ent << "animals " << animalesCercanos.size() << '\n';
+            for (auto* animal : animalesCercanos) {
+                sf::Vector2f p = animal->getPosicion();
+                ent << static_cast<int>(animal->getTipo()) << ' ' << p.x << ' ' << p.y << '\n';
+            }
+            ent << "zombies " << zombisCercanos.size() << '\n';
+            for (auto* zombie : zombisCercanos) {
+                sf::Vector2f p = zombie->getPosicion();
+                ent << (zombie->esBebe() ? 1 : 0) << ' ' << p.x << ' ' << p.y << '\n';
+            }
         }
         mundosGuardados = escanearMundosGuardados();
     };
@@ -2352,6 +2402,7 @@ inline void Juego::ejecutar() {
         mapaExterior.reset();
         enSubsuelo = false;
         posicionEntradaSuperficie = {0.0f, 0.0f};
+        EstadoJuegoGuardado estadoGuardado = cargarBloques ? leerEstadoJuego(mundo.carpeta) : EstadoJuegoGuardado{};
 
         mapaSuperficie = std::make_unique<Mundo>(1000, 1000, mundo.semilla);
         if (cargarBloques) {
@@ -2403,6 +2454,32 @@ inline void Juego::ejecutar() {
             if (pj) {
                 pj >> jugadorX >> jugadorY;
             }
+        }
+        if (estadoGuardado.existe) {
+            worldTime = std::clamp(estadoGuardado.worldTime, 0.0f, TICKS_DIA_COMPLETO - 1.0f);
+            skyLight = calcularSkyLight(worldTime);
+            spawnHostilesHabilitado = skyLight < 7;
+            jugadorX = estadoGuardado.posicionJugador.x;
+            jugadorY = estadoGuardado.posicionJugador.y;
+            posicionEntradaSuperficie = estadoGuardado.posicionSuperficie;
+        } else if (!cargarBloques) {
+            worldTime = 0.0f;
+            skyLight = 15;
+            spawnHostilesHabilitado = false;
+        }
+
+        if (estadoGuardado.existe && estadoGuardado.enSubsuelo) {
+            mapaExterior = std::move(mapaSuperficie);
+            unsigned int semillaCueva = estadoGuardado.semillaCueva != 0
+                ? estadoGuardado.semillaCueva
+                : (mundo.semilla ^ 0xC0A7E5u);
+            mapaSuperficie = std::make_unique<Mundo>(1000, 1000, semillaCueva);
+            if (std::filesystem::exists(rutaBloquesCuevaMundo(mundo.carpeta))) {
+                mapaSuperficie->cargarEstado(rutaBloquesCuevaMundo(mundo.carpeta).string());
+            } else {
+                mapaSuperficie->generarMundo(true);
+            }
+            enSubsuelo = true;
         }
         jugador = std::make_unique<Jugador>(jugadorX, jugadorY);
         camara.setSize({560.0f, 420.0f});
@@ -2465,6 +2542,52 @@ inline void Juego::ejecutar() {
             }
             if (inventarioVacio) {
                 inventarioGrid.agregarItem(ItemId::MapaInicial, 1);
+            }
+        }
+        if (cargarBloques && std::filesystem::exists(rutaEntidadesMundo(mundo.carpeta))) {
+            sf::Vector2f referenciaEntidades = estadoGuardado.existe && estadoGuardado.enSubsuelo
+                ? estadoGuardado.posicionSuperficie
+                : sf::Vector2f(jugadorX, jugadorY);
+            constexpr float RADIO_GUARDADO_ENTIDADES = 42.0f * TAMANIO_BLOQUE_JUEGO;
+
+            for (auto it = animales.begin(); it != animales.end();) {
+                Animal* animal = *it;
+                if (!animal) {
+                    it = animales.erase(it);
+                    continue;
+                }
+                sf::Vector2f delta = animal->getPosicion() - referenciaEntidades;
+                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) <= RADIO_GUARDADO_ENTIDADES) {
+                    delete animal;
+                    it = animales.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            for (auto* zombie : zombis) delete zombie;
+            zombis.clear();
+
+            std::ifstream ent(rutaEntidadesMundo(mundo.carpeta));
+            std::string etiqueta;
+            std::size_t cantidad = 0;
+            if (ent >> etiqueta >> cantidad && etiqueta == "animals") {
+                for (std::size_t i = 0; i < cantidad; ++i) {
+                    int tipoInt = 0;
+                    float x = 0.0f;
+                    float y = 0.0f;
+                    ent >> tipoInt >> x >> y;
+                    tipoInt = std::clamp(tipoInt, 0, 3);
+                    animales.push_back(new Animal(x, y, static_cast<TipoAnimal>(tipoInt)));
+                }
+            }
+            if (ent >> etiqueta >> cantidad && etiqueta == "zombies") {
+                for (std::size_t i = 0; i < cantidad; ++i) {
+                    int bebe = 0;
+                    float x = 0.0f;
+                    float y = 0.0f;
+                    ent >> bebe >> x >> y;
+                    zombis.push_back(new Zombie(x, y, bebe != 0));
+                }
             }
         }
         if (mundoActivo.ultimaVez.empty()) {
@@ -3159,7 +3282,6 @@ inline void Juego::ejecutar() {
                 } else if (mouseDentro(rectPausa(0, 418.0f, 160.0f))) pantallaPausa = 5;
             } else if (pantallaPausa == 7) {
                 if (mouseDentro(sf::FloatRect({400.0f, 226.0f}, {220.0f, 18.0f}))) brilloMenu = valorSlider(400.0f);
-                else if (mouseDentro(sf::FloatRect({236.0f, 306.0f}, {260.0f, 28.0f}))) balanceoCamara = !balanceoCamara;
                 else if (mouseDentro(rectPausa(0, 418.0f, 160.0f))) pantallaPausa = 5;
             } else if (pantallaPausa == 8) {
                 if (mouseDentro(sf::FloatRect({410.0f, 210.0f}, {150.0f, 34.0f}))) {
@@ -3927,7 +4049,7 @@ inline void Juego::ejecutar() {
                 } else if (pantallaPausa == 6) {
                     dibujarPausaAudio(ventana, fuente, volumenMusica, volumenEfectos, mousePos);
                 } else if (pantallaPausa == 7) {
-                    dibujarPausaGraficos(ventana, fuente, brilloMenu, balanceoCamara, mousePos);
+                    dibujarPausaGraficos(ventana, fuente, brilloMenu, mousePos);
                 } else if (pantallaPausa == 8) {
                     dibujarPausaJuego(ventana, fuente, hayMundoActivo ? mundoActivo.dificultad : dificultadMundoNuevo, nombresJugador, mousePos);
                 } else if (pantallaPausa == 9) {
