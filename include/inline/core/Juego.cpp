@@ -30,6 +30,15 @@ struct MundoGuardado {
     int dificultad = 2;
 };
 
+struct ParticulaBloque {
+    sf::Vector2f posicion;
+    sf::Vector2f velocidad;
+    sf::Color color;
+    float vida = 0.0f;
+    float vidaMaxima = 0.0f;
+    float tamano = 2.0f;
+};
+
 inline std::string dificultadTexto(int dificultad) {
     static const char* nombres[4] = {"Pacifico", "Facil", "Normal", "Dificil"};
     return nombres[std::clamp(dificultad, 0, 3)];
@@ -394,6 +403,70 @@ inline void dibujarSelectorBloque(sf::RenderWindow& ventana, int bloqueX, int bl
     pieza(0.0f, TAMANIO_BLOQUE_JUEGO - esquina, grosor, esquina);
     pieza(TAMANIO_BLOQUE_JUEGO - esquina, TAMANIO_BLOQUE_JUEGO - grosor, esquina, grosor);
     pieza(TAMANIO_BLOQUE_JUEGO - grosor, TAMANIO_BLOQUE_JUEGO - esquina, grosor, esquina);
+}
+
+inline sf::Color colorParticulaBloque(TipoBloque tipo) {
+    switch (tipo) {
+        case TipoBloque::Madera:
+            return sf::Color(116, 74, 38);
+        case TipoBloque::Piedra:
+        case TipoBloque::MineralCarbon:
+        case TipoBloque::MineralHierro:
+        case TipoBloque::MineralPlata:
+        case TipoBloque::MineralOro:
+        case TipoBloque::MineralDiamante:
+            return sf::Color(116, 116, 112);
+        case TipoBloque::Tierra:
+        case TipoBloque::Pasto:
+        case TipoBloque::TierraArada:
+            return sf::Color(126, 82, 46);
+        default:
+            return sf::Color(140, 120, 90);
+    }
+}
+
+inline void dibujarGrietasBloque(sf::RenderWindow& ventana, int bloqueX, int bloqueY, float progreso) {
+    if (progreso <= 0.04f) {
+        return;
+    }
+
+    float x = static_cast<float>(bloqueX) * TAMANIO_BLOQUE_JUEGO;
+    float y = static_cast<float>(bloqueY) * TAMANIO_BLOQUE_JUEGO;
+    int etapa = std::clamp(static_cast<int>(progreso * 6.0f), 1, 5);
+    sf::Color color(18, 14, 12, static_cast<std::uint8_t>(110 + etapa * 24));
+
+    auto linea = [&](float x1, float y1, float x2, float y2, float grosor) {
+        sf::Vector2f a(x + x1, y + y1);
+        sf::Vector2f b(x + x2, y + y2);
+        sf::Vector2f d = b - a;
+        float len = std::sqrt(d.x * d.x + d.y * d.y);
+        if (len <= 0.01f) return;
+        sf::RectangleShape r({len, grosor});
+        r.setOrigin({0.0f, grosor * 0.5f});
+        r.setPosition(a);
+        r.setRotation(sf::degrees(std::atan2(d.y, d.x) * 180.0f / 3.14159265f));
+        r.setFillColor(color);
+        ventana.draw(r);
+    };
+
+    linea(6.0f, 7.0f, 13.0f, 12.0f, 1.4f);
+    if (etapa >= 2) linea(13.0f, 12.0f, 18.0f, 8.0f, 1.4f);
+    if (etapa >= 3) linea(13.0f, 12.0f, 10.0f, 19.0f, 1.4f);
+    if (etapa >= 4) linea(10.0f, 19.0f, 18.0f, 20.0f, 1.6f);
+    if (etapa >= 5) {
+        linea(7.0f, 14.0f, 3.0f, 20.0f, 1.6f);
+        linea(17.0f, 8.0f, 22.0f, 4.0f, 1.4f);
+    }
+}
+
+inline void dibujarParticulasBloque(sf::RenderWindow& ventana, const std::vector<ParticulaBloque>& particulas) {
+    for (const ParticulaBloque& p : particulas) {
+        float t = p.vidaMaxima > 0.0f ? std::clamp(p.vida / p.vidaMaxima, 0.0f, 1.0f) : 0.0f;
+        sf::RectangleShape pixel({p.tamano, p.tamano});
+        pixel.setPosition(p.posicion);
+        pixel.setFillColor(sf::Color(p.color.r, p.color.g, p.color.b, static_cast<std::uint8_t>(210.0f * t)));
+        ventana.draw(pixel);
+    }
 }
 
 inline void dibujarPixelMundo(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala) {
@@ -2067,6 +2140,53 @@ inline void Juego::ejecutar() {
             sonidoRecolectar.play();
         }
     };
+    auto crearBufferGolpe = [](float frecuencia, float ruido, float duracion) {
+        sf::SoundBuffer buffer;
+        std::vector<std::int16_t> muestras(static_cast<std::size_t>(44100.0f * duracion));
+        std::uint32_t semilla = 2166136261u;
+        for (std::size_t i = 0; i < muestras.size(); ++i) {
+            float t = static_cast<float>(i) / 44100.0f;
+            float progreso = static_cast<float>(i) / static_cast<float>(muestras.size());
+            semilla = semilla * 1664525u + 1013904223u;
+            float n = (static_cast<float>((semilla >> 16) & 0xFFFF) / 32767.5f) - 1.0f;
+            float envolvente = std::pow(1.0f - progreso, 2.2f);
+            float tono = std::sin(t * frecuencia * 6.2831853f) * (1.0f - ruido);
+            muestras[i] = static_cast<std::int16_t>((tono + n * ruido) * envolvente * 8200.0f);
+        }
+        bool bufferListo = buffer.loadFromSamples(
+            muestras.data(),
+            muestras.size(),
+            1,
+            44100,
+            std::vector<sf::SoundChannel>{sf::SoundChannel::Mono}
+        );
+        (void)bufferListo;
+        return buffer;
+    };
+    sf::SoundBuffer bufferGolpeMadera = crearBufferGolpe(180.0f, 0.28f, 0.075f);
+    sf::SoundBuffer bufferGolpePiedra = crearBufferGolpe(420.0f, 0.46f, 0.055f);
+    sf::SoundBuffer bufferGolpeTierra = crearBufferGolpe(120.0f, 0.62f, 0.065f);
+    sf::Sound sonidoGolpeMadera(bufferGolpeMadera);
+    sf::Sound sonidoGolpePiedra(bufferGolpePiedra);
+    sf::Sound sonidoGolpeTierra(bufferGolpeTierra);
+    auto reproducirGolpeBloque = [&](TipoBloque tipo, bool ruptura) {
+        if (volumenEfectos <= 0) return;
+        sf::Sound* sonido = &sonidoGolpeTierra;
+        if (tipo == TipoBloque::Madera) {
+            sonido = &sonidoGolpeMadera;
+        } else if (tipo == TipoBloque::Piedra ||
+                   tipo == TipoBloque::MineralCarbon ||
+                   tipo == TipoBloque::MineralHierro ||
+                   tipo == TipoBloque::MineralPlata ||
+                   tipo == TipoBloque::MineralOro ||
+                   tipo == TipoBloque::MineralDiamante ||
+                   tipo == TipoBloque::Horno) {
+            sonido = &sonidoGolpePiedra;
+        }
+        sonido->setVolume(static_cast<float>(ruptura ? volumenEfectos : volumenEfectos * 0.58f));
+        sonido->setPitch(ruptura ? 0.78f : 1.0f);
+        sonido->play();
+    };
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
@@ -2076,6 +2196,29 @@ inline void Juego::ejecutar() {
     constexpr int RADIO_MAPA_INICIAL = TAMANIO_MAPA_INICIAL / 2;
     std::random_device rdLoot;
     std::mt19937 genLoot(rdLoot());
+    std::vector<ParticulaBloque> particulasBloque;
+    float temporizadorParticulasBloque = 0.0f;
+    float temporizadorSonidoBloque = 0.0f;
+
+    auto crearParticulasBloque = [&](TipoBloque tipo, sf::Vector2f centro, int cantidad, float fuerza) {
+        std::uniform_real_distribution<float> angulo(0.0f, 6.2831853f);
+        std::uniform_real_distribution<float> velocidad(fuerza * 0.45f, fuerza);
+        std::uniform_real_distribution<float> vida(0.28f, 0.56f);
+        std::uniform_real_distribution<float> desplazamiento(-8.0f, 8.0f);
+        sf::Color base = colorParticulaBloque(tipo);
+        for (int i = 0; i < cantidad; ++i) {
+            float a = angulo(genLoot);
+            float v = velocidad(genLoot);
+            ParticulaBloque p;
+            p.posicion = centro + sf::Vector2f(desplazamiento(genLoot), desplazamiento(genLoot));
+            p.velocidad = {std::cos(a) * v, std::sin(a) * v - fuerza * 0.22f};
+            p.color = base;
+            p.vidaMaxima = vida(genLoot);
+            p.vida = p.vidaMaxima;
+            p.tamano = tipo == TipoBloque::Madera ? 3.0f : 2.5f;
+            particulasBloque.push_back(p);
+        }
+    };
 
     auto tirarItemAlMundo = [&](SlotInventario item) {
         if (!jugador || esItemVacio(item.item) || item.cantidad <= 0) {
@@ -2441,6 +2584,22 @@ inline void Juego::ejecutar() {
             fpsActuales = contadorFrames;
             contadorFrames = 0;
             acumuladorFPS = 0.0f;
+        }
+        temporizadorParticulasBloque = std::max(0.0f, temporizadorParticulasBloque - dt);
+        temporizadorSonidoBloque = std::max(0.0f, temporizadorSonidoBloque - dt);
+        for (auto it = particulasBloque.begin(); it != particulasBloque.end();) {
+            it->vida -= dt;
+            if (it->vida <= 0.0f) {
+                it = particulasBloque.erase(it);
+                continue;
+            }
+            it->velocidad.y += 80.0f * dt;
+            it->posicion += it->velocidad * dt;
+            it->velocidad *= std::pow(0.12f, dt);
+            ++it;
+        }
+        if (particulasBloque.size() > 420) {
+            particulasBloque.erase(particulasBloque.begin(), particulasBloque.begin() + static_cast<std::ptrdiff_t>(particulasBloque.size() - 420));
         }
 
         while (const std::optional<sf::Event> evento = ventana.pollEvent()) {
@@ -3307,6 +3466,15 @@ inline void Juego::ejecutar() {
                     if (tipoActual != TipoBloque::Aire && tipoActual != TipoBloque::Agua) {
                         ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
                         if (tipoActual == TipoBloque::Madera) {
+                            if (temporizadorParticulasBloque <= 0.0f) {
+                                crearParticulasBloque(tipoActual, centroBloque, 3, 44.0f);
+                                temporizadorParticulasBloque = 0.055f;
+                            }
+                            if (temporizadorSonidoBloque <= 0.0f) {
+                                reproducirGolpeBloque(tipoActual, false);
+                                temporizadorSonidoBloque = 0.22f;
+                            }
+
                             float velocidadTala = 1.0f;
                             if (itemEnMano == ItemId::HachaMadera) velocidadTala = 20.0f / 13.0f;
                             if (itemEnMano == ItemId::HachaPiedra) velocidadTala = 2.0f;
@@ -3323,6 +3491,8 @@ inline void Juego::ejecutar() {
 
                             if (arbolCayo) {
                                 sf::Vector2f posDrop((bloqueX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+                                crearParticulasBloque(tipoActual, posDrop, 18, 82.0f);
+                                reproducirGolpeBloque(tipoActual, true);
                                 itemsSuelo.push_back({ItemId::BloqueTronco, troncosObtenidos, posDrop});
                                 if (soltoSemilla) {
                                     itemsSuelo.push_back({ItemId::SemillaArbol, 1, posDrop + sf::Vector2f(8.0f, -5.0f)});
@@ -3340,9 +3510,19 @@ inline void Juego::ejecutar() {
                         if (tipoActual != TipoBloque::Aire) {
                             float danioPorSegundo = herramientas.calcularDanio(tipoActual, itemEnMano);
                             float danioAplicado = danioPorSegundo * dt;
+                            if (temporizadorParticulasBloque <= 0.0f) {
+                                crearParticulasBloque(tipoActual, centroBloque, 2, 38.0f);
+                                temporizadorParticulasBloque = 0.06f;
+                            }
+                            if (temporizadorSonidoBloque <= 0.0f) {
+                                reproducirGolpeBloque(tipoActual, false);
+                                temporizadorSonidoBloque = 0.2f;
+                            }
                             bool destruido = mapaSuperficie->daniarBloque(bloqueX, bloqueY, danioAplicado);
 
                             if (destruido) {
+                                crearParticulasBloque(tipoActual, centroBloque, 14, 74.0f);
+                                reproducirGolpeBloque(tipoActual, true);
                                 jugador->agregarAgotamiento(0.005f);
                                 if (herramientas.puedeRecolectar(tipoActual, itemEnMano)) {
                                     sf::Vector2f posDrop((bloqueX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
@@ -3379,7 +3559,13 @@ inline void Juego::ejecutar() {
             bloqueMouseX < mapaSuperficie->getAncho() &&
             bloqueMouseY < mapaSuperficie->getAlto()) {
             dibujarSelectorBloque(ventana, bloqueMouseX, bloqueMouseY, selectorBloqueEnRango, tiempoMenuInicio);
+            float progresoGrieta = mapaSuperficie->getTipoBloque(bloqueMouseX, bloqueMouseY) == TipoBloque::Madera
+                ? mapaSuperficie->getProgresoTala(bloqueMouseX, bloqueMouseY)
+                : mapaSuperficie->getProgresoBloque(bloqueMouseX, bloqueMouseY);
+            dibujarGrietasBloque(ventana, bloqueMouseX, bloqueMouseY, progresoGrieta);
         }
+
+        dibujarParticulasBloque(ventana, particulasBloque);
 
         sf::Vector2f centroVista = camara.getCenter();
         sf::Vector2f tamanoVista = camara.getSize();

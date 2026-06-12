@@ -1412,6 +1412,19 @@ inline float Mundo::getProgresoTala(int x, int y) const {
     return 1.0f - (bloque.vida / bloque.vidaMaxima);
 }
 
+inline float Mundo::getProgresoBloque(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) {
+        return 0.0f;
+    }
+
+    const Bloque& bloque = cuadricula[y][x];
+    if (bloque.tipo == TipoBloque::Aire || bloque.vidaMaxima <= 0.0f || bloque.vida >= bloque.vidaMaxima) {
+        return 0.0f;
+    }
+
+    return std::clamp(1.0f - (bloque.vida / bloque.vidaMaxima), 0.0f, 1.0f);
+}
+
 inline bool Mundo::picarEntradaMina(int x, int y, float segundosTrabajo) {
     if (x < 0 || x >= ancho || y < 0 || y >= alto || segundosTrabajo <= 0.0f) {
         return false;

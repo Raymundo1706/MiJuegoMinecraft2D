@@ -74,6 +74,7 @@ public:
     void crearZonaEntradaSubterranea(int x, int y);
     bool talarArbol(int x, int y, float segundosTrabajo, int& troncosObtenidos, bool& soltoSemilla);
     float getProgresoTala(int x, int y) const;
+    float getProgresoBloque(int x, int y) const;
     bool picarEntradaMina(int x, int y, float segundosTrabajo);
     bool esMinaAbierta(int x, int y) const;
     float getTiempoMinaRestante(int x, int y) const;
