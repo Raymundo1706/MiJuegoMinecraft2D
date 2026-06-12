@@ -685,6 +685,7 @@ inline void dibujarComidaItemSuelo(sf::RenderWindow& ventana, sf::Vector2f orige
     if (item == ItemId::ChuletaCerdoCocinada) carne = sf::Color(135, 76, 43);
     if (item == ItemId::CarneResCruda) carne = sf::Color(178, 58, 66);
     if (item == ItemId::PolloCrudo) carne = sf::Color(232, 178, 156);
+    if (item == ItemId::CarnePodrida) carne = sf::Color(88, 108, 44);
     sf::Color borde(carne.r / 2, carne.g / 2, carne.b / 2);
     sf::Color brillo(std::min(255, carne.r + 35), std::min(255, carne.g + 35), std::min(255, carne.b + 35));
 
@@ -734,6 +735,7 @@ inline void dibujarItemSueloSprite(sf::RenderWindow& ventana, ItemId item, sf::V
         case ItemId::ChuletaCerdoCocinada:
         case ItemId::CarneResCruda:
         case ItemId::PolloCrudo:
+        case ItemId::CarnePodrida:
             dibujarComidaItemSuelo(ventana, origen, item, escala, giroY);
             return;
         case ItemId::SemillaArbol:
@@ -2166,9 +2168,25 @@ inline void Juego::ejecutar() {
     sf::SoundBuffer bufferGolpeMadera = crearBufferGolpe(180.0f, 0.28f, 0.075f);
     sf::SoundBuffer bufferGolpePiedra = crearBufferGolpe(420.0f, 0.46f, 0.055f);
     sf::SoundBuffer bufferGolpeTierra = crearBufferGolpe(120.0f, 0.62f, 0.065f);
+    sf::SoundBuffer bufferAtaqueZombie = crearBufferGolpe(92.0f, 0.72f, 0.12f);
+    sf::SoundBuffer bufferPasoPasto = crearBufferGolpe(150.0f, 0.70f, 0.045f);
+    sf::SoundBuffer bufferPasoTierra = crearBufferGolpe(105.0f, 0.74f, 0.052f);
+    sf::SoundBuffer bufferPasoPiedra = crearBufferGolpe(520.0f, 0.38f, 0.035f);
+    sf::SoundBuffer bufferPasoAgua = crearBufferGolpe(210.0f, 0.82f, 0.065f);
+    sf::SoundBuffer bufferColocarBloque = crearBufferGolpe(260.0f, 0.34f, 0.08f);
+    sf::SoundBuffer bufferCrafteo = crearBufferGolpe(760.0f, 0.18f, 0.06f);
+    sf::SoundBuffer bufferAmbiente = crearBufferGolpe(54.0f, 0.82f, 0.85f);
     sf::Sound sonidoGolpeMadera(bufferGolpeMadera);
     sf::Sound sonidoGolpePiedra(bufferGolpePiedra);
     sf::Sound sonidoGolpeTierra(bufferGolpeTierra);
+    sf::Sound sonidoAtaqueZombie(bufferAtaqueZombie);
+    sf::Sound sonidoPasoPasto(bufferPasoPasto);
+    sf::Sound sonidoPasoTierra(bufferPasoTierra);
+    sf::Sound sonidoPasoPiedra(bufferPasoPiedra);
+    sf::Sound sonidoPasoAgua(bufferPasoAgua);
+    sf::Sound sonidoColocarBloque(bufferColocarBloque);
+    sf::Sound sonidoCrafteo(bufferCrafteo);
+    sf::Sound sonidoAmbiente(bufferAmbiente);
     auto reproducirGolpeBloque = [&](TipoBloque tipo, bool ruptura) {
         if (volumenEfectos <= 0) return;
         sf::Sound* sonido = &sonidoGolpeTierra;
@@ -2187,6 +2205,62 @@ inline void Juego::ejecutar() {
         sonido->setPitch(ruptura ? 0.78f : 1.0f);
         sonido->play();
     };
+    auto reproducirAtaqueZombie = [&]() {
+        if (volumenEfectos <= 0) return;
+        sonidoAtaqueZombie.setVolume(static_cast<float>(volumenEfectos) * 0.7f);
+        sonidoAtaqueZombie.setPitch(0.86f);
+        sonidoAtaqueZombie.play();
+    };
+    auto reproducirPaso = [&](TipoBloque tipo) {
+        if (volumenEfectos <= 0) return;
+        sf::Sound* sonido = &sonidoPasoPasto;
+        float pitch = 1.0f;
+        if (tipo == TipoBloque::Agua || tipo == TipoBloque::AguaProfunda) {
+            sonido = &sonidoPasoAgua;
+            pitch = 0.92f;
+        } else if (tipo == TipoBloque::Tierra || tipo == TipoBloque::TierraArada || tipo == TipoBloque::CuevaSuelo) {
+            sonido = &sonidoPasoTierra;
+            pitch = 0.95f;
+        } else if (tipo == TipoBloque::Piedra ||
+                   tipo == TipoBloque::MineralCarbon ||
+                   tipo == TipoBloque::MineralHierro ||
+                   tipo == TipoBloque::MineralPlata ||
+                   tipo == TipoBloque::MineralOro ||
+                   tipo == TipoBloque::MineralDiamante ||
+                   tipo == TipoBloque::Horno) {
+            sonido = &sonidoPasoPiedra;
+            pitch = 1.08f;
+        }
+        sonido->setVolume(static_cast<float>(volumenEfectos) * 0.34f);
+        sonido->setPitch(pitch);
+        sonido->play();
+    };
+    auto reproducirColocarBloque = [&](TipoBloque tipo) {
+        if (volumenEfectos <= 0) return;
+        if (tipo == TipoBloque::Madera || tipo == TipoBloque::MesaCrafteo) {
+            reproducirGolpeBloque(TipoBloque::Madera, false);
+            return;
+        }
+        if (tipo == TipoBloque::Piedra || tipo == TipoBloque::Horno) {
+            reproducirGolpeBloque(TipoBloque::Piedra, false);
+            return;
+        }
+        sonidoColocarBloque.setVolume(static_cast<float>(volumenEfectos) * 0.55f);
+        sonidoColocarBloque.setPitch(0.92f);
+        sonidoColocarBloque.play();
+    };
+    auto reproducirCrafteo = [&]() {
+        if (volumenEfectos <= 0) return;
+        sonidoCrafteo.setVolume(static_cast<float>(volumenEfectos) * 0.65f);
+        sonidoCrafteo.setPitch(1.0f);
+        sonidoCrafteo.play();
+    };
+    auto reproducirAmbiente = [&](bool cueva) {
+        if (volumenEfectos <= 0) return;
+        sonidoAmbiente.setVolume(static_cast<float>(volumenEfectos) * (cueva ? 0.22f : 0.14f));
+        sonidoAmbiente.setPitch(cueva ? 0.72f : 0.55f);
+        sonidoAmbiente.play();
+    };
     bool mapaInicialGenerado = false;
     int mapaCentroX = 0;
     int mapaCentroY = 0;
@@ -2199,6 +2273,8 @@ inline void Juego::ejecutar() {
     std::vector<ParticulaBloque> particulasBloque;
     float temporizadorParticulasBloque = 0.0f;
     float temporizadorSonidoBloque = 0.0f;
+    float distanciaPasos = 0.0f;
+    float temporizadorAmbiente = 4.0f;
 
     auto crearParticulasBloque = [&](TipoBloque tipo, sf::Vector2f centro, int cantidad, float fuerza) {
         std::uniform_real_distribution<float> angulo(0.0f, 6.2831853f);
@@ -2601,6 +2677,20 @@ inline void Juego::ejecutar() {
         if (particulasBloque.size() > 420) {
             particulasBloque.erase(particulasBloque.begin(), particulasBloque.begin() + static_cast<std::ptrdiff_t>(particulasBloque.size() - 420));
         }
+        if (!mostrandoMenuInicio && !menuPausaAbierto && jugador) {
+            bool ambienteCueva = enSubsuelo;
+            bool ambienteNoche = !enSubsuelo && skyLight < 7;
+            if (ambienteCueva || ambienteNoche) {
+                temporizadorAmbiente -= dt;
+                if (temporizadorAmbiente <= 0.0f) {
+                    reproducirAmbiente(ambienteCueva);
+                    std::uniform_real_distribution<float> espera(ambienteCueva ? 7.0f : 10.0f, ambienteCueva ? 14.0f : 18.0f);
+                    temporizadorAmbiente = espera(genLoot);
+                }
+            } else {
+                temporizadorAmbiente = 4.0f;
+            }
+        }
 
         while (const std::optional<sf::Event> evento = ventana.pollEvent()) {
             if (evento->is<sf::Event::Closed>()) {
@@ -2752,6 +2842,7 @@ inline void Juego::ejecutar() {
                     } else {
                         inventarioGrid.alternarMenu();
                     }
+                    reproducirClickMenu();
                 }
 
                 if (botonTeclado->code == sf::Keyboard::Key::F &&
@@ -3109,7 +3200,7 @@ inline void Juego::ejecutar() {
         if (!menuPausaAbierto) {
             inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
             if (inventarioGrid.consumirEventoFabricacion()) {
-                reproducirClickMenu();
+                reproducirCrafteo();
             }
             if (inventarioGrid.consumirEventoMovimientoItem()) {
                 reproducirClickMenu();
@@ -3119,7 +3210,23 @@ inline void Juego::ejecutar() {
         bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta() || menuPausaAbierto;
 
         if (jugador && !uiAbierta) {
+            sf::Vector2f posAntesPaso = jugador->getPosicion();
             jugador->controlar(dt, *mapaSuperficie);
+            sf::Vector2f recorridoPaso = jugador->getPosicion() - posAntesPaso;
+            float distanciaPaso = std::sqrt(recorridoPaso.x * recorridoPaso.x + recorridoPaso.y * recorridoPaso.y);
+            if (distanciaPaso > 0.05f && mapaSuperficie) {
+                distanciaPasos += distanciaPaso;
+                float separacionPaso = jugador->estaEnAgua() ? 18.0f : 28.0f;
+                if (distanciaPasos >= separacionPaso) {
+                    sf::Vector2f pies = jugador->getPosicion() + sf::Vector2f(12.0f, 22.0f);
+                    int bxPaso = static_cast<int>(std::floor(pies.x / TAMANIO_BLOQUE_JUEGO));
+                    int byPaso = static_cast<int>(std::floor(pies.y / TAMANIO_BLOQUE_JUEGO));
+                    reproducirPaso(mapaSuperficie->getTipoBloque(bxPaso, byPaso));
+                    distanciaPasos = 0.0f;
+                }
+            } else {
+                distanciaPasos = 0.0f;
+            }
             camara.setCenter(jugador->getPosicion());
         }
 
@@ -3162,6 +3269,9 @@ inline void Juego::ejecutar() {
             for (auto* zombie : zombis) {
                 if (zombie) {
                     zombie->actualizar(dt, *mapaSuperficie, *jugador, skyLight);
+                    if (zombie->consumirEventoAtaque()) {
+                        reproducirAtaqueZombie();
+                    }
                 }
             }
         }
@@ -3332,6 +3442,7 @@ inline void Juego::ejecutar() {
                                bloqueAColocar != TipoBloque::Aire &&
                                mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
                         inventarioGrid.consumirItemHotbar(1);
+                        reproducirColocarBloque(bloqueAColocar);
                     }
                 }
             }
@@ -3339,6 +3450,7 @@ inline void Juego::ejecutar() {
 
         if (clickSobreMesa) {
             inventarioGrid.abrirMesaCrafteo();
+            reproducirClickMenu();
         }
 
         bool usandoMina = jugadorSobreEntradaMina && tipoHerramienta(inventarioGrid.getItemEnHotbar()) == TipoHerramienta::Pico;
@@ -3362,7 +3474,7 @@ inline void Juego::ejecutar() {
                 }
 
                 ItemId arma = inventarioGrid.getItemEnHotbar();
-                zombie->recibirDanio(danioContraAnimal(arma) * jugador->getMultiplicadorAtaque(arma));
+                zombie->recibirDanio(danioContraAnimal(arma) * jugador->getMultiplicadorAtaque(arma), centroJugador);
                 jugador->registrarAtaque(arma);
                 if (!zombie->estaVivo()) {
                     jugador->agregarExperiencia(5.0f);
@@ -3439,6 +3551,21 @@ inline void Juego::ejecutar() {
         for (auto it = zombis.begin(); it != zombis.end();) {
             Zombie* zombie = *it;
             if (zombie && zombie->debeEliminarse()) {
+                if (zombie->debeSoltarDrop()) {
+                    sf::Vector2f posDrop = zombie->getPosicion() + sf::Vector2f(zombie->esBebe() ? 7.0f : 12.0f, zombie->esBebe() ? 7.0f : 12.0f);
+                    std::uniform_int_distribution<> carnePodrida(0, zombie->esBebe() ? 1 : 2);
+                    std::uniform_int_distribution<> raro(1, 100);
+                    int cantidadCarne = carnePodrida(genLoot);
+                    if (cantidadCarne > 0) {
+                        itemsSuelo.push_back({ItemId::CarnePodrida, cantidadCarne, posDrop});
+                    }
+                    int chance = raro(genLoot);
+                    if (chance <= 3) {
+                        itemsSuelo.push_back({ItemId::Zanahoria, 1, posDrop + sf::Vector2f(8.0f, -4.0f)});
+                    } else if (chance <= 6) {
+                        itemsSuelo.push_back({ItemId::Patata, 1, posDrop + sf::Vector2f(8.0f, -4.0f)});
+                    }
+                }
                 delete zombie;
                 it = zombis.erase(it);
             } else {

@@ -229,10 +229,14 @@ inline Zombie::Zombie(float x, float y, bool bebe)
       tiempoAnimacion(0.0f),
       tiempoSprite(0.0f),
       tiempoGolpe(0.0f),
+      tiempoAtaqueVisual(0.0f),
+      empuje(0.0f, 0.0f),
       direccionMirada(0),
       bebe(bebe),
       vivo(true),
-      temporal(true) {
+      temporal(true),
+      eventoAtaque(false),
+      soltarDrop(false) {
     float tam = bebe ? 14.0f : 24.0f;
     forma.setSize({tam, tam});
     forma.setFillColor(bebe ? sf::Color(86, 150, 70) : sf::Color(54, 116, 62));
@@ -283,6 +287,7 @@ inline void Zombie::actualizar(float dt, const Mundo& mundo, Jugador& jugador, i
 
     tiempoAtaque = std::max(0.0f, tiempoAtaque - dt);
     tiempoGolpe = std::max(0.0f, tiempoGolpe - dt);
+    tiempoAtaqueVisual = std::max(0.0f, tiempoAtaqueVisual - dt);
     tiempoSprite += dt;
     sf::Vector2f centroJugador = jugador.getPosicion() + sf::Vector2f(12.0f, 12.0f);
     float tam = bebe ? 14.0f : 24.0f;
@@ -314,6 +319,7 @@ inline void Zombie::actualizar(float dt, const Mundo& mundo, Jugador& jugador, i
             vida -= 1.0f;
             tiempoQuemadura = 0.0f;
             if (vida <= 0.0f) {
+                soltarDrop = true;
                 vivo = false;
                 return;
             }
@@ -341,8 +347,24 @@ inline void Zombie::actualizar(float dt, const Mundo& mundo, Jugador& jugador, i
     }
 
     if (distancia <= 1.5f * TAMANIO_BLOQUE_JUEGO && tiempoAtaque <= 0.0f) {
-        jugador.recibirDanio(3);
+        int danio = bebe ? 2 : 3;
+        jugador.recibirDanio(danio);
+        jugador.aplicarEmpuje(delta, bebe ? 10.0f : 14.0f, mundo);
         tiempoAtaque = 1.0f;
+        tiempoAtaqueVisual = 0.24f;
+        eventoAtaque = true;
+    }
+
+    if (std::abs(empuje.x) + std::abs(empuje.y) > 0.1f) {
+        sf::Vector2f nuevaEmpujeX = posicion + sf::Vector2f(empuje.x * dt, 0.0f);
+        if (!colisionaConMundo(mundo, nuevaEmpujeX)) {
+            posicion.x = nuevaEmpujeX.x;
+        }
+        sf::Vector2f nuevaEmpujeY = posicion + sf::Vector2f(0.0f, empuje.y * dt);
+        if (!colisionaConMundo(mundo, nuevaEmpujeY)) {
+            posicion.y = nuevaEmpujeY.y;
+        }
+        empuje *= std::pow(0.03f, dt);
     }
 
     sf::Vector2f nuevaX = posicion + sf::Vector2f(velocidad.x * dt, 0.0f);
@@ -366,6 +388,23 @@ inline void Zombie::dibujar(sf::RenderWindow& ventana) {
     float tam = bebe ? 14.0f : 24.0f;
     bool caminando = std::abs(velocidad.x) + std::abs(velocidad.y) > 0.1f;
     if (dibujarZombieDesdeSprites(ventana, posicion, bebe, direccionMirada, caminando, tiempoSprite, tiempoAnimacion, tiempoGolpe, tiempoQuemadura)) {
+        if (tiempoAtaqueVisual > 0.0f) {
+            sf::RectangleShape golpe({bebe ? 9.0f : 13.0f, 3.0f});
+            golpe.setFillColor(sf::Color(72, 32, 58, 180));
+            sf::Vector2f centro = posicion + sf::Vector2f(tam * 0.5f, tam * 0.55f);
+            if (direccionMirada == 1) {
+                golpe.setPosition({centro.x + tam * 0.28f, centro.y});
+            } else if (direccionMirada == 3) {
+                golpe.setPosition({centro.x - tam * 0.72f, centro.y});
+            } else if (direccionMirada == 2) {
+                golpe.setPosition({centro.x - 6.0f, centro.y - tam * 0.6f});
+                golpe.setSize({3.0f, bebe ? 9.0f : 13.0f});
+            } else {
+                golpe.setPosition({centro.x - 6.0f, centro.y + tam * 0.22f});
+                golpe.setSize({3.0f, bebe ? 9.0f : 13.0f});
+            }
+            ventana.draw(golpe);
+        }
         if (vida < vidaMaxima) {
             sf::RectangleShape fondo({tam, 3.0f});
             fondo.setPosition({posicion.x, posicion.y - 6.0f});
@@ -400,13 +439,25 @@ inline void Zombie::dibujar(sf::RenderWindow& ventana) {
 }
 
 inline void Zombie::recibirDanio(float danio) {
+    recibirDanio(danio, posicion);
+}
+
+inline void Zombie::recibirDanio(float danio, sf::Vector2f origenDanio) {
     if (danio <= 0.0f || !vivo) {
         return;
     }
     float danioFinal = danio * 0.92f;
     vida -= danioFinal;
     tiempoGolpe = 0.18f;
+    sf::Vector2f centro = posicion + sf::Vector2f((bebe ? 7.0f : 12.0f), (bebe ? 7.0f : 12.0f));
+    sf::Vector2f direccion = centro - origenDanio;
+    float longitud = std::sqrt(direccion.x * direccion.x + direccion.y * direccion.y);
+    if (longitud > 0.01f) {
+        direccion /= longitud;
+        empuje += direccion * (bebe ? 105.0f : 82.0f);
+    }
     if (vida <= 0.0f) {
+        soltarDrop = true;
         vivo = false;
     }
 }
@@ -417,6 +468,20 @@ inline bool Zombie::estaVivo() const {
 
 inline bool Zombie::debeEliminarse() const {
     return !vivo;
+}
+
+inline bool Zombie::debeSoltarDrop() const {
+    return soltarDrop;
+}
+
+inline bool Zombie::consumirEventoAtaque() {
+    bool evento = eventoAtaque;
+    eventoAtaque = false;
+    return evento;
+}
+
+inline bool Zombie::esBebe() const {
+    return bebe;
 }
 
 inline bool Zombie::contienePunto(sf::Vector2f punto) const {

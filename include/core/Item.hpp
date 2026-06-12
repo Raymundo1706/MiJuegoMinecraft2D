@@ -33,6 +33,7 @@ enum class ItemId {
     LanaCruda,
     PolloCrudo,
     Pluma,
+    CarnePodrida,
     Barreta,
     PicoMadera,
     PicoPiedra,

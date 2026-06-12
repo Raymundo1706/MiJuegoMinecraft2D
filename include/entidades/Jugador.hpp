@@ -73,6 +73,7 @@ public:
     float getMultiplicadorAtaque(ItemId item) const;
     bool estaMuerto() const;
     void recibirDanio(int danioHP);
+    void aplicarEmpuje(sf::Vector2f direccion, float fuerza, const Mundo& mundo);
     void curar(int puntosHP);
     void agregarAgotamiento(float puntos);
     void agregarExperiencia(float puntos);

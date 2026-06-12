@@ -120,6 +120,7 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::LanaCruda: return "Lana";
         case ItemId::PolloCrudo: return "Pollo crudo";
         case ItemId::Pluma: return "Pluma";
+        case ItemId::CarnePodrida: return "Carne podrida";
         case ItemId::Barreta: return "Barreta";
         case ItemId::PicoMadera: return "Pico madera";
         case ItemId::PicoPiedra: return "Pico piedra";

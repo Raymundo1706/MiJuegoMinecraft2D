@@ -669,6 +669,46 @@ inline void Jugador::recibirDanio(int danioHP) {
     tiempoInvulnerable = 0.5f;
 }
 
+inline void Jugador::aplicarEmpuje(sf::Vector2f direccion, float fuerza, const Mundo& mundo) {
+    float longitud = std::sqrt(direccion.x * direccion.x + direccion.y * direccion.y);
+    if (longitud <= 0.01f || fuerza <= 0.0f) {
+        return;
+    }
+    direccion /= longitud;
+
+    const float TAMANIO_BLOQUE = TAMANIO_BLOQUE_JUEGO;
+    const float hitboxOffsetX = 6.0f;
+    const float hitboxOffsetY = 14.0f;
+    const float hitboxAncho = 12.0f;
+    const float hitboxAlto = 10.0f;
+
+    auto colisiona = [&](sf::Vector2f p) {
+        int bloqueIzq = static_cast<int>((p.x + hitboxOffsetX) / TAMANIO_BLOQUE);
+        int bloqueDer = static_cast<int>((p.x + hitboxOffsetX + hitboxAncho - 1.0f) / TAMANIO_BLOQUE);
+        int bloqueArriba = static_cast<int>((p.y + hitboxOffsetY) / TAMANIO_BLOQUE);
+        int bloqueAbajo = static_cast<int>((p.y + hitboxOffsetY + hitboxAlto - 1.0f) / TAMANIO_BLOQUE);
+        for (int y = bloqueArriba; y <= bloqueAbajo; ++y) {
+            for (int x = bloqueIzq; x <= bloqueDer; ++x) {
+                if (mundo.esBloqueSolido(x, y)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    sf::Vector2f empuje = direccion * fuerza;
+    sf::Vector2f intentoX = posicion + sf::Vector2f(empuje.x, 0.0f);
+    if (!colisiona(intentoX)) {
+        posicion.x = intentoX.x;
+    }
+    sf::Vector2f intentoY = posicion + sf::Vector2f(0.0f, empuje.y);
+    if (!colisiona(intentoY)) {
+        posicion.y = intentoY.y;
+    }
+    forma.setPosition(posicion);
+}
+
 inline void Jugador::curar(int puntosHP) {
     if (puntosHP <= 0 || vidaHP <= 0) {
         return;

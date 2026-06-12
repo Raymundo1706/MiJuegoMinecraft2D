@@ -235,6 +235,7 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::LanaCruda: return sf::Color(220, 220, 220);
         case ItemId::PolloCrudo: return sf::Color(232, 180, 158);
         case ItemId::Pluma: return sf::Color(240, 240, 230);
+        case ItemId::CarnePodrida: return sf::Color(92, 108, 42);
         case ItemId::Barreta: return sf::Color(105, 108, 112);
         case ItemId::Carbon: return sf::Color(36, 35, 34);
         case ItemId::Antorcha: return sf::Color(235, 168, 48);
@@ -282,6 +283,7 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::LanaCruda: return "La";
         case ItemId::PolloCrudo: return "Po";
         case ItemId::Pluma: return "Pl";
+        case ItemId::CarnePodrida: return "CP";
         case ItemId::Barreta: return "Br";
         case ItemId::PicoMadera: return "Pk";
         case ItemId::PicoPiedra: return "Pp";
