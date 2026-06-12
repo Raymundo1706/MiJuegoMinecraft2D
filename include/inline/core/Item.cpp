@@ -58,6 +58,10 @@ inline ItemId itemDesdeBloque(TipoBloque bloque) {
         case TipoBloque::Redstone: return ItemId::Redstone;
         case TipoBloque::MineralCarbon: return ItemId::Carbon;
         case TipoBloque::Antorcha: return ItemId::Antorcha;
+        case TipoBloque::Techo: return ItemId::BloqueTecho;
+        case TipoBloque::PuertaCerrada:
+        case TipoBloque::PuertaAbierta:
+            return ItemId::PuertaMadera;
         default: return ItemId::Ninguno;
     }
 }
@@ -78,14 +82,15 @@ inline TipoBloque bloqueDesdeItem(ItemId item) {
         case ItemId::MineralDiamante: return TipoBloque::MineralDiamante;
         case ItemId::Redstone: return TipoBloque::Redstone;
         case ItemId::Antorcha: return TipoBloque::Antorcha;
+        case ItemId::BloqueTecho: return TipoBloque::Techo;
+        case ItemId::PuertaMadera: return TipoBloque::PuertaCerrada;
         default: return TipoBloque::Aire;
     }
 }
 
 inline bool esItemColocable(ItemId item) {
     return bloqueDesdeItem(item) != TipoBloque::Aire ||
-           item == ItemId::Cristal ||
-           item == ItemId::BloqueTecho;
+           item == ItemId::Cristal;
 }
 
 inline std::string nombreItem(ItemId item) {
@@ -102,6 +107,7 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::Redstone: return "Redstone";
         case ItemId::Carbon: return "Carbon";
         case ItemId::Antorcha: return "Antorcha";
+        case ItemId::PuertaMadera: return "Puerta";
         case ItemId::Cristal: return "Cristal";
         case ItemId::Lana: return "Lana";
         case ItemId::PaloMadera: return "Palo";

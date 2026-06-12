@@ -45,7 +45,8 @@ enum class ItemId {
     EspadaMadera,
     EspadaPiedra,
     Carbon,
-    Antorcha
+    Antorcha,
+    PuertaMadera
 };
 
 enum class TipoHerramienta {

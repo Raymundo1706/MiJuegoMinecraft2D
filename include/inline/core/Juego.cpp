@@ -47,6 +47,7 @@ constexpr float TICK_FIN_DIA = 12000.0f;
 constexpr float TICK_INICIO_NOCHE = 13000.0f;
 constexpr float TICK_FIN_NOCHE = 22000.0f;
 constexpr float TICK_PUEDE_DORMIR = 12542.0f;
+constexpr float RANGO_INTERACCION_BLOQUES = 115.0f;
 
 inline std::string dificultadTexto(int dificultad) {
     static const char* nombres[4] = {"Pacifico", "Facil", "Normal", "Dificil"};
@@ -374,7 +375,9 @@ inline void dibujarOscuridadSuperficie(sf::RenderWindow& ventana, const sf::View
     }
 }
 
-inline void dibujarSelectorBloque(sf::RenderWindow& ventana, int bloqueX, int bloqueY, bool dentroRango, float tiempo) {
+inline void dibujarSelectorBloque(sf::RenderWindow& ventana, int bloqueX, int bloqueY,
+                                  bool dentroRango, bool objetivoValido, bool modoColocacion,
+                                  float tiempo) {
     if (bloqueX < 0 || bloqueY < 0) {
         return;
     }
@@ -382,13 +385,22 @@ inline void dibujarSelectorBloque(sf::RenderWindow& ventana, int bloqueX, int bl
     float x = static_cast<float>(bloqueX) * TAMANIO_BLOQUE_JUEGO;
     float y = static_cast<float>(bloqueY) * TAMANIO_BLOQUE_JUEGO;
     float pulso = 0.55f + 0.45f * (0.5f + 0.5f * std::sin(tiempo * 7.0f));
-    sf::Color color = dentroRango
-        ? sf::Color(245, 245, 245, static_cast<std::uint8_t>(115 + 70 * pulso))
-        : sf::Color(255, 80, 70, 115);
+    sf::Color color = sf::Color(245, 245, 245, static_cast<std::uint8_t>(115 + 70 * pulso));
+    sf::Color rellenoColor = sf::Color(255, 255, 255, 24);
+    if (!dentroRango) {
+        color = sf::Color(255, 80, 70, 115);
+        rellenoColor = sf::Color(255, 60, 50, 22);
+    } else if (modoColocacion && objetivoValido) {
+        color = sf::Color(125, 255, 95, static_cast<std::uint8_t>(130 + 65 * pulso));
+        rellenoColor = sf::Color(80, 255, 90, 24);
+    } else if (modoColocacion) {
+        color = sf::Color(255, 72, 62, static_cast<std::uint8_t>(130 + 55 * pulso));
+        rellenoColor = sf::Color(255, 58, 42, 28);
+    }
 
     sf::RectangleShape relleno({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
     relleno.setPosition({x, y});
-    relleno.setFillColor(dentroRango ? sf::Color(255, 255, 255, 24) : sf::Color(255, 60, 50, 22));
+    relleno.setFillColor(rellenoColor);
     ventana.draw(relleno);
 
     sf::RectangleShape borde({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
@@ -3495,6 +3507,8 @@ inline void Juego::ejecutar() {
         float progresoArbol = 0.0f;
         bool mapaEnSegundaMano = inventarioGrid.getItemSegundaMano() == ItemId::MapaInicial;
         bool selectorBloqueEnRango = false;
+        bool selectorModoColocacion = false;
+        bool selectorColocacionValida = false;
 
         if (mapaEnSegundaMano && !mapaInicialGenerado) {
             generarMapaInicial();
@@ -3507,7 +3521,47 @@ inline void Juego::ejecutar() {
             jugadorSobreEntradaMina = mapaSuperficie->getTipoBloque(bloqueJugadorX, bloqueJugadorY) == TipoBloque::CuevaEntrada;
             sf::Vector2f centroBloqueMouse((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
             sf::Vector2f deltaMouse = centroBloqueMouse - centroJugador;
-            selectorBloqueEnRango = std::sqrt(deltaMouse.x * deltaMouse.x + deltaMouse.y * deltaMouse.y) <= 115.0f;
+            selectorBloqueEnRango = std::sqrt(deltaMouse.x * deltaMouse.x + deltaMouse.y * deltaMouse.y) <= RANGO_INTERACCION_BLOQUES;
+
+            ItemId itemParaColocar = inventarioGrid.getItemEnHotbar();
+            TipoBloque bloqueParaColocar = bloqueDesdeItem(itemParaColocar);
+            selectorModoColocacion = esItemColocable(itemParaColocar) && bloqueParaColocar != TipoBloque::Aire;
+
+            auto entidadOcupaBloque = [&](int bx, int by) {
+                sf::FloatRect celda(
+                    {bx * TAMANIO_BLOQUE_JUEGO + 1.0f, by * TAMANIO_BLOQUE_JUEGO + 1.0f},
+                    {TAMANIO_BLOQUE_JUEGO - 2.0f, TAMANIO_BLOQUE_JUEGO - 2.0f}
+                );
+
+                sf::FloatRect jugadorRect(
+                    {jugador->getPosicion().x + 4.0f, jugador->getPosicion().y + 8.0f},
+                    {16.0f, 18.0f}
+                );
+                if (celda.findIntersection(jugadorRect).has_value()) {
+                    return true;
+                }
+
+                for (const auto* animal : animales) {
+                    if (!animal || animal->muerteFinalizada()) continue;
+                    sf::Vector2f p = animal->getPosicion();
+                    sf::FloatRect animalRect({p.x + 3.0f, p.y + 8.0f}, {20.0f, 18.0f});
+                    if (celda.findIntersection(animalRect).has_value()) return true;
+                }
+
+                for (const auto* zombie : zombis) {
+                    if (!zombie || zombie->debeEliminarse()) continue;
+                    sf::Vector2f p = zombie->getPosicion();
+                    sf::FloatRect zombieRect({p.x + 4.0f, p.y + 6.0f}, {16.0f, 20.0f});
+                    if (celda.findIntersection(zombieRect).has_value()) return true;
+                }
+
+                return false;
+            };
+
+            selectorColocacionValida = selectorModoColocacion &&
+                                      selectorBloqueEnRango &&
+                                      mapaSuperficie->puedeColocarBloque(bloqueMouseX, bloqueMouseY) &&
+                                      !entidadOcupaBloque(bloqueMouseX, bloqueMouseY);
 
             if (jugadorSobreEntradaMina) {
                 ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
@@ -3552,17 +3606,8 @@ inline void Juego::ejecutar() {
                 }
 
                 if (!consumioComida) {
-                    sf::Vector2f posJugador = jugador->getPosicion();
-                    sf::Vector2f centroJugador = posJugador + sf::Vector2f(12.0f, 12.0f);
-                    sf::Vector2f centroBloque((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
-                    float dx = centroBloque.x - centroJugador.x;
-                    float dy = centroBloque.y - centroJugador.y;
-                    float distancia = std::sqrt(dx * dx + dy * dy);
-
-                    if (distancia <= 115.0f &&
-                               esItemColocable(itemEnMano) &&
-                               bloqueAColocar != TipoBloque::Aire &&
-                               mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
+                    if (selectorColocacionValida &&
+                        mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
                         inventarioGrid.consumirItemHotbar(1);
                         reproducirColocarBloque(bloqueAColocar);
                     }
@@ -3709,7 +3754,7 @@ inline void Juego::ejecutar() {
                 float dy = centroBloque.y - centroJugador.y;
                 float distancia = std::sqrt(dx * dx + dy * dy);
 
-                if (distancia <= 115.0f) {
+                if (distancia <= RANGO_INTERACCION_BLOQUES) {
                     TipoBloque tipoActual = mapaSuperficie->getTipoBloque(bloqueX, bloqueY);
 
                     if (tipoActual != TipoBloque::Aire && tipoActual != TipoBloque::Agua) {
@@ -3792,7 +3837,7 @@ inline void Juego::ejecutar() {
                 sf::Vector2f centroBloque((bloqueMouseX + 0.5f) * TAMANIO_BLOQUE_JUEGO, (bloqueMouseY + 0.5f) * TAMANIO_BLOQUE_JUEGO);
                 float dx = centroBloque.x - centroJugador.x;
                 float dy = centroBloque.y - centroJugador.y;
-                if (std::sqrt(dx * dx + dy * dy) <= 115.0f) {
+                if (std::sqrt(dx * dx + dy * dy) <= RANGO_INTERACCION_BLOQUES) {
                     mostrandoBarraArbol = true;
                     progresoArbol = mapaSuperficie->getProgresoTala(bloqueMouseX, bloqueMouseY);
                 }
@@ -3807,7 +3852,15 @@ inline void Juego::ejecutar() {
             bloqueMouseX >= 0 && bloqueMouseY >= 0 &&
             bloqueMouseX < mapaSuperficie->getAncho() &&
             bloqueMouseY < mapaSuperficie->getAlto()) {
-            dibujarSelectorBloque(ventana, bloqueMouseX, bloqueMouseY, selectorBloqueEnRango, tiempoMenuInicio);
+            dibujarSelectorBloque(
+                ventana,
+                bloqueMouseX,
+                bloqueMouseY,
+                selectorBloqueEnRango,
+                selectorColocacionValida,
+                selectorModoColocacion,
+                tiempoMenuInicio
+            );
             float progresoGrieta = mapaSuperficie->getTipoBloque(bloqueMouseX, bloqueMouseY) == TipoBloque::Madera
                 ? mapaSuperficie->getProgresoTala(bloqueMouseX, bloqueMouseY)
                 : mapaSuperficie->getProgresoBloque(bloqueMouseX, bloqueMouseY);
@@ -3831,9 +3884,6 @@ inline void Juego::ejecutar() {
                 if (posAnimal.x >= dibujoIzq && posAnimal.x <= dibujoDer &&
                     posAnimal.y >= dibujoArriba && posAnimal.y <= dibujoAbajo) {
                     animal->dibujar(ventana);
-                    if (mapaSuperficie) {
-                        mapaSuperficie->dibujarArbolesSobreJugador(ventana, posAnimal.y + 28.0f);
-                    }
                 }
             }
         }
@@ -3844,9 +3894,6 @@ inline void Juego::ejecutar() {
             if (posZombie.x >= dibujoIzq && posZombie.x <= dibujoDer &&
                 posZombie.y >= dibujoArriba && posZombie.y <= dibujoAbajo) {
                 zombie->dibujar(ventana);
-                if (mapaSuperficie) {
-                    mapaSuperficie->dibujarArbolesSobreJugador(ventana, posZombie.y + 24.0f);
-                }
             }
         }
 
@@ -3877,8 +3924,8 @@ inline void Juego::ejecutar() {
 
         if (jugador) {
             jugador->dibujar(ventana);
-            if (mapaSuperficie) {
-                mapaSuperficie->dibujarArbolesSobreJugador(ventana, jugador->getPosicion().y + 24.0f, jugador->getPosicion());
+            if (!enSubsuelo && mapaSuperficie) {
+                mapaSuperficie->dibujarCapaSuperior(ventana, jugador->getPosicion());
             }
         }
 

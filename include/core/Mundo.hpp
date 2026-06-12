@@ -27,7 +27,10 @@ enum class TipoBloque {
     CuevaEntrada,
     MineralCarbon,
     Antorcha,
-    CuevaSuelo
+    CuevaSuelo,
+    Techo,
+    PuertaCerrada,
+    PuertaAbierta
 };
 
 enum class TipoBioma {
@@ -64,11 +67,13 @@ public:
 
     void generarMundo(bool esSubterraneo);
     void dibujar(sf::RenderWindow& ventana);
-    void dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY, sf::Vector2f posicionJugador = {-99999.0f, -99999.0f});
+    void dibujarCapaSuperior(sf::RenderWindow& ventana, sf::Vector2f posicionJugador = {-99999.0f, -99999.0f});
 
     bool esBloqueSolido(int x, int y) const;
     bool puedeColocarBloque(int x, int y) const;
     bool colocarBloque(int x, int y, TipoBloque tipo);
+    bool alternarPuerta(int x, int y);
+    bool esInteriorTechadoEn(int x, int y) const;
     bool ararTierra(int x, int y);
     bool crearEntradaMina(int x, int y);
     void crearZonaEntradaSubterranea(int x, int y);

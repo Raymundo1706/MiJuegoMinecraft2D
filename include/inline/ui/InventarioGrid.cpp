@@ -74,6 +74,11 @@ inline const std::vector<RecetaCatalogoMesa>& recetasCatalogoMesa() {
             {ItemId::TablonMadera, ItemId::TablonMadera, ItemId::TablonMadera,
              ItemId::BloquePiedra, ItemId::Ninguno, ItemId::BloquePiedra,
              ItemId::Ninguno, ItemId::TablonMadera, ItemId::Ninguno}),
+        recetaCatalogo("Puerta de madera", "Entrada atravesable para casas cerradas.", 0,
+            ItemId::PuertaMadera, 3, {ingrediente(ItemId::TablonMadera, 6)},
+            {ItemId::TablonMadera, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::TablonMadera, ItemId::TablonMadera, ItemId::Ninguno,
+             ItemId::TablonMadera, ItemId::TablonMadera, ItemId::Ninguno}),
         recetaCatalogo("Cristal", "Bloque claro para ventanas y vision exterior.", 0,
             ItemId::Cristal, 4, {ingrediente(ItemId::MineralPlata, 1), ingrediente(ItemId::BloquePiedra, 2)},
             {ItemId::Ninguno, ItemId::MineralPlata, ItemId::Ninguno,
@@ -239,6 +244,7 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::Barreta: return sf::Color(105, 108, 112);
         case ItemId::Carbon: return sf::Color(36, 35, 34);
         case ItemId::Antorcha: return sf::Color(235, 168, 48);
+        case ItemId::PuertaMadera: return sf::Color(142, 86, 38);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
@@ -296,6 +302,7 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::EspadaPiedra: return "Ep";
         case ItemId::Carbon: return "Co";
         case ItemId::Antorcha: return "An";
+        case ItemId::PuertaMadera: return "Pu";
         default: return "?";
     }
 }

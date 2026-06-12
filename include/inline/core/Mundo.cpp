@@ -685,6 +685,75 @@ inline void dibujarArbol(sf::RenderWindow& ventana, int bloqueX, int bloqueY, co
     }
 }
 
+inline void dibujarTecho(sf::RenderWindow& ventana, int bloqueX, int bloqueY, std::uint8_t alpha) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO - 7.0f;
+
+    auto color = [&](sf::Color c) {
+        c.a = alpha;
+        return c;
+    };
+
+    sf::RectangleShape sombra({TAMANIO_BLOQUE_JUEGO + 3.0f, 6.0f});
+    sombra.setPosition({x + 2.0f, y + TAMANIO_BLOQUE_JUEGO + 2.0f});
+    sombra.setFillColor(sf::Color(10, 10, 16, static_cast<std::uint8_t>(alpha * 0.38f)));
+    ventana.draw(sombra);
+
+    sf::RectangleShape base({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+    base.setPosition({x, y});
+    base.setFillColor(color(sf::Color(70, 70, 88)));
+    ventana.draw(base);
+
+    sf::RectangleShape bordeSup({TAMANIO_BLOQUE_JUEGO, 3.0f});
+    bordeSup.setPosition({x, y});
+    bordeSup.setFillColor(color(sf::Color(132, 132, 154)));
+    ventana.draw(bordeSup);
+
+    sf::RectangleShape bordeInf({TAMANIO_BLOQUE_JUEGO, 5.0f});
+    bordeInf.setPosition({x, y + TAMANIO_BLOQUE_JUEGO - 5.0f});
+    bordeInf.setFillColor(color(sf::Color(40, 40, 56)));
+    ventana.draw(bordeInf);
+
+    for (int i = 0; i < 3; ++i) {
+        sf::RectangleShape linea({TAMANIO_BLOQUE_JUEGO - 4.0f, 1.0f});
+        linea.setPosition({x + 2.0f, y + 7.0f + i * 6.0f});
+        linea.setFillColor(color(sf::Color(34, 34, 48)));
+        ventana.draw(linea);
+    }
+}
+
+inline void dibujarPuerta(sf::RenderWindow& ventana, int bloqueX, int bloqueY, bool abierta) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+
+    dibujarTextura16(ventana, bloqueX, bloqueY, true, false, TipoBioma::Pradera);
+
+    sf::RectangleShape sombra({TAMANIO_BLOQUE_JUEGO + 2.0f, 5.0f});
+    sombra.setPosition({x + 2.0f, y + TAMANIO_BLOQUE_JUEGO - 1.0f});
+    sombra.setFillColor(sf::Color(12, 8, 5, 80));
+    ventana.draw(sombra);
+
+    sf::RectangleShape marco({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+    marco.setPosition({x, y - 3.0f});
+    marco.setFillColor(sf::Color(72, 42, 20));
+    ventana.draw(marco);
+
+    sf::RectangleShape hoja({abierta ? 7.0f : 18.0f, 20.0f});
+    hoja.setPosition({x + (abierta ? 3.0f : 3.0f), y - 1.0f});
+    hoja.setFillColor(sf::Color(145, 88, 38));
+    ventana.draw(hoja);
+
+    sf::RectangleShape panel({abierta ? 3.0f : 12.0f, 6.0f});
+    panel.setPosition({x + (abierta ? 5.0f : 6.0f), y + 4.0f});
+    panel.setFillColor(sf::Color(96, 57, 28));
+    ventana.draw(panel);
+
+    sf::CircleShape perilla(1.7f);
+    perilla.setPosition({x + (abierta ? 7.0f : 16.0f), y + 11.0f});
+    perilla.setFillColor(sf::Color(222, 178, 78));
+    ventana.draw(perilla);
+}
+
 inline TipoBloque revelarSueloRaro() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -1161,10 +1230,23 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             }
 
             if (bloqueConAltura) {
-                sf::RectangleShape sombraObjeto({TAMANIO_BLOQUE + 2.0f, 5.0f});
-                sombraObjeto.setPosition({x * TAMANIO_BLOQUE + 2.0f, y * TAMANIO_BLOQUE + TAMANIO_BLOQUE - 1.0f});
-                sombraObjeto.setFillColor(sf::Color(18, 18, 18, 75));
+                const float baseX = x * TAMANIO_BLOQUE;
+                const float baseY = y * TAMANIO_BLOQUE;
+
+                sf::RectangleShape sombraObjeto({TAMANIO_BLOQUE + 4.0f, 6.0f});
+                sombraObjeto.setPosition({baseX + 2.0f, baseY + TAMANIO_BLOQUE - 1.0f});
+                sombraObjeto.setFillColor(sf::Color(10, 10, 10, 85));
                 ventana.draw(sombraObjeto);
+
+                sf::RectangleShape caraFrontal({TAMANIO_BLOQUE, 7.0f});
+                caraFrontal.setPosition({baseX, baseY + TAMANIO_BLOQUE - 6.0f});
+                caraFrontal.setFillColor(sf::Color(0, 0, 0, 65));
+                ventana.draw(caraFrontal);
+
+                sf::RectangleShape caraDerecha({5.0f, TAMANIO_BLOQUE - 4.0f});
+                caraDerecha.setPosition({baseX + TAMANIO_BLOQUE - 5.0f, baseY + 2.0f});
+                caraDerecha.setFillColor(sf::Color(0, 0, 0, 42));
+                ventana.draw(caraDerecha);
             }
 
             formaBlq.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
@@ -1216,16 +1298,9 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
         }
     }
 
-    for (int y = inicioY; y < finY; ++y) {
-        for (int x = inicioX; x < finX; ++x) {
-            if (cuadricula[y][x].tipo == TipoBloque::Madera) {
-                dibujarArbol(ventana, x, y, cuadricula[y][x], false, true);
-            }
-        }
-    }
 }
 
-inline void Mundo::dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float piesJugadorY, sf::Vector2f posicionJugador) {
+inline void Mundo::dibujarCapaSuperior(sf::RenderWindow& ventana, sf::Vector2f posicionJugador) {
     sf::View vistaActual = ventana.getView();
     sf::Vector2f centro = vistaActual.getCenter();
     sf::Vector2f tamanio = vistaActual.getSize();
@@ -1246,15 +1321,13 @@ inline void Mundo::dibujarArbolesSobreJugador(sf::RenderWindow& ventana, float p
                 continue;
             }
 
-            float profundidadArbol = y * TAMANIO_BLOQUE_JUEGO + TAMANIO_BLOQUE_JUEGO * 0.8f;
-            if (piesJugadorY < profundidadArbol) {
-                float baseX = x * TAMANIO_BLOQUE_JUEGO - 20.0f;
-                float baseY = y * TAMANIO_BLOQUE_JUEGO - 46.0f;
-                sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 14.0f);
-                sf::FloatRect zonaCopa({baseX - 4.0f, baseY - 4.0f}, {80.0f, 78.0f});
-                bool tapaJugador = posicionJugador.x > -90000.0f && zonaCopa.contains(centroJugador);
-                dibujarArbol(ventana, x, y, cuadricula[y][x], false, true, tapaJugador ? 112 : 255);
-            }
+            const float baseX = x * TAMANIO_BLOQUE_JUEGO - 20.0f;
+            const float baseY = y * TAMANIO_BLOQUE_JUEGO - 46.0f;
+            const sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 14.0f);
+            const sf::FloatRect zonaCopa({baseX - 4.0f, baseY - 4.0f}, {80.0f, 78.0f});
+            const bool cercaJugador = posicionJugador.x > -90000.0f && zonaCopa.contains(centroJugador);
+
+            dibujarArbol(ventana, x, y, cuadricula[y][x], false, true, cercaJugador ? 118 : 255);
         }
     }
 }
