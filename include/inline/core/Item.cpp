@@ -93,6 +93,9 @@ inline TipoBloque bloqueDesdeItem(ItemId item) {
         case ItemId::PuertaMadera: return TipoBloque::PuertaCerrada;
         case ItemId::CaminoAldea: return TipoBloque::CaminoAldea;
         case ItemId::CultivoTrigo: return TipoBloque::CultivoTrigo;
+        case ItemId::SemillasTrigo: return TipoBloque::CultivoTrigo;
+        case ItemId::Zanahoria: return TipoBloque::CultivoZanahoria;
+        case ItemId::Patata: return TipoBloque::CultivoPatata;
         case ItemId::CultivoZanahoria: return TipoBloque::CultivoZanahoria;
         case ItemId::CultivoPatata: return TipoBloque::CultivoPatata;
         case ItemId::Lava: return TipoBloque::Lava;
@@ -131,6 +134,7 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::Yunque: return "Yunque";
         case ItemId::Esmeralda: return "Esmeralda";
         case ItemId::Trigo: return "Trigo";
+        case ItemId::SemillasTrigo: return "Semillas de trigo";
         case ItemId::Pan: return "Pan";
         case ItemId::LingoteHierro: return "Lingote hierro";
         case ItemId::Cristal: return "Cristal";

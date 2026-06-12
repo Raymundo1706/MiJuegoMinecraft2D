@@ -774,7 +774,13 @@ inline void dibujarCaminoAldea(sf::RenderWindow& ventana, int bloqueX, int bloqu
     }
 }
 
-inline void dibujarCultivo(sf::RenderWindow& ventana, int bloqueX, int bloqueY, TipoBloque tipo) {
+inline bool esCultivoBloque(TipoBloque tipo) {
+    return tipo == TipoBloque::CultivoTrigo ||
+           tipo == TipoBloque::CultivoZanahoria ||
+           tipo == TipoBloque::CultivoPatata;
+}
+
+inline void dibujarCultivo(sf::RenderWindow& ventana, int bloqueX, int bloqueY, TipoBloque tipo, int fase) {
     dibujarTextura16(ventana, bloqueX, bloqueY, false, true, TipoBioma::Pradera);
 
     const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
@@ -784,17 +790,23 @@ inline void dibujarCultivo(sf::RenderWindow& ventana, int bloqueX, int bloqueY, 
     if (tipo == TipoBloque::CultivoZanahoria) fruto = sf::Color(232, 112, 36);
     if (tipo == TipoBloque::CultivoPatata) fruto = sf::Color(180, 136, 72);
 
-    for (int i = 0; i < 4; ++i) {
+    fase = std::clamp(fase, 0, 3);
+    int plantas = fase == 0 ? 2 : 4;
+    float altoPlanta = 4.0f + static_cast<float>(fase) * 3.0f;
+
+    for (int i = 0; i < plantas; ++i) {
         float ox = 4.0f + static_cast<float>(i % 2) * 10.0f;
         float oy = 6.0f + static_cast<float>(i / 2) * 8.0f;
-        sf::RectangleShape hoja({3.0f, 8.0f});
-        hoja.setPosition({x + ox + 2.0f, y + oy + 2.0f});
-        hoja.setFillColor(tallo);
+        sf::RectangleShape hoja({3.0f, altoPlanta});
+        hoja.setPosition({x + ox + 2.0f, y + oy + 10.0f - altoPlanta});
+        hoja.setFillColor(fase < 2 ? sf::Color(72, 158, 54) : tallo);
         ventana.draw(hoja);
-        sf::RectangleShape grano({5.0f, 3.0f});
-        grano.setPosition({x + ox, y + oy});
-        grano.setFillColor(fruto);
-        ventana.draw(grano);
+        if (fase >= 2) {
+            sf::RectangleShape grano({fase == 2 ? 3.0f : 5.0f, 3.0f});
+            grano.setPosition({x + ox, y + oy + (fase == 2 ? 2.0f : 0.0f)});
+            grano.setFillColor(fase == 2 ? sf::Color(fruto.r, fruto.g, fruto.b, 170) : fruto);
+            ventana.draw(grano);
+        }
     }
 }
 
@@ -1120,6 +1132,14 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
                       tipo == TipoBloque::Lava;
         float vida = static_cast<float>(getVidaMaximaBloque(tipo));
         cuadricula[by][bx] = {tipo, solido, vida, false, 0.0f, false, 1, vida, bioma, 0};
+        if (esCultivoBloque(tipo)) {
+            cuadricula[by][bx].estaHidratado = true;
+            cuadricula[by][bx].faseCultivo = (bx * 31 + by * 17) % 4;
+            cuadricula[by][bx].tiempoCrecimiento = 0.0f;
+        }
+        if (tipo == TipoBloque::TierraArada) {
+            cuadricula[by][bx].estaHidratado = true;
+        }
     };
 
     auto limpiarZonaAldea = [&](int cx, int cy, int radio) {
@@ -1181,6 +1201,7 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
                 } else if (x == x0 + 5) {
                     colocarAldeaBloque(x, y, TipoBloque::Agua);
                 } else {
+                    colocarAldeaBloque(x, y, TipoBloque::TierraArada);
                     colocarAldeaBloque(x, y, cultivo);
                 }
             }
@@ -1396,7 +1417,7 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::CultivoTrigo ||
                        cuadricula[y][x].tipo == TipoBloque::CultivoZanahoria ||
                        cuadricula[y][x].tipo == TipoBloque::CultivoPatata) {
-                dibujarCultivo(ventana, x, y, cuadricula[y][x].tipo);
+                dibujarCultivo(ventana, x, y, cuadricula[y][x].tipo, cuadricula[y][x].faseCultivo);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Lava) {
                 dibujarLava(ventana, x, y);
@@ -1487,6 +1508,12 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 bloqueConAltura = true;
             } else if (cuadricula[y][x].tipo == TipoBloque::TierraArada) {
                 dibujarTextura16(ventana, x, y, false, true, cuadricula[y][x].bioma);
+                if (cuadricula[y][x].estaHidratado) {
+                    sf::RectangleShape humedad({TAMANIO_BLOQUE, TAMANIO_BLOQUE});
+                    humedad.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
+                    humedad.setFillColor(sf::Color(26, 42, 68, 55));
+                    ventana.draw(humedad);
+                }
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::CuevaEntrada) {
                 sf::RectangleShape baseEntrada({TAMANIO_BLOQUE, TAMANIO_BLOQUE});
@@ -1770,6 +1797,10 @@ inline bool Mundo::colocarBloque(int x, int y, TipoBloque tipo) {
         return false;
     }
 
+    if (esCultivoBloque(tipo)) {
+        return sembrarCultivo(x, y, tipo);
+    }
+
     bool solido = tipo != TipoBloque::Antorcha &&
                   tipo != TipoBloque::Techo &&
                   tipo != TipoBloque::PuertaAbierta &&
@@ -1780,6 +1811,9 @@ inline bool Mundo::colocarBloque(int x, int y, TipoBloque tipo) {
     float vida = static_cast<float>(getVidaMaximaBloque(tipo));
     TipoBioma bioma = cuadricula[y][x].bioma;
     cuadricula[y][x] = {tipo, solido, vida, false, 0.0f, false, 1, vida, bioma, 0};
+    if (tipo == TipoBloque::TierraArada) {
+        cuadricula[y][x].estaHidratado = false;
+    }
     return true;
 }
 
@@ -1885,6 +1919,56 @@ inline bool Mundo::esInteriorTechadoEn(int x, int y) const {
     return true;
 }
 
+inline void Mundo::actualizarCultivos(float dt) {
+    if (ancho <= 0 || alto <= 0) {
+        return;
+    }
+
+    acumuladorCultivos += dt;
+    if (acumuladorCultivos < 1.0f) {
+        return;
+    }
+
+    float pasoTiempo = acumuladorCultivos;
+    acumuladorCultivos = 0.0f;
+    int filasPorPaso = std::max(1, alto / 20);
+
+    auto hayAguaCerca = [&](int cx, int cy) {
+        for (int yy = cy - 4; yy <= cy + 4; ++yy) {
+            for (int xx = cx - 4; xx <= cx + 4; ++xx) {
+                if (xx < 0 || xx >= ancho || yy < 0 || yy >= alto) continue;
+                TipoBloque tipo = cuadricula[yy][xx].tipo;
+                if (tipo == TipoBloque::Agua || tipo == TipoBloque::AguaProfunda) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    for (int i = 0; i < filasPorPaso; ++i) {
+        int y = (filaActualizacionCultivos + i) % alto;
+        for (int x = 0; x < ancho; ++x) {
+            Bloque& bloque = cuadricula[y][x];
+            if (bloque.tipo != TipoBloque::TierraArada && !esCultivoBloque(bloque.tipo)) {
+                continue;
+            }
+
+            bloque.estaHidratado = hayAguaCerca(x, y);
+            if (esCultivoBloque(bloque.tipo) && bloque.faseCultivo < 3) {
+                float tiempoNecesario = bloque.estaHidratado ? 45.0f : 90.0f;
+                bloque.tiempoCrecimiento += pasoTiempo * static_cast<float>(20) / static_cast<float>(filasPorPaso);
+                while (bloque.faseCultivo < 3 && bloque.tiempoCrecimiento >= tiempoNecesario) {
+                    bloque.tiempoCrecimiento -= tiempoNecesario;
+                    ++bloque.faseCultivo;
+                }
+            }
+        }
+    }
+
+    filaActualizacionCultivos = (filaActualizacionCultivos + filasPorPaso) % alto;
+}
+
 inline bool Mundo::ararTierra(int x, int y) {
     if (x < 0 || x >= ancho || y < 0 || y >= alto) {
         return false;
@@ -1896,8 +1980,51 @@ inline bool Mundo::ararTierra(int x, int y) {
     }
 
     TipoBioma bioma = cuadricula[y][x].bioma;
-    cuadricula[y][x] = {TipoBloque::TierraArada, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+    bool hidratado = false;
+    for (int yy = y - 4; yy <= y + 4 && !hidratado; ++yy) {
+        for (int xx = x - 4; xx <= x + 4; ++xx) {
+            if (xx < 0 || xx >= ancho || yy < 0 || yy >= alto) continue;
+            TipoBloque vecino = cuadricula[yy][xx].tipo;
+            if (vecino == TipoBloque::Agua || vecino == TipoBloque::AguaProfunda) {
+                hidratado = true;
+                break;
+            }
+        }
+    }
+    cuadricula[y][x] = {TipoBloque::TierraArada, false, 30.0f, hidratado, 0.0f, false, 1, 30.0f, bioma, 0};
     return true;
+}
+
+inline bool Mundo::sembrarCultivo(int x, int y, TipoBloque cultivo) {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto || !esCultivoBloque(cultivo)) {
+        return false;
+    }
+
+    if (cuadricula[y][x].tipo != TipoBloque::TierraArada) {
+        return false;
+    }
+
+    TipoBioma bioma = cuadricula[y][x].bioma;
+    bool hidratado = cuadricula[y][x].estaHidratado;
+    float vida = static_cast<float>(getVidaMaximaBloque(cultivo));
+    cuadricula[y][x] = {cultivo, false, vida, hidratado, 0.0f, false, 1, vida, bioma, 0};
+    cuadricula[y][x].faseCultivo = 0;
+    cuadricula[y][x].tiempoCrecimiento = 0.0f;
+    return true;
+}
+
+inline int Mundo::getFaseCultivo(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto || !esCultivoBloque(cuadricula[y][x].tipo)) {
+        return 0;
+    }
+    return cuadricula[y][x].faseCultivo;
+}
+
+inline bool Mundo::estaCultivoMaduro(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto || !esCultivoBloque(cuadricula[y][x].tipo)) {
+        return false;
+    }
+    return cuadricula[y][x].faseCultivo >= 3;
 }
 
 inline bool Mundo::crearEntradaMina(int x, int y) {
@@ -2149,11 +2276,13 @@ inline bool Mundo::daniarBloque(int x, int y, float cantidadDanio) {
                    tipoOriginal == TipoBloque::Cofre ||
                    tipoOriginal == TipoBloque::Yunque) {
             cuadricula[y][x] = {TipoBloque::Pasto, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
-        } else if (tipoOriginal == TipoBloque::CaminoAldea ||
-                   tipoOriginal == TipoBloque::CultivoTrigo ||
+        } else if (tipoOriginal == TipoBloque::CaminoAldea) {
+            cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+        } else if (tipoOriginal == TipoBloque::CultivoTrigo ||
                    tipoOriginal == TipoBloque::CultivoZanahoria ||
                    tipoOriginal == TipoBloque::CultivoPatata) {
-            cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+            bool hidratado = bloque.estaHidratado;
+            cuadricula[y][x] = {TipoBloque::TierraArada, false, 30.0f, hidratado, 0.0f, false, 1, 30.0f, bioma, 0};
         } else if (tipoOriginal == TipoBloque::Lava) {
             cuadricula[y][x] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
         } else {
@@ -2183,7 +2312,7 @@ inline bool Mundo::guardarEstado(const std::string& ruta) const {
     }
 
     const char firma[4] = {'M', '2', 'D', 'W'};
-    int version = 1;
+    int version = 2;
     out.write(firma, sizeof(firma));
     out.write(reinterpret_cast<const char*>(&version), sizeof(version));
     out.write(reinterpret_cast<const char*>(&ancho), sizeof(ancho));
@@ -2205,6 +2334,8 @@ inline bool Mundo::guardarEstado(const std::string& ruta) const {
             out.write(reinterpret_cast<const char*>(&b.vidaMaxima), sizeof(b.vidaMaxima));
             out.write(reinterpret_cast<const char*>(&bioma), sizeof(bioma));
             out.write(reinterpret_cast<const char*>(&b.varianteArbol), sizeof(b.varianteArbol));
+            out.write(reinterpret_cast<const char*>(&b.faseCultivo), sizeof(b.faseCultivo));
+            out.write(reinterpret_cast<const char*>(&b.tiempoCrecimiento), sizeof(b.tiempoCrecimiento));
         }
     }
 
@@ -2229,7 +2360,7 @@ inline bool Mundo::cargarEstado(const std::string& ruta) {
     in.read(reinterpret_cast<char*>(&semillaArchivo), sizeof(semillaArchivo));
 
     if (!in || firma[0] != 'M' || firma[1] != '2' || firma[2] != 'D' || firma[3] != 'W' ||
-        version != 1 || anchoArchivo != ancho || altoArchivo != alto) {
+        (version != 1 && version != 2) || anchoArchivo != ancho || altoArchivo != alto) {
         return false;
     }
 
@@ -2249,11 +2380,21 @@ inline bool Mundo::cargarEstado(const std::string& ruta) {
             in.read(reinterpret_cast<char*>(&b.vidaMaxima), sizeof(b.vidaMaxima));
             in.read(reinterpret_cast<char*>(&bioma), sizeof(bioma));
             in.read(reinterpret_cast<char*>(&b.varianteArbol), sizeof(b.varianteArbol));
+            if (version >= 2) {
+                in.read(reinterpret_cast<char*>(&b.faseCultivo), sizeof(b.faseCultivo));
+                in.read(reinterpret_cast<char*>(&b.tiempoCrecimiento), sizeof(b.tiempoCrecimiento));
+            }
             if (!in) {
                 return false;
             }
             b.tipo = static_cast<TipoBloque>(tipo);
             b.bioma = static_cast<TipoBioma>(bioma);
+            if (esCultivoBloque(b.tipo)) {
+                b.esSolido = false;
+                b.faseCultivo = std::clamp(b.faseCultivo, 0, 3);
+                b.vidaMaxima = static_cast<float>(getVidaMaximaBloque(b.tipo));
+                if (b.vida <= 0.0f) b.vida = b.vidaMaxima;
+            }
             cuadricula[y][x] = b;
         }
     }

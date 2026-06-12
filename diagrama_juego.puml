@@ -47,13 +47,27 @@ enum ItemId {
     Trigo
     Pan
     LingoteHierro
+    SemillasTrigo
     Cofre
     Yunque
+}
+
+enum ProfesionAldeano {
+    Granjero
+    Herrero
+    Bibliotecario
 }
 
 struct SlotInventario {
     + item : ItemId
     + cantidad : int
+}
+
+struct Bloque {
+    + tipo : TipoBloque
+    + estaHidratado : bool
+    + faseCultivo : int
+    + tiempoCrecimiento : float
 }
 
 class Juego {
@@ -66,6 +80,7 @@ class Juego {
     - jugador : unique_ptr<Jugador>
     - animales : vector<Animal>
     - zombies : vector<Zombie>
+    - cofresMundo : map<string, vector<SlotInventario>>
     --
     + Juego()
     + ejecutar()
@@ -78,10 +93,13 @@ class Mundo {
     --
     + Mundo(ancho: int, alto: int, semilla: unsigned int)
     + generarMundo(esSubterraneo: bool)
+    + actualizarCultivos(dt: float)
     + getTipoBloque(x: int, y: int) : TipoBloque
     + setBloque(x: int, y: int, tipo: TipoBloque)
     + esBloqueSolido(x: int, y: int) : bool
     + alternarPuerta(x: int, y: int) : bool
+    + sembrarCultivo(x: int, y: int, cultivo: TipoBloque) : bool
+    + estaCultivoMaduro(x: int, y: int) : bool
     + esInteriorTechadoEn(x: int, y: int) : bool
     + dibujarCapaSuperior(ventana: sf::RenderWindow&, jugador: sf::Vector2f)
     + dibujar(ventana: sf::RenderWindow&)
@@ -108,6 +126,18 @@ class Animal {
     + actualizar(dt: float, mundo: Mundo&, jugador: Jugador&)
     + recibirDanio(cantidad: int, origen: sf::Vector2f)
     + dibujar(ventana: sf::RenderWindow&)
+}
+
+class Aldeano {
+    - posicion : sf::Vector2f
+    - objetivo : sf::Vector2f
+    - profesion : ProfesionAldeano
+    - refugiandose : bool
+    --
+    + actualizar(dt: float, mundo: Mundo&, esNoche: bool)
+    + dibujar(ventana: sf::RenderWindow&)
+    + getProfesion() : ProfesionAldeano
+    + getPosicion() : sf::Vector2f
 }
 
 class Zombie {
@@ -151,17 +181,31 @@ class SistemaIluminacion {
     + dibujarOscuridadSuperficie()
 }
 
+class SistemaCofres {
+    --
+    + abrirCofre(x: int, y: int)
+    + generarLootHerreria(seed: unsigned int, x: int, y: int)
+    + guardarCofres(carpeta: string)
+    + cargarCofres(carpeta: string)
+    + dibujarUICofre()
+}
+
 Juego *-- Mundo
+Mundo *-- Bloque
 Juego *-- Jugador
 Juego *-- Animal
+Juego *-- Aldeano
 Juego *-- Zombie
 Juego ..> InventarioGrid
 Juego ..> SistemaHerramientas
 Juego ..> SistemaIluminacion
+Juego ..> SistemaCofres
 Jugador ..> Mundo
 Animal ..> Mundo
+Aldeano ..> Mundo
 Zombie ..> Mundo
 InventarioGrid ..> SlotInventario
 InventarioGrid ..> ItemId
+SistemaCofres ..> SlotInventario
 
 @enduml

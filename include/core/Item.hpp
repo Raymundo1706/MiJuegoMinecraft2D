@@ -57,7 +57,8 @@ enum class ItemId {
     Esmeralda,
     Trigo,
     Pan,
-    LingoteHierro
+    LingoteHierro,
+    SemillasTrigo
 };
 
 enum class TipoHerramienta {

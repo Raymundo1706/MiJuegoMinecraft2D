@@ -58,6 +58,8 @@ struct Bloque {
     float vidaMaxima = 0.0f;
     TipoBioma bioma = TipoBioma::Pradera;
     int varianteArbol = 0;
+    int faseCultivo = 0;
+    float tiempoCrecimiento = 0.0f;
 };
 
 class Mundo {
@@ -66,6 +68,8 @@ private:
     int alto;
     unsigned int semillaBase;
     std::vector<std::vector<Bloque>> cuadricula;
+    float acumuladorCultivos = 0.0f;
+    int filaActualizacionCultivos = 0;
 
 public:
     Mundo(int ancho, int alto);
@@ -73,6 +77,7 @@ public:
     ~Mundo();
 
     void generarMundo(bool esSubterraneo);
+    void actualizarCultivos(float dt);
     void dibujar(sf::RenderWindow& ventana);
     void dibujarCapaSuperior(sf::RenderWindow& ventana, sf::Vector2f posicionJugador = {-99999.0f, -99999.0f});
 
@@ -82,6 +87,9 @@ public:
     bool alternarPuerta(int x, int y);
     bool esInteriorTechadoEn(int x, int y) const;
     bool ararTierra(int x, int y);
+    bool sembrarCultivo(int x, int y, TipoBloque cultivo);
+    int getFaseCultivo(int x, int y) const;
+    bool estaCultivoMaduro(int x, int y) const;
     bool crearEntradaMina(int x, int y);
     void crearZonaEntradaSubterranea(int x, int y);
     bool talarArbol(int x, int y, float segundosTrabajo, int& troncosObtenidos, bool& soltoSemilla);

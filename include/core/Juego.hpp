@@ -8,6 +8,7 @@
 #include "../entidades/Jugador.hpp"
 #include "../entidades/Animal.hpp"
 #include "../entidades/Zombie.hpp"
+#include "../entidades/Aldeano.hpp"
 #include "Item.hpp"
 
 struct ItemSuelo {
@@ -47,6 +48,7 @@ private:
 
     std::vector<Animal*> animales;
     std::vector<Zombie*> zombis;
+    std::vector<Aldeano*> aldeanos;
     std::vector<ItemSuelo> itemsSuelo;
 
     float worldTime;

@@ -254,6 +254,7 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::Yunque: return sf::Color(82, 86, 90);
         case ItemId::Esmeralda: return sf::Color(39, 214, 114);
         case ItemId::Trigo: return sf::Color(219, 190, 83);
+        case ItemId::SemillasTrigo: return sf::Color(128, 174, 68);
         case ItemId::Pan: return sf::Color(190, 124, 50);
         case ItemId::LingoteHierro: return sf::Color(206, 198, 184);
         case ItemId::PicoMadera:
@@ -323,6 +324,7 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::Yunque: return "Yu";
         case ItemId::Esmeralda: return "Es";
         case ItemId::Trigo: return "Tr";
+        case ItemId::SemillasTrigo: return "St";
         case ItemId::Pan: return "Pn";
         case ItemId::LingoteHierro: return "Fe";
         default: return "?";
