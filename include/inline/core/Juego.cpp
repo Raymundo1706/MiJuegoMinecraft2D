@@ -256,31 +256,97 @@ inline const char* nombreMomentoDia(float worldTime) {
     return "Amanecer";
 }
 
+inline bool bloqueBloqueaLuz(TipoBloque tipo) {
+    switch (tipo) {
+        case TipoBloque::Aire:
+        case TipoBloque::Agua:
+        case TipoBloque::AguaProfunda:
+        case TipoBloque::CuevaSuelo:
+        case TipoBloque::Antorcha:
+        case TipoBloque::Cristal:
+        case TipoBloque::PuertaAbierta:
+        case TipoBloque::Techo:
+        case TipoBloque::CaminoAldea:
+        case TipoBloque::CultivoTrigo:
+        case TipoBloque::CultivoZanahoria:
+        case TipoBloque::CultivoPatata:
+            return false;
+        default:
+            return true;
+    }
+}
+
+inline bool lineaLuzBloqueada(const Mundo& mundo, int origenX, int origenY, int destinoX, int destinoY) {
+    int x0 = origenX;
+    int y0 = origenY;
+    int x1 = destinoX;
+    int y1 = destinoY;
+    int dx = std::abs(x1 - x0);
+    int sx = x0 < x1 ? 1 : -1;
+    int dy = -std::abs(y1 - y0);
+    int sy = y0 < y1 ? 1 : -1;
+    int error = dx + dy;
+
+    while (true) {
+        if (!(x0 == origenX && y0 == origenY) && !(x0 == destinoX && y0 == destinoY)) {
+            if (bloqueBloqueaLuz(mundo.getTipoBloque(x0, y0))) {
+                return true;
+            }
+        }
+
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+
+        int e2 = 2 * error;
+        if (e2 >= dy) {
+            error += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            error += dx;
+            y0 += sy;
+        }
+    }
+
+    return false;
+}
+
 inline float luzAntorchasCercanas(const Mundo& mundo, int x, int y, sf::Vector2f centroBloque, int radioBusqueda) {
     float luz = 0.0f;
     for (int ty = y - radioBusqueda; ty <= y + radioBusqueda; ++ty) {
         for (int tx = x - radioBusqueda; tx <= x + radioBusqueda; ++tx) {
             if (mundo.getTipoBloque(tx, ty) != TipoBloque::Antorcha) continue;
+            if (lineaLuzBloqueada(mundo, tx, ty, x, y)) continue;
             sf::Vector2f centroAntorcha((tx + 0.5f) * TAMANIO_BLOQUE_JUEGO, (ty + 0.5f) * TAMANIO_BLOQUE_JUEGO);
             float adx = centroBloque.x - centroAntorcha.x;
             float ady = centroBloque.y - centroAntorcha.y;
             float distanciaAntorcha = std::sqrt(adx * adx + ady * ady) / TAMANIO_BLOQUE_JUEGO;
-            luz = std::max(luz, 1.0f - distanciaAntorcha / 8.5f);
+            float intensidad = std::max(0.0f, 1.0f - distanciaAntorcha / 8.5f);
+            luz = std::max(luz, intensidad * intensidad);
         }
     }
     return std::clamp(luz, 0.0f, 1.0f);
 }
 
-inline float luzJugadorConAntorcha(sf::Vector2f centroBloque, sf::Vector2f posicionJugador, ItemId itemEnMano, bool subterraneo) {
+inline float luzJugadorConAntorcha(const Mundo& mundo, int bloqueX, int bloqueY,
+                                   sf::Vector2f centroBloque, sf::Vector2f posicionJugador,
+                                   ItemId itemEnMano, bool subterraneo) {
     sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 12.0f);
     float dx = centroBloque.x - centroJugador.x;
     float dy = centroBloque.y - centroJugador.y;
     float distanciaJugador = std::sqrt(dx * dx + dy * dy) / TAMANIO_BLOQUE_JUEGO;
+    int jugadorX = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO));
+    int jugadorY = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
+    if (lineaLuzBloqueada(mundo, jugadorX, jugadorY, bloqueX, bloqueY)) {
+        return 0.0f;
+    }
     float radioBase = subterraneo ? 4.7f : 1.8f;
     float radioAntorcha = subterraneo ? 11.5f : 9.0f;
     float radio = itemEnMano == ItemId::Antorcha ? radioAntorcha : radioBase;
     float intensidad = itemEnMano == ItemId::Antorcha ? 1.0f : (subterraneo ? 0.42f : 0.0f);
-    return std::clamp((1.0f - distanciaJugador / radio) * intensidad, 0.0f, 1.0f);
+    float luz = std::max(0.0f, 1.0f - distanciaJugador / radio);
+    return std::clamp(luz * luz * intensidad, 0.0f, 1.0f);
 }
 
 inline void dibujarHaloLuz(sf::RenderWindow& ventana, sf::Vector2f centro, float radio, sf::Color color, float intensidad) {
@@ -315,11 +381,12 @@ inline void dibujarOscuridadSubsuelo(sf::RenderWindow& ventana, const sf::View& 
         for (int x = inicioX; x < finX; ++x) {
             sf::Vector2f centroBloque((x + 0.5f) * TAMANIO_BLOQUE_JUEGO, (y + 0.5f) * TAMANIO_BLOQUE_JUEGO);
             float luz = std::max(
-                luzJugadorConAntorcha(centroBloque, posicionJugador, itemEnMano, true),
+                luzJugadorConAntorcha(mundo, x, y, centroBloque, posicionJugador, itemEnMano, true),
                 luzAntorchasCercanas(mundo, x, y, centroBloque, 9)
             );
 
-            int alpha = std::clamp(static_cast<int>(224.0f - luz * 216.0f), 8, 232);
+            bool bloqueSolidoOscuro = bloqueBloqueaLuz(mundo.getTipoBloque(x, y));
+            int alpha = std::clamp(static_cast<int>((bloqueSolidoOscuro ? 238.0f : 224.0f) - luz * 218.0f), 10, 238);
             sombra.setPosition({x * TAMANIO_BLOQUE_JUEGO, y * TAMANIO_BLOQUE_JUEGO});
             sombra.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(alpha)));
             ventana.draw(sombra);
@@ -345,24 +412,36 @@ inline void dibujarOscuridadSuperficie(sf::RenderWindow& ventana, const sf::View
 
     sf::Vector2f centro = camara.getCenter();
     sf::Vector2f tam = camara.getSize();
-    float alphaBase = std::clamp(oscuridad * 238.0f, 0.0f, 218.0f);
-
-    sf::RectangleShape sombraGlobal(tam);
-    sombraGlobal.setOrigin(tam * 0.5f);
-    sombraGlobal.setPosition(centro);
-    sombraGlobal.setFillColor(sf::Color(4, 10, 36, static_cast<std::uint8_t>(alphaBase)));
-    ventana.draw(sombraGlobal);
-
-    sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 12.0f);
-    dibujarHaloLuz(ventana, centroJugador, TAMANIO_BLOQUE_JUEGO * 2.1f, sf::Color(80, 116, 170), 0.22f);
-    if (itemEnMano == ItemId::Antorcha) {
-        dibujarHaloLuz(ventana, centroJugador, TAMANIO_BLOQUE_JUEGO * 9.0f, sf::Color(255, 196, 92), 0.9f);
-    }
-
     int inicioX = std::max(0, static_cast<int>((centro.x - tam.x * 0.5f) / TAMANIO_BLOQUE_JUEGO) - 2);
     int finX = std::min(mundo.getAncho(), static_cast<int>((centro.x + tam.x * 0.5f) / TAMANIO_BLOQUE_JUEGO) + 3);
     int inicioY = std::max(0, static_cast<int>((centro.y - tam.y * 0.5f) / TAMANIO_BLOQUE_JUEGO) - 2);
     int finY = std::min(mundo.getAlto(), static_cast<int>((centro.y + tam.y * 0.5f) / TAMANIO_BLOQUE_JUEGO) + 3);
+
+    sf::RectangleShape sombra({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+    float alphaBase = std::clamp(oscuridad * 228.0f, 0.0f, 214.0f);
+
+    for (int y = inicioY; y < finY; ++y) {
+        for (int x = inicioX; x < finX; ++x) {
+            sf::Vector2f centroBloque((x + 0.5f) * TAMANIO_BLOQUE_JUEGO, (y + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+            float luzArtificial = std::max(
+                luzJugadorConAntorcha(mundo, x, y, centroBloque, posicionJugador, itemEnMano, false),
+                luzAntorchasCercanas(mundo, x, y, centroBloque, 9)
+            );
+            bool bloqueSolidoOscuro = bloqueBloqueaLuz(mundo.getTipoBloque(x, y));
+            float extraMuro = bloqueSolidoOscuro ? 20.0f * oscuridad : 0.0f;
+            int alpha = std::clamp(static_cast<int>(alphaBase + extraMuro - luzArtificial * 210.0f), 0, 224);
+            if (alpha <= 0) continue;
+            sombra.setPosition({x * TAMANIO_BLOQUE_JUEGO, y * TAMANIO_BLOQUE_JUEGO});
+            sombra.setFillColor(sf::Color(4, 10, 36, static_cast<std::uint8_t>(alpha)));
+            ventana.draw(sombra);
+        }
+    }
+
+    sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 12.0f);
+    dibujarHaloLuz(ventana, centroJugador, TAMANIO_BLOQUE_JUEGO * 2.1f, sf::Color(80, 116, 170), 0.15f * oscuridad);
+    if (itemEnMano == ItemId::Antorcha) {
+        dibujarHaloLuz(ventana, centroJugador, TAMANIO_BLOQUE_JUEGO * 9.0f, sf::Color(255, 196, 92), 0.62f * oscuridad);
+    }
 
     for (int y = inicioY; y < finY; ++y) {
         for (int x = inicioX; x < finX; ++x) {
@@ -671,6 +750,18 @@ inline sf::Color colorBloqueItem(ItemId item) {
         case ItemId::MesaCrafteo: return sf::Color(128, 82, 42);
         case ItemId::Horno: return sf::Color(86, 86, 86);
         case ItemId::Cama: return sf::Color(202, 66, 62);
+        case ItemId::PuertaMadera: return sf::Color(142, 86, 38);
+        case ItemId::CaminoAldea: return sf::Color(142, 105, 66);
+        case ItemId::CultivoTrigo:
+        case ItemId::Trigo: return sf::Color(219, 190, 83);
+        case ItemId::CultivoZanahoria: return sf::Color(229, 112, 35);
+        case ItemId::CultivoPatata: return sf::Color(178, 136, 73);
+        case ItemId::Lava: return sf::Color(255, 88, 24);
+        case ItemId::Cofre: return sf::Color(166, 104, 38);
+        case ItemId::Yunque: return sf::Color(82, 86, 90);
+        case ItemId::Esmeralda: return sf::Color(39, 214, 114);
+        case ItemId::Pan: return sf::Color(190, 124, 50);
+        case ItemId::LingoteHierro: return sf::Color(206, 198, 184);
         default: return sf::Color(210, 180, 110);
     }
 }
@@ -750,6 +841,18 @@ inline void dibujarItemSueloSprite(sf::RenderWindow& ventana, ItemId item, sf::V
         case ItemId::MesaCrafteo:
         case ItemId::Horno:
         case ItemId::Cama:
+        case ItemId::PuertaMadera:
+        case ItemId::CaminoAldea:
+        case ItemId::CultivoTrigo:
+        case ItemId::CultivoZanahoria:
+        case ItemId::CultivoPatata:
+        case ItemId::Lava:
+        case ItemId::Cofre:
+        case ItemId::Yunque:
+        case ItemId::Esmeralda:
+        case ItemId::Trigo:
+        case ItemId::Pan:
+        case ItemId::LingoteHierro:
             dibujarBloqueItemSuelo(ventana, origen, item, escala, giroY);
             return;
         case ItemId::BloqueTierra:
@@ -2352,6 +2455,8 @@ inline void Juego::ejecutar() {
         mundoParaGuardar->guardarEstado(rutaBloquesMundo(mundoActivo.carpeta).string());
         if (enSubsuelo) {
             mapaSuperficie->guardarEstado(rutaBloquesCuevaMundo(mundoActivo.carpeta).string());
+        } else if (mapaSubsuelo) {
+            mapaSubsuelo->guardarEstado(rutaBloquesCuevaMundo(mundoActivo.carpeta).string());
         }
         {
             std::ofstream inv(rutaInventarioMundo(mundoActivo.carpeta));
@@ -2412,6 +2517,7 @@ inline void Juego::ejecutar() {
         zombis.clear();
         itemsSuelo.clear();
         mapaExterior.reset();
+        mapaSubsuelo.reset();
         enSubsuelo = false;
         posicionEntradaSuperficie = {0.0f, 0.0f};
         EstadoJuegoGuardado estadoGuardado = cargarBloques ? leerEstadoJuego(mundo.carpeta) : EstadoJuegoGuardado{};
@@ -2645,7 +2751,8 @@ inline void Juego::ejecutar() {
     };
 
     auto intentarSpawnearZombie = [&]() {
-        if (!jugador || !mapaSuperficie || !spawnHostilesHabilitado || zombis.size() >= 35) {
+        bool puedeSpawnearHostil = spawnHostilesHabilitado || enSubsuelo;
+        if (!jugador || !mapaSuperficie || !puedeSpawnearHostil || zombis.size() >= 35) {
             return;
         }
 
@@ -2663,6 +2770,9 @@ inline void Juego::ejecutar() {
             int by = static_cast<int>(std::floor((centroJugador.y + std::sin(a) * d) / TAMANIO_BLOQUE_JUEGO));
 
             TipoBloque tipo = mapaSuperficie->getTipoBloque(bx, by);
+            if (enSubsuelo && tipo != TipoBloque::CuevaSuelo) {
+                continue;
+            }
             if (mapaSuperficie->esBloqueSolido(bx, by) ||
                 tipo == TipoBloque::Agua ||
                 tipo == TipoBloque::AguaProfunda ||
@@ -2670,19 +2780,12 @@ inline void Juego::ejecutar() {
                 continue;
             }
 
-            bool zonaIluminada = false;
-            for (int ly = by - 8; ly <= by + 8 && !zonaIluminada; ++ly) {
-                for (int lx = bx - 8; lx <= bx + 8; ++lx) {
-                    if (mapaSuperficie->getTipoBloque(lx, ly) != TipoBloque::Antorcha) continue;
-                    int ddx = lx - bx;
-                    int ddy = ly - by;
-                    if (ddx * ddx + ddy * ddy <= 64) {
-                        zonaIluminada = true;
-                        break;
-                    }
-                }
+            sf::Vector2f centroSpawn((bx + 0.5f) * TAMANIO_BLOQUE_JUEGO, (by + 0.5f) * TAMANIO_BLOQUE_JUEGO);
+            float luzLocal = luzAntorchasCercanas(*mapaSuperficie, bx, by, centroSpawn, 9);
+            if (!enSubsuelo) {
+                luzLocal = std::max(luzLocal, static_cast<float>(skyLight) / 15.0f);
             }
-            if (zonaIluminada) {
+            if (luzLocal > 0.42f) {
                 continue;
             }
 
@@ -2738,14 +2841,25 @@ inline void Juego::ejecutar() {
 
         posicionEntradaSuperficie = posJugador;
         mapaExterior = std::move(mapaSuperficie);
-        unsigned int semillaCueva = mapaExterior->getSemilla() ^ 0xC0A7E5u ^
-                                    static_cast<unsigned int>(bx * 928371u + by * 1237u);
-        mapaSuperficie = std::make_unique<Mundo>(1000, 1000, semillaCueva);
-        mapaSuperficie->generarMundo(true);
+
+        if (mapaSubsuelo) {
+            mapaSuperficie = std::move(mapaSubsuelo);
+        } else {
+            unsigned int semillaCueva = mapaExterior->getSemilla() ^ 0xC0A7E5u ^
+                                        static_cast<unsigned int>(bx * 928371u + by * 1237u);
+            mapaSuperficie = std::make_unique<Mundo>(1000, 1000, semillaCueva);
+            if (hayMundoActivo && std::filesystem::exists(rutaBloquesCuevaMundo(mundoActivo.carpeta))) {
+                mapaSuperficie->cargarEstado(rutaBloquesCuevaMundo(mundoActivo.carpeta).string());
+            } else {
+                mapaSuperficie->generarMundo(true);
+            }
+        }
 
         int entradaX = mapaSuperficie->getAncho() / 2;
         int entradaY = mapaSuperficie->getAlto() / 2;
-        mapaSuperficie->crearZonaEntradaSubterranea(entradaX, entradaY);
+        if (mapaSuperficie->getTipoBloque(entradaX, entradaY) != TipoBloque::CuevaEntrada) {
+            mapaSuperficie->crearZonaEntradaSubterranea(entradaX, entradaY);
+        }
         jugador->setPosicion({
             static_cast<float>(entradaX) * TAMANIO_BLOQUE_JUEGO,
             static_cast<float>(entradaY) * TAMANIO_BLOQUE_JUEGO
@@ -2764,9 +2878,12 @@ inline void Juego::ejecutar() {
         int by = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
         if (mapaSuperficie->getTipoBloque(bx, by) != TipoBloque::CuevaEntrada) return;
 
+        mapaSubsuelo = std::move(mapaSuperficie);
         mapaSuperficie = std::move(mapaExterior);
         jugador->setPosicion(posicionEntradaSuperficie + sf::Vector2f(0.0f, TAMANIO_BLOQUE_JUEGO));
         itemsSuelo.clear();
+        for (auto* zombie : zombis) delete zombie;
+        zombis.clear();
         enSubsuelo = false;
     };
 
@@ -3389,9 +3506,10 @@ inline void Juego::ejecutar() {
             }
         }
 
-        if (spawnHostilesHabilitado && !uiAbierta && !enSubsuelo) {
+        bool puedeSpawnearEnAmbiente = spawnHostilesHabilitado || enSubsuelo;
+        if (puedeSpawnearEnAmbiente && !uiAbierta && hayMundoActivo && mundoActivo.dificultad != 0) {
             acumuladorSpawnZombies += dt;
-            if (acumuladorSpawnZombies >= 1.0f) {
+            if (acumuladorSpawnZombies >= (enSubsuelo ? 0.75f : 1.0f)) {
                 acumuladorSpawnZombies = 0.0f;
                 intentarSpawnearZombie();
             }
@@ -3402,7 +3520,7 @@ inline void Juego::ejecutar() {
         if (jugador && mapaSuperficie) {
             for (auto* zombie : zombis) {
                 if (zombie) {
-                    zombie->actualizar(dt, *mapaSuperficie, *jugador, skyLight);
+                    zombie->actualizar(dt, *mapaSuperficie, *jugador, enSubsuelo ? 0 : skyLight);
                     if (zombie->consumirEventoAtaque()) {
                         reproducirAtaqueZombie();
                     }
@@ -3600,12 +3718,21 @@ inline void Juego::ejecutar() {
             TipoBloque bloqueAColocar = bloqueDesdeItem(itemEnMano);
 
             if (jugador && mapaSuperficie) {
-                bool consumioComida = jugador->consumirComida(itemEnMano);
+                TipoBloque tipoObjetivo = mapaSuperficie->getTipoBloque(bloqueMouseX, bloqueMouseY);
+                bool alternoPuerta = selectorBloqueEnRango &&
+                                     (tipoObjetivo == TipoBloque::PuertaCerrada ||
+                                      tipoObjetivo == TipoBloque::PuertaAbierta) &&
+                                     mapaSuperficie->alternarPuerta(bloqueMouseX, bloqueMouseY);
+                if (alternoPuerta) {
+                    reproducirColocarBloque(TipoBloque::Madera);
+                }
+
+                bool consumioComida = !alternoPuerta && jugador->consumirComida(itemEnMano);
                 if (consumioComida) {
                     inventarioGrid.consumirItemHotbar(1);
                 }
 
-                if (!consumioComida) {
+                if (!consumioComida && !alternoPuerta) {
                     if (selectorColocacionValida &&
                         mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
                         inventarioGrid.consumirItemHotbar(1);

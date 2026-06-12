@@ -38,6 +38,7 @@ private:
 
     std::unique_ptr<Mundo> mapaSuperficie;
     std::unique_ptr<Mundo> mapaExterior;
+    std::unique_ptr<Mundo> mapaSubsuelo;
     std::unique_ptr<Jugador> jugador;
 
     sf::Font fuente;

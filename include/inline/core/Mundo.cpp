@@ -754,6 +754,111 @@ inline void dibujarPuerta(sf::RenderWindow& ventana, int bloqueX, int bloqueY, b
     ventana.draw(perilla);
 }
 
+inline void dibujarCaminoAldea(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    sf::RectangleShape base({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+    base.setPosition({x, y});
+    base.setFillColor(sf::Color(134, 101, 62));
+    ventana.draw(base);
+
+    unsigned int h = ruidoDecoracion(bloqueX, bloqueY);
+    for (int i = 0; i < 7; ++i) {
+        sf::RectangleShape mota({2.0f + static_cast<float>((h >> i) & 1u), 2.0f});
+        mota.setPosition({
+            x + 3.0f + static_cast<float>((h >> (i * 3)) % 18u),
+            y + 4.0f + static_cast<float>((h >> (i * 2)) % 16u)
+        });
+        mota.setFillColor(i % 2 == 0 ? sf::Color(94, 69, 43) : sf::Color(174, 132, 79));
+        ventana.draw(mota);
+    }
+}
+
+inline void dibujarCultivo(sf::RenderWindow& ventana, int bloqueX, int bloqueY, TipoBloque tipo) {
+    dibujarTextura16(ventana, bloqueX, bloqueY, false, true, TipoBioma::Pradera);
+
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    sf::Color tallo(58, 139, 47);
+    sf::Color fruto(220, 188, 64);
+    if (tipo == TipoBloque::CultivoZanahoria) fruto = sf::Color(232, 112, 36);
+    if (tipo == TipoBloque::CultivoPatata) fruto = sf::Color(180, 136, 72);
+
+    for (int i = 0; i < 4; ++i) {
+        float ox = 4.0f + static_cast<float>(i % 2) * 10.0f;
+        float oy = 6.0f + static_cast<float>(i / 2) * 8.0f;
+        sf::RectangleShape hoja({3.0f, 8.0f});
+        hoja.setPosition({x + ox + 2.0f, y + oy + 2.0f});
+        hoja.setFillColor(tallo);
+        ventana.draw(hoja);
+        sf::RectangleShape grano({5.0f, 3.0f});
+        grano.setPosition({x + ox, y + oy});
+        grano.setFillColor(fruto);
+        ventana.draw(grano);
+    }
+}
+
+inline void dibujarLava(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    sf::RectangleShape base({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+    base.setPosition({x, y});
+    base.setFillColor(sf::Color(218, 58, 18));
+    ventana.draw(base);
+    for (int i = 0; i < 5; ++i) {
+        sf::RectangleShape brillo({8.0f, 2.0f});
+        brillo.setPosition({x + 2.0f + static_cast<float>((bloqueX * 5 + i * 7) % 13), y + 4.0f + i * 4.0f});
+        brillo.setFillColor(i % 2 == 0 ? sf::Color(255, 198, 55) : sf::Color(255, 114, 30));
+        ventana.draw(brillo);
+    }
+}
+
+inline void dibujarCofre(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    sf::RectangleShape sombra({TAMANIO_BLOQUE_JUEGO + 3.0f, 5.0f});
+    sombra.setPosition({x + 2.0f, y + TAMANIO_BLOQUE_JUEGO - 1.0f});
+    sombra.setFillColor(sf::Color(12, 9, 5, 88));
+    ventana.draw(sombra);
+
+    sf::RectangleShape cuerpo({20.0f, 17.0f});
+    cuerpo.setPosition({x + 2.0f, y + 5.0f});
+    cuerpo.setFillColor(sf::Color(160, 92, 32));
+    cuerpo.setOutlineColor(sf::Color(54, 31, 16));
+    cuerpo.setOutlineThickness(2.0f);
+    ventana.draw(cuerpo);
+
+    sf::RectangleShape tapa({20.0f, 6.0f});
+    tapa.setPosition({x + 2.0f, y + 3.0f});
+    tapa.setFillColor(sf::Color(194, 125, 45));
+    ventana.draw(tapa);
+
+    sf::RectangleShape chapa({4.0f, 5.0f});
+    chapa.setPosition({x + 10.0f, y + 10.0f});
+    chapa.setFillColor(sf::Color(226, 186, 88));
+    ventana.draw(chapa);
+}
+
+inline void dibujarYunque(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+    sf::RectangleShape sombra({22.0f, 5.0f});
+    sombra.setPosition({x + 3.0f, y + 20.0f});
+    sombra.setFillColor(sf::Color(8, 8, 8, 85));
+    ventana.draw(sombra);
+
+    auto rect = [&](float rx, float ry, float w, float h, sf::Color color) {
+        sf::RectangleShape r({w, h});
+        r.setPosition({x + rx, y + ry});
+        r.setFillColor(color);
+        ventana.draw(r);
+    };
+    rect(3.0f, 5.0f, 18.0f, 5.0f, sf::Color(98, 102, 106));
+    rect(6.0f, 10.0f, 12.0f, 6.0f, sf::Color(66, 69, 73));
+    rect(4.0f, 16.0f, 16.0f, 5.0f, sf::Color(88, 91, 95));
+    rect(18.0f, 7.0f, 4.0f, 3.0f, sf::Color(128, 132, 136));
+}
+
 inline TipoBloque revelarSueloRaro() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -998,6 +1103,157 @@ inline void Mundo::generarMundo(bool esSubterraneo) {
         }
     }
 
+    auto colocarAldeaBloque = [&](int bx, int by, TipoBloque tipo) {
+        if (bx < MARGEN_OCEANO + 4 || bx >= ancho - MARGEN_OCEANO - 4 ||
+            by < MARGEN_OCEANO + 4 || by >= alto - MARGEN_OCEANO - 4) {
+            return;
+        }
+
+        TipoBioma bioma = cuadricula[by][bx].bioma;
+        bool solido = tipo == TipoBloque::Piedra ||
+                      tipo == TipoBloque::Madera ||
+                      tipo == TipoBloque::Cristal ||
+                      tipo == TipoBloque::Horno ||
+                      tipo == TipoBloque::Cofre ||
+                      tipo == TipoBloque::Yunque ||
+                      tipo == TipoBloque::PuertaCerrada ||
+                      tipo == TipoBloque::Lava;
+        float vida = static_cast<float>(getVidaMaximaBloque(tipo));
+        cuadricula[by][bx] = {tipo, solido, vida, false, 0.0f, false, 1, vida, bioma, 0};
+    };
+
+    auto limpiarZonaAldea = [&](int cx, int cy, int radio) {
+        for (int y = cy - radio; y <= cy + radio; ++y) {
+            for (int x = cx - radio; x <= cx + radio; ++x) {
+                if (x < MARGEN_OCEANO || x >= ancho - MARGEN_OCEANO ||
+                    y < MARGEN_OCEANO || y >= alto - MARGEN_OCEANO) continue;
+                TipoBioma bioma = cuadricula[y][x].bioma;
+                cuadricula[y][x] = {TipoBloque::Pasto, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+            }
+        }
+    };
+
+    auto dibujarCaminoAldeaLogico = [&](int x1, int y1, int x2, int y2) {
+        if (x1 == x2) {
+            int ya = std::min(y1, y2);
+            int yb = std::max(y1, y2);
+            for (int y = ya; y <= yb; ++y) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    colocarAldeaBloque(x1 + dx, y, TipoBloque::CaminoAldea);
+                }
+            }
+        } else {
+            int xa = std::min(x1, x2);
+            int xb = std::max(x1, x2);
+            for (int x = xa; x <= xb; ++x) {
+                for (int dy = -1; dy <= 1; ++dy) {
+                    colocarAldeaBloque(x, y1 + dy, TipoBloque::CaminoAldea);
+                }
+            }
+        }
+    };
+
+    auto construirCasaAldea = [&](int x0, int y0, int w, int h, bool piedra) {
+        for (int y = y0; y < y0 + h; ++y) {
+            for (int x = x0; x < x0 + w; ++x) {
+                bool borde = x == x0 || x == x0 + w - 1 || y == y0 || y == y0 + h - 1;
+                if (borde) {
+                    colocarAldeaBloque(x, y, piedra ? TipoBloque::Piedra : TipoBloque::Madera);
+                } else {
+                    colocarAldeaBloque(x, y, TipoBloque::Techo);
+                }
+            }
+        }
+        int puertaX = x0 + w / 2;
+        int puertaY = y0 + h - 1;
+        colocarAldeaBloque(puertaX, puertaY, TipoBloque::PuertaCerrada);
+        colocarAldeaBloque(x0 + 1, y0 + h / 2, TipoBloque::Cristal);
+        colocarAldeaBloque(x0 + w - 2, y0 + h / 2, TipoBloque::Cristal);
+        dibujarCaminoAldeaLogico(puertaX, puertaY + 1, puertaX, puertaY + 5);
+    };
+
+    auto construirGranjaAldea = [&](int x0, int y0, TipoBloque cultivo) {
+        for (int y = y0; y < y0 + 7; ++y) {
+            for (int x = x0; x < x0 + 11; ++x) {
+                bool borde = x == x0 || x == x0 + 10 || y == y0 || y == y0 + 6;
+                if (borde) {
+                    colocarAldeaBloque(x, y, TipoBloque::Madera);
+                } else if (x == x0 + 5) {
+                    colocarAldeaBloque(x, y, TipoBloque::Agua);
+                } else {
+                    colocarAldeaBloque(x, y, cultivo);
+                }
+            }
+        }
+    };
+
+    auto construirHerreriaAldea = [&](int x0, int y0) {
+        for (int y = y0; y < y0 + 9; ++y) {
+            for (int x = x0; x < x0 + 12; ++x) {
+                bool borde = x == x0 || x == x0 + 11 || y == y0 || y == y0 + 8;
+                if (borde) {
+                    colocarAldeaBloque(x, y, TipoBloque::Piedra);
+                } else {
+                    colocarAldeaBloque(x, y, TipoBloque::Techo);
+                }
+            }
+        }
+        colocarAldeaBloque(x0 + 5, y0 + 8, TipoBloque::PuertaCerrada);
+        colocarAldeaBloque(x0 + 2, y0 + 2, TipoBloque::Lava);
+        colocarAldeaBloque(x0 + 3, y0 + 2, TipoBloque::Piedra);
+        colocarAldeaBloque(x0 + 8, y0 + 2, TipoBloque::Horno);
+        colocarAldeaBloque(x0 + 9, y0 + 2, TipoBloque::Yunque);
+        colocarAldeaBloque(x0 + 8, y0 + 6, TipoBloque::Cofre);
+        colocarAldeaBloque(x0 + 1, y0 + 4, TipoBloque::Cristal);
+        dibujarCaminoAldeaLogico(x0 + 5, y0 + 9, x0 + 5, y0 + 14);
+    };
+
+    std::uniform_int_distribution<> cantidadAldeas(2, 4);
+    std::uniform_int_distribution<> aldeaX(MARGEN_OCEANO + 95, ancho - MARGEN_OCEANO - 95);
+    std::uniform_int_distribution<> aldeaY(MARGEN_OCEANO + 95, alto - MARGEN_OCEANO - 95);
+    int aldeasCreadas = 0;
+    int aldeasObjetivo = cantidadAldeas(gen);
+    std::vector<sf::Vector2i> centrosAldea;
+
+    for (int intento = 0; intento < 240 && aldeasCreadas < aldeasObjetivo; ++intento) {
+        int cx = aldeaX(gen);
+        int cy = aldeaY(gen);
+        bool lejos = true;
+        for (const sf::Vector2i& c : centrosAldea) {
+            int dx = c.x - cx;
+            int dy = c.y - cy;
+            if (dx * dx + dy * dy < 180 * 180) {
+                lejos = false;
+                break;
+            }
+        }
+        if (!lejos) continue;
+
+        bool zonaValida = true;
+        for (int y = cy - 28; y <= cy + 28 && zonaValida; ++y) {
+            for (int x = cx - 28; x <= cx + 28; ++x) {
+                TipoBloque t = cuadricula[y][x].tipo;
+                if (t == TipoBloque::Agua || t == TipoBloque::AguaProfunda) {
+                    zonaValida = false;
+                    break;
+                }
+            }
+        }
+        if (!zonaValida) continue;
+
+        limpiarZonaAldea(cx, cy, 35);
+        dibujarCaminoAldeaLogico(cx - 30, cy, cx + 30, cy);
+        dibujarCaminoAldeaLogico(cx, cy - 26, cx, cy + 30);
+        construirCasaAldea(cx - 24, cy - 18, 9, 8, false);
+        construirCasaAldea(cx + 16, cy - 18, 10, 8, true);
+        construirCasaAldea(cx - 26, cy + 12, 8, 7, false);
+        construirGranjaAldea(cx + 12, cy + 10, (aldeasCreadas % 3 == 0) ? TipoBloque::CultivoTrigo : (aldeasCreadas % 3 == 1 ? TipoBloque::CultivoZanahoria : TipoBloque::CultivoPatata));
+        construirHerreriaAldea(cx + 9, cy - 5);
+
+        centrosAldea.push_back({cx, cy});
+        ++aldeasCreadas;
+    }
+
     std::uniform_int_distribution<> troncosArbol(2, 5);
     std::uniform_int_distribution<> varianteArbol(0, 2);
     auto hayArbolCerca = [&](int tx, int ty) {
@@ -1088,7 +1344,8 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                bloque.tipo == TipoBloque::MineralDiamante ||
                bloque.tipo == TipoBloque::Horno ||
                bloque.tipo == TipoBloque::Cristal ||
-               bloque.tipo == TipoBloque::MesaCrafteo;
+               bloque.tipo == TipoBloque::MesaCrafteo ||
+               bloque.tipo == TipoBloque::PuertaCerrada;
     };
 
     for (int y = inicioY; y < finY; ++y) {
@@ -1133,6 +1390,17 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 suelo.setFillColor(ruido == 0 ? sf::Color(58, 55, 52) : (ruido == 1 ? sf::Color(74, 70, 64) : sf::Color(47, 45, 43)));
                 ventana.draw(suelo);
                 continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::CaminoAldea) {
+                dibujarCaminoAldea(ventana, x, y);
+                continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::CultivoTrigo ||
+                       cuadricula[y][x].tipo == TipoBloque::CultivoZanahoria ||
+                       cuadricula[y][x].tipo == TipoBloque::CultivoPatata) {
+                dibujarCultivo(ventana, x, y, cuadricula[y][x].tipo);
+                continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::Lava) {
+                dibujarLava(ventana, x, y);
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Madera) {
                 dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
                 dibujarPlantasDecorativas(ventana, x, y, cuadricula[y][x].bioma);
@@ -1156,6 +1424,23 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 llama.setPosition({x * TAMANIO_BLOQUE_JUEGO + 12.0f, y * TAMANIO_BLOQUE_JUEGO + 5.0f});
                 llama.setFillColor(sf::Color(255, 224, 74));
                 ventana.draw(llama);
+                continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::Techo) {
+                sf::RectangleShape pisoInterior({TAMANIO_BLOQUE_JUEGO, TAMANIO_BLOQUE_JUEGO});
+                pisoInterior.setPosition({x * TAMANIO_BLOQUE_JUEGO, y * TAMANIO_BLOQUE_JUEGO});
+                pisoInterior.setFillColor(sf::Color(96, 72, 46));
+                ventana.draw(pisoInterior);
+
+                sf::RectangleShape veta({TAMANIO_BLOQUE_JUEGO, 1.0f});
+                for (int i = 0; i < 4; ++i) {
+                    veta.setPosition({x * TAMANIO_BLOQUE_JUEGO, y * TAMANIO_BLOQUE_JUEGO + 4.0f + i * 6.0f});
+                    veta.setFillColor(i % 2 == 0 ? sf::Color(68, 48, 32) : sf::Color(132, 94, 56));
+                    ventana.draw(veta);
+                }
+                continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::PuertaCerrada ||
+                       cuadricula[y][x].tipo == TipoBloque::PuertaAbierta) {
+                dibujarPuerta(ventana, x, y, cuadricula[y][x].tipo == TipoBloque::PuertaAbierta);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::MesaCrafteo) {
                 sf::RectangleShape sombraObjeto({TAMANIO_BLOQUE + 3.0f, 6.0f});
@@ -1191,6 +1476,12 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::Horno) {
                 formaBlq.setFillColor(sf::Color(85, 85, 85));
                 bloqueConAltura = true;
+            } else if (cuadricula[y][x].tipo == TipoBloque::Cofre) {
+                dibujarCofre(ventana, x, y);
+                continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::Yunque) {
+                dibujarYunque(ventana, x, y);
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Cristal) {
                 formaBlq.setFillColor(sf::Color(180, 235, 255, 180));
                 bloqueConAltura = true;
@@ -1198,7 +1489,37 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
                 dibujarTextura16(ventana, x, y, false, true, cuadricula[y][x].bioma);
                 continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::CuevaEntrada) {
-                formaBlq.setFillColor(cuadricula[y][x].minaAbierta ? sf::Color(45, 25, 65) : sf::Color(18, 18, 22));
+                sf::RectangleShape baseEntrada({TAMANIO_BLOQUE, TAMANIO_BLOQUE});
+                baseEntrada.setPosition({x * TAMANIO_BLOQUE, y * TAMANIO_BLOQUE});
+                baseEntrada.setFillColor(cuadricula[y][x].minaAbierta ? sf::Color(38, 28, 48) : sf::Color(18, 18, 22));
+                ventana.draw(baseEntrada);
+
+                sf::RectangleShape sombraInterior({TAMANIO_BLOQUE - 6.0f, TAMANIO_BLOQUE - 6.0f});
+                sombraInterior.setPosition({x * TAMANIO_BLOQUE + 3.0f, y * TAMANIO_BLOQUE + 3.0f});
+                sombraInterior.setFillColor(sf::Color(8, 7, 12, 210));
+                ventana.draw(sombraInterior);
+
+                sf::RectangleShape bordeLuz({TAMANIO_BLOQUE - 4.0f, 2.0f});
+                bordeLuz.setPosition({x * TAMANIO_BLOQUE + 2.0f, y * TAMANIO_BLOQUE + 2.0f});
+                bordeLuz.setFillColor(sf::Color(96, 76, 104, 150));
+                ventana.draw(bordeLuz);
+
+                if (cuadricula[y][x].minaAbierta) {
+                    sf::RectangleShape poste({2.0f, 16.0f});
+                    poste.setFillColor(sf::Color(142, 90, 43));
+                    poste.setPosition({x * TAMANIO_BLOQUE + 7.0f, y * TAMANIO_BLOQUE + 4.0f});
+                    ventana.draw(poste);
+                    poste.setPosition({x * TAMANIO_BLOQUE + 15.0f, y * TAMANIO_BLOQUE + 4.0f});
+                    ventana.draw(poste);
+
+                    sf::RectangleShape peldaño({12.0f, 2.0f});
+                    peldaño.setFillColor(sf::Color(181, 121, 58));
+                    for (int i = 0; i < 4; ++i) {
+                        peldaño.setPosition({x * TAMANIO_BLOQUE + 6.0f, y * TAMANIO_BLOQUE + 6.0f + i * 4.0f});
+                        ventana.draw(peldaño);
+                    }
+                }
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Piedra) {
                 dibujarTextura16(ventana, x, y, true, false, cuadricula[y][x].bioma);
                 dibujarTexturaPiedra(
@@ -1314,13 +1635,73 @@ inline void Mundo::dibujarCapaSuperior(sf::RenderWindow& ventana, sf::Vector2f p
     int finX = std::min(ancho, static_cast<int>(der / TAMANIO_BLOQUE_JUEGO) + 5);
     int inicioY = std::max(0, static_cast<int>(arriba / TAMANIO_BLOQUE_JUEGO) - 4);
     int finY = std::min(alto, static_cast<int>(abajo / TAMANIO_BLOQUE_JUEGO) + 5);
+    int anchoLocal = std::max(0, finX - inicioX);
+    int altoLocal = std::max(0, finY - inicioY);
+    std::vector<unsigned char> techoInterior(static_cast<std::size_t>(anchoLocal * altoLocal), 0);
+
+    auto indiceLocal = [&](int bx, int by) {
+        return (by - inicioY) * anchoLocal + (bx - inicioX);
+    };
+
+    if (posicionJugador.x > -90000.0f && anchoLocal > 0 && altoLocal > 0) {
+        sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 12.0f);
+        int jugadorX = static_cast<int>(std::floor(centroJugador.x / TAMANIO_BLOQUE_JUEGO));
+        int jugadorY = static_cast<int>(std::floor(centroJugador.y / TAMANIO_BLOQUE_JUEGO));
+
+        if (jugadorX >= inicioX && jugadorX < finX &&
+            jugadorY >= inicioY && jugadorY < finY &&
+            esInteriorTechadoEn(jugadorX, jugadorY)) {
+            std::vector<sf::Vector2i> pila;
+            pila.push_back({jugadorX, jugadorY});
+            techoInterior[static_cast<std::size_t>(indiceLocal(jugadorX, jugadorY))] = 1;
+
+            while (!pila.empty()) {
+                sf::Vector2i actual = pila.back();
+                pila.pop_back();
+
+                const sf::Vector2i vecinos[4] = {
+                    {actual.x + 1, actual.y},
+                    {actual.x - 1, actual.y},
+                    {actual.x, actual.y + 1},
+                    {actual.x, actual.y - 1}
+                };
+
+                for (const sf::Vector2i& v : vecinos) {
+                    if (v.x < inicioX || v.x >= finX || v.y < inicioY || v.y >= finY) {
+                        continue;
+                    }
+                    if (cuadricula[v.y][v.x].tipo != TipoBloque::Techo) {
+                        continue;
+                    }
+
+                    std::size_t idx = static_cast<std::size_t>(indiceLocal(v.x, v.y));
+                    if (techoInterior[idx]) {
+                        continue;
+                    }
+                    techoInterior[idx] = 1;
+                    pila.push_back(v);
+                }
+            }
+        }
+    }
+
+    for (int y = inicioY; y < finY; ++y) {
+        for (int x = inicioX; x < finX; ++x) {
+            if (cuadricula[y][x].tipo == TipoBloque::Techo) {
+                std::uint8_t alpha = 238;
+                if (anchoLocal > 0 && techoInterior[static_cast<std::size_t>(indiceLocal(x, y))]) {
+                    alpha = 38;
+                }
+                dibujarTecho(ventana, x, y, alpha);
+            }
+        }
+    }
 
     for (int y = inicioY; y < finY; ++y) {
         for (int x = inicioX; x < finX; ++x) {
             if (cuadricula[y][x].tipo != TipoBloque::Madera) {
                 continue;
             }
-
             const float baseX = x * TAMANIO_BLOQUE_JUEGO - 20.0f;
             const float baseY = y * TAMANIO_BLOQUE_JUEGO - 46.0f;
             const sf::Vector2f centroJugador = posicionJugador + sf::Vector2f(12.0f, 14.0f);
@@ -1343,6 +1724,18 @@ inline int Mundo::getVidaMaximaBloque(TipoBloque tipo) const {
         case TipoBloque::CuevaEntrada: return 9999;
         case TipoBloque::Antorcha: return 20;
         case TipoBloque::CuevaSuelo: return 30;
+        case TipoBloque::Techo: return 70;
+        case TipoBloque::CaminoAldea: return 25;
+        case TipoBloque::CultivoTrigo:
+        case TipoBloque::CultivoZanahoria:
+        case TipoBloque::CultivoPatata:
+            return 15;
+        case TipoBloque::Lava: return 9999;
+        case TipoBloque::Cofre: return 80;
+        case TipoBloque::Yunque: return 320;
+        case TipoBloque::PuertaCerrada:
+        case TipoBloque::PuertaAbierta:
+            return 80;
         case TipoBloque::MineralCarbon: return 360;
         case TipoBloque::Piedra: return 300;
         case TipoBloque::MineralHierro: return 450;
@@ -1377,10 +1770,118 @@ inline bool Mundo::colocarBloque(int x, int y, TipoBloque tipo) {
         return false;
     }
 
-    bool solido = tipo != TipoBloque::Antorcha;
+    bool solido = tipo != TipoBloque::Antorcha &&
+                  tipo != TipoBloque::Techo &&
+                  tipo != TipoBloque::PuertaAbierta &&
+                  tipo != TipoBloque::CaminoAldea &&
+                  tipo != TipoBloque::CultivoTrigo &&
+                  tipo != TipoBloque::CultivoZanahoria &&
+                  tipo != TipoBloque::CultivoPatata;
     float vida = static_cast<float>(getVidaMaximaBloque(tipo));
     TipoBioma bioma = cuadricula[y][x].bioma;
     cuadricula[y][x] = {tipo, solido, vida, false, 0.0f, false, 1, vida, bioma, 0};
+    return true;
+}
+
+inline bool Mundo::alternarPuerta(int x, int y) {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) {
+        return false;
+    }
+
+    Bloque& bloque = cuadricula[y][x];
+    if (bloque.tipo == TipoBloque::PuertaCerrada) {
+        bloque.tipo = TipoBloque::PuertaAbierta;
+        bloque.esSolido = false;
+        return true;
+    }
+
+    if (bloque.tipo == TipoBloque::PuertaAbierta) {
+        bloque.tipo = TipoBloque::PuertaCerrada;
+        bloque.esSolido = true;
+        return true;
+    }
+
+    return false;
+}
+
+inline bool Mundo::esInteriorTechadoEn(int x, int y) const {
+    if (x < 0 || x >= ancho || y < 0 || y >= alto) {
+        return false;
+    }
+    if (cuadricula[y][x].tipo != TipoBloque::Techo) {
+        return false;
+    }
+
+    auto esMuroPerimetral = [&](TipoBloque tipo) {
+        return tipo == TipoBloque::Pasto ||
+               tipo == TipoBloque::Tierra ||
+               tipo == TipoBloque::Piedra ||
+               tipo == TipoBloque::Madera ||
+               tipo == TipoBloque::MesaCrafteo ||
+               tipo == TipoBloque::Horno ||
+               tipo == TipoBloque::Cristal ||
+               tipo == TipoBloque::PuertaCerrada ||
+               tipo == TipoBloque::PuertaAbierta ||
+               tipo == TipoBloque::MineralCarbon ||
+               tipo == TipoBloque::MineralHierro ||
+               tipo == TipoBloque::MineralPlata ||
+               tipo == TipoBloque::MineralOro ||
+               tipo == TipoBloque::MineralDiamante;
+    };
+
+    constexpr int RADIO_REVISION = 18;
+    int minX = std::max(0, x - RADIO_REVISION);
+    int maxX = std::min(ancho - 1, x + RADIO_REVISION);
+    int minY = std::max(0, y - RADIO_REVISION);
+    int maxY = std::min(alto - 1, y + RADIO_REVISION);
+    int anchoLocal = maxX - minX + 1;
+    int altoLocal = maxY - minY + 1;
+
+    std::vector<unsigned char> visitado(static_cast<std::size_t>(anchoLocal * altoLocal), 0);
+    std::vector<sf::Vector2i> pila;
+    auto indice = [&](int bx, int by) {
+        return (by - minY) * anchoLocal + (bx - minX);
+    };
+
+    pila.push_back({x, y});
+    visitado[static_cast<std::size_t>(indice(x, y))] = 1;
+
+    while (!pila.empty()) {
+        sf::Vector2i actual = pila.back();
+        pila.pop_back();
+
+        const sf::Vector2i vecinos[4] = {
+            {actual.x + 1, actual.y},
+            {actual.x - 1, actual.y},
+            {actual.x, actual.y + 1},
+            {actual.x, actual.y - 1}
+        };
+
+        for (const sf::Vector2i& v : vecinos) {
+            if (v.x < 0 || v.x >= ancho || v.y < 0 || v.y >= alto) {
+                return false;
+            }
+
+            TipoBloque vecino = cuadricula[v.y][v.x].tipo;
+            if (vecino == TipoBloque::Techo) {
+                if (v.x < minX || v.x > maxX || v.y < minY || v.y > maxY) {
+                    return false;
+                }
+
+                std::size_t idx = static_cast<std::size_t>(indice(v.x, v.y));
+                if (!visitado[idx]) {
+                    visitado[idx] = 1;
+                    pila.push_back(v);
+                }
+                continue;
+            }
+
+            if (!esMuroPerimetral(vecino)) {
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
@@ -1585,6 +2086,25 @@ inline sf::Color Mundo::getColorMapa(int x, int y) const {
             return sf::Color(116, 78, 52);
         case TipoBloque::Cristal:
             return sf::Color(165, 226, 230);
+        case TipoBloque::Techo:
+            return sf::Color(82, 82, 104);
+        case TipoBloque::PuertaCerrada:
+        case TipoBloque::PuertaAbierta:
+            return sf::Color(140, 86, 38);
+        case TipoBloque::CaminoAldea:
+            return sf::Color(145, 110, 68);
+        case TipoBloque::CultivoTrigo:
+            return sf::Color(205, 178, 65);
+        case TipoBloque::CultivoZanahoria:
+            return sf::Color(212, 110, 45);
+        case TipoBloque::CultivoPatata:
+            return sf::Color(176, 132, 72);
+        case TipoBloque::Lava:
+            return sf::Color(238, 72, 22);
+        case TipoBloque::Cofre:
+            return sf::Color(166, 104, 38);
+        case TipoBloque::Yunque:
+            return sf::Color(82, 86, 90);
         default:
             switch (bloque.bioma) {
                 case TipoBioma::Bosque: return sf::Color(43, 118, 57);
@@ -1623,6 +2143,19 @@ inline bool Mundo::daniarBloque(int x, int y, float cantidadDanio) {
                    tipoOriginal == TipoBloque::MineralDiamante ||
                    tipoOriginal == TipoBloque::Antorcha) {
             cuadricula[y][x] = {TipoBloque::CuevaSuelo, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+        } else if (tipoOriginal == TipoBloque::Techo ||
+                   tipoOriginal == TipoBloque::PuertaCerrada ||
+                   tipoOriginal == TipoBloque::PuertaAbierta ||
+                   tipoOriginal == TipoBloque::Cofre ||
+                   tipoOriginal == TipoBloque::Yunque) {
+            cuadricula[y][x] = {TipoBloque::Pasto, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+        } else if (tipoOriginal == TipoBloque::CaminoAldea ||
+                   tipoOriginal == TipoBloque::CultivoTrigo ||
+                   tipoOriginal == TipoBloque::CultivoZanahoria ||
+                   tipoOriginal == TipoBloque::CultivoPatata) {
+            cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
+        } else if (tipoOriginal == TipoBloque::Lava) {
+            cuadricula[y][x] = {TipoBloque::Piedra, true, 300.0f, false, 0.0f, false, 1, 300.0f, bioma, 0};
         } else {
             cuadricula[y][x] = {TipoBloque::Aire, false, 0.0f, false, 0.0f, false, 1, 0.0f, bioma, 0};
         }

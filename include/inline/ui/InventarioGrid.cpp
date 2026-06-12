@@ -245,6 +245,17 @@ inline sf::Color colorDeItem(ItemId item) {
         case ItemId::Carbon: return sf::Color(36, 35, 34);
         case ItemId::Antorcha: return sf::Color(235, 168, 48);
         case ItemId::PuertaMadera: return sf::Color(142, 86, 38);
+        case ItemId::CaminoAldea: return sf::Color(142, 105, 66);
+        case ItemId::CultivoTrigo: return sf::Color(204, 178, 64);
+        case ItemId::CultivoZanahoria: return sf::Color(229, 112, 35);
+        case ItemId::CultivoPatata: return sf::Color(178, 136, 73);
+        case ItemId::Lava: return sf::Color(255, 88, 24);
+        case ItemId::Cofre: return sf::Color(166, 104, 38);
+        case ItemId::Yunque: return sf::Color(82, 86, 90);
+        case ItemId::Esmeralda: return sf::Color(39, 214, 114);
+        case ItemId::Trigo: return sf::Color(219, 190, 83);
+        case ItemId::Pan: return sf::Color(190, 124, 50);
+        case ItemId::LingoteHierro: return sf::Color(206, 198, 184);
         case ItemId::PicoMadera:
         case ItemId::PicoPiedra:
         case ItemId::PicoDiamante:
@@ -303,6 +314,17 @@ inline std::string inicialItem(ItemId item) {
         case ItemId::Carbon: return "Co";
         case ItemId::Antorcha: return "An";
         case ItemId::PuertaMadera: return "Pu";
+        case ItemId::CaminoAldea: return "Ca";
+        case ItemId::CultivoTrigo: return "CT";
+        case ItemId::CultivoZanahoria: return "CZ";
+        case ItemId::CultivoPatata: return "CP";
+        case ItemId::Lava: return "Lv";
+        case ItemId::Cofre: return "Cf";
+        case ItemId::Yunque: return "Yu";
+        case ItemId::Esmeralda: return "Es";
+        case ItemId::Trigo: return "Tr";
+        case ItemId::Pan: return "Pn";
+        case ItemId::LingoteHierro: return "Fe";
         default: return "?";
     }
 }

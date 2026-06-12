@@ -30,7 +30,14 @@ enum class TipoBloque {
     CuevaSuelo,
     Techo,
     PuertaCerrada,
-    PuertaAbierta
+    PuertaAbierta,
+    CaminoAldea,
+    CultivoTrigo,
+    CultivoZanahoria,
+    CultivoPatata,
+    Lava,
+    Cofre,
+    Yunque
 };
 
 enum class TipoBioma {

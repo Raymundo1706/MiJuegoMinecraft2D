@@ -46,7 +46,18 @@ enum class ItemId {
     EspadaPiedra,
     Carbon,
     Antorcha,
-    PuertaMadera
+    PuertaMadera,
+    CaminoAldea,
+    CultivoTrigo,
+    CultivoZanahoria,
+    CultivoPatata,
+    Lava,
+    Cofre,
+    Yunque,
+    Esmeralda,
+    Trigo,
+    Pan,
+    LingoteHierro
 };
 
 enum class TipoHerramienta {

@@ -18,6 +18,17 @@ enum TipoBloque {
     Madera
     Piedra
     Agua
+    Cristal
+    Techo
+    PuertaCerrada
+    PuertaAbierta
+    CaminoAldea
+    CultivoTrigo
+    CultivoZanahoria
+    CultivoPatata
+    Lava
+    Cofre
+    Yunque
 }
 
 enum ItemId {
@@ -29,6 +40,15 @@ enum ItemId {
     PicoMadera
     PicoPiedra
     Antorcha
+    BloqueTecho
+    Cristal
+    PuertaMadera
+    Esmeralda
+    Trigo
+    Pan
+    LingoteHierro
+    Cofre
+    Yunque
 }
 
 struct SlotInventario {
@@ -42,6 +62,7 @@ class Juego {
     - fuente : sf::Font
     - mapaSuperficie : unique_ptr<Mundo>
     - mapaSubsuelo : unique_ptr<Mundo>
+    - mapaExterior : unique_ptr<Mundo>
     - jugador : unique_ptr<Jugador>
     - animales : vector<Animal>
     - zombies : vector<Zombie>
@@ -56,9 +77,13 @@ class Mundo {
     - bloques : vector<vector<TipoBloque>>
     --
     + Mundo(ancho: int, alto: int, semilla: unsigned int)
+    + generarMundo(esSubterraneo: bool)
     + getTipoBloque(x: int, y: int) : TipoBloque
     + setBloque(x: int, y: int, tipo: TipoBloque)
     + esBloqueSolido(x: int, y: int) : bool
+    + alternarPuerta(x: int, y: int) : bool
+    + esInteriorTechadoEn(x: int, y: int) : bool
+    + dibujarCapaSuperior(ventana: sf::RenderWindow&, jugador: sf::Vector2f)
     + dibujar(ventana: sf::RenderWindow&)
 }
 
@@ -117,12 +142,22 @@ class SistemaHerramientas {
     + puedeSoltarItem(bloque: TipoBloque, herramienta: ItemId) : bool
 }
 
+class SistemaIluminacion {
+    --
+    + calcularSkyLight(worldTime: float) : int
+    + luzAntorchasCercanas(mundo: Mundo, x: int, y: int) : float
+    + lineaLuzBloqueada(mundo: Mundo, origen: sf::Vector2i, destino: sf::Vector2i) : bool
+    + dibujarOscuridadSubsuelo()
+    + dibujarOscuridadSuperficie()
+}
+
 Juego *-- Mundo
 Juego *-- Jugador
 Juego *-- Animal
 Juego *-- Zombie
 Juego ..> InventarioGrid
 Juego ..> SistemaHerramientas
+Juego ..> SistemaIluminacion
 Jugador ..> Mundo
 Animal ..> Mundo
 Zombie ..> Mundo

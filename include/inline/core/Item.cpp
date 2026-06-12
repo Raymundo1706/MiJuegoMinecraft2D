@@ -62,6 +62,13 @@ inline ItemId itemDesdeBloque(TipoBloque bloque) {
         case TipoBloque::PuertaCerrada:
         case TipoBloque::PuertaAbierta:
             return ItemId::PuertaMadera;
+        case TipoBloque::CaminoAldea: return ItemId::CaminoAldea;
+        case TipoBloque::CultivoTrigo: return ItemId::Trigo;
+        case TipoBloque::CultivoZanahoria: return ItemId::Zanahoria;
+        case TipoBloque::CultivoPatata: return ItemId::Patata;
+        case TipoBloque::Lava: return ItemId::Lava;
+        case TipoBloque::Cofre: return ItemId::Cofre;
+        case TipoBloque::Yunque: return ItemId::Yunque;
         default: return ItemId::Ninguno;
     }
 }
@@ -84,6 +91,13 @@ inline TipoBloque bloqueDesdeItem(ItemId item) {
         case ItemId::Antorcha: return TipoBloque::Antorcha;
         case ItemId::BloqueTecho: return TipoBloque::Techo;
         case ItemId::PuertaMadera: return TipoBloque::PuertaCerrada;
+        case ItemId::CaminoAldea: return TipoBloque::CaminoAldea;
+        case ItemId::CultivoTrigo: return TipoBloque::CultivoTrigo;
+        case ItemId::CultivoZanahoria: return TipoBloque::CultivoZanahoria;
+        case ItemId::CultivoPatata: return TipoBloque::CultivoPatata;
+        case ItemId::Lava: return TipoBloque::Lava;
+        case ItemId::Cofre: return TipoBloque::Cofre;
+        case ItemId::Yunque: return TipoBloque::Yunque;
         default: return TipoBloque::Aire;
     }
 }
@@ -108,6 +122,17 @@ inline std::string nombreItem(ItemId item) {
         case ItemId::Carbon: return "Carbon";
         case ItemId::Antorcha: return "Antorcha";
         case ItemId::PuertaMadera: return "Puerta";
+        case ItemId::CaminoAldea: return "Camino";
+        case ItemId::CultivoTrigo: return "Cultivo trigo";
+        case ItemId::CultivoZanahoria: return "Cultivo zanahoria";
+        case ItemId::CultivoPatata: return "Cultivo patata";
+        case ItemId::Lava: return "Lava";
+        case ItemId::Cofre: return "Cofre";
+        case ItemId::Yunque: return "Yunque";
+        case ItemId::Esmeralda: return "Esmeralda";
+        case ItemId::Trigo: return "Trigo";
+        case ItemId::Pan: return "Pan";
+        case ItemId::LingoteHierro: return "Lingote hierro";
         case ItemId::Cristal: return "Cristal";
         case ItemId::Lana: return "Lana";
         case ItemId::PaloMadera: return "Palo";
