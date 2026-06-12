@@ -38,6 +38,8 @@ private:
     float tiempoRegeneracion;
     float tiempoInanicion;
     float tiempoDesdeAtaque;
+    int nivelExperiencia;
+    float progresoExperiencia;
     bool corriendo;
     bool agachado;
 
@@ -59,16 +61,21 @@ public:
     bool estaEnAgua() const;
     bool estaHundido() const;
     float getTiempoEnAgua() const;
+    float getOxigenoNormalizado() const;
+    float getFlashDanioNormalizado() const;
     int getVidaHP() const;
     int getVidaMaximaHP() const;
     int getHambre() const;
     float getSaturacion() const;
     float getAgotamiento() const;
+    int getNivelExperiencia() const;
+    float getProgresoExperiencia() const;
     float getMultiplicadorAtaque(ItemId item) const;
     bool estaMuerto() const;
     void recibirDanio(int danioHP);
     void curar(int puntosHP);
     void agregarAgotamiento(float puntos);
+    void agregarExperiencia(float puntos);
     void registrarAtaque(ItemId item);
     bool consumirComida(ItemId item);
 };

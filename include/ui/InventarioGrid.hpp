@@ -23,6 +23,8 @@ private:
     bool clicIzquierdoAnterior;
     bool clicDerechoAnterior;
     bool enterCatalogoAnterior;
+    bool eventoFabricacionCatalogo;
+    bool eventoMovimientoItem;
 
     static constexpr int SLOTS_INVENTARIO_PRINCIPAL = 27;
     static constexpr int SLOTS_HOTBAR = 9;
@@ -46,6 +48,7 @@ private:
     void limpiarSlotSiVacio(SlotInventario& slot);
     void manejarClickIzquierdo(int indice);
     void manejarClickDerecho(int indice);
+    void manejarShiftClick(int indice);
     void actualizarResultadoCrafteo();
     void consumirIngredientesCrafteo();
     void devolverCrafteoAlInventario();
@@ -56,6 +59,7 @@ private:
     bool tieneIngredientesCatalogo(const std::vector<SlotInventario>& ingredientes) const;
     bool consumirIngredientesCatalogo(const std::vector<SlotInventario>& ingredientes);
     bool fabricarRecetaCatalogo(int indiceReceta);
+    int fabricarRecetaCatalogoMaximo(int indiceReceta);
     void manejarClickCatalogoMesa(sf::Vector2i posicionMouse);
 
 public:
@@ -71,6 +75,8 @@ public:
     void agregarItem(ItemId item, int cantidad = 1);
     void agregarItem(TipoBloque bloque, int cantidad = 1);
     bool puedeAgregarItem(ItemId item, int cantidad = 1) const;
+    bool consumirEventoFabricacion();
+    bool consumirEventoMovimientoItem();
 
     void manejarClicks(sf::Vector2i posicionMouse, bool clicIzquierdo, bool clicDerecho);
     void dibujar(sf::RenderWindow& ventana, sf::Font& fuente);
@@ -80,6 +86,11 @@ public:
     TipoBloque getTipoEnHotbar() const;
     void seleccionarSlotHotbar(int slot);
     bool consumirItemHotbar(int cantidad = 1);
+    SlotInventario extraerItemHotbar(int cantidad = 1);
+    SlotInventario extraerItemCursor(int cantidad = 1);
+    SlotInventario extraerItemEnSlot(int indice, int cantidad = 1);
+    int getSlotHover(sf::Vector2i posicionMouse) const;
+    void intercambiarConSegundaMano();
 
     bool tieneItemEnMano() const;
     SlotInventario& getSlotArrastrando();

@@ -32,6 +32,8 @@ inline Jugador::Jugador(float x, float y) {
     tiempoRegeneracion = 0.0f;
     tiempoInanicion = 0.0f;
     tiempoDesdeAtaque = 999.0f;
+    nivelExperiencia = 0;
+    progresoExperiencia = 0.0f;
     corriendo = false;
     agachado = false;
 
@@ -599,6 +601,17 @@ inline float Jugador::getTiempoEnAgua() const {
     return tiempoEnAgua;
 }
 
+inline float Jugador::getOxigenoNormalizado() const {
+    if (!enAgua && !hundido) {
+        return 1.0f;
+    }
+    return std::clamp(1.0f - tiempoEnAgua / 20.0f, 0.0f, 1.0f);
+}
+
+inline float Jugador::getFlashDanioNormalizado() const {
+    return std::clamp(tiempoInvulnerable / 0.5f, 0.0f, 1.0f);
+}
+
 inline int Jugador::getVidaHP() const {
     return vidaHP;
 }
@@ -617,6 +630,14 @@ inline float Jugador::getSaturacion() const {
 
 inline float Jugador::getAgotamiento() const {
     return agotamiento;
+}
+
+inline int Jugador::getNivelExperiencia() const {
+    return nivelExperiencia;
+}
+
+inline float Jugador::getProgresoExperiencia() const {
+    return progresoExperiencia;
 }
 
 inline float Jugador::getMultiplicadorAtaque(ItemId item) const {
@@ -660,6 +681,18 @@ inline void Jugador::agregarAgotamiento(float puntos) {
         return;
     }
     agotamiento += puntos;
+}
+
+inline void Jugador::agregarExperiencia(float puntos) {
+    if (puntos <= 0.0f) {
+        return;
+    }
+
+    progresoExperiencia += puntos / 10.0f;
+    while (progresoExperiencia >= 1.0f) {
+        progresoExperiencia -= 1.0f;
+        ++nivelExperiencia;
+    }
 }
 
 inline void Jugador::registrarAtaque(ItemId item) {

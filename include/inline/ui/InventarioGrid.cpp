@@ -69,6 +69,16 @@ inline const std::vector<RecetaCatalogoMesa>& recetasCatalogoMesa() {
             {ItemId::Ninguno, ItemId::Carbon, ItemId::Ninguno,
              ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno,
              ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
+        recetaCatalogo("Bloque de techo", "Pieza superior para cubrir habitaciones.", 0,
+            ItemId::BloqueTecho, 2, {ingrediente(ItemId::TablonMadera, 4), ingrediente(ItemId::BloquePiedra, 2)},
+            {ItemId::TablonMadera, ItemId::TablonMadera, ItemId::TablonMadera,
+             ItemId::BloquePiedra, ItemId::Ninguno, ItemId::BloquePiedra,
+             ItemId::Ninguno, ItemId::TablonMadera, ItemId::Ninguno}),
+        recetaCatalogo("Cristal", "Bloque claro para ventanas y vision exterior.", 0,
+            ItemId::Cristal, 4, {ingrediente(ItemId::MineralPlata, 1), ingrediente(ItemId::BloquePiedra, 2)},
+            {ItemId::Ninguno, ItemId::MineralPlata, ItemId::Ninguno,
+             ItemId::BloquePiedra, ItemId::Ninguno, ItemId::BloquePiedra,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
         recetaCatalogo("Cama", "Guarda tu punto de reaparicion al dormir.", 0,
             ItemId::Cama, 1, {ingrediente(ItemId::Lana, 3), ingrediente(ItemId::TablonMadera, 3)},
             {ItemId::Lana, ItemId::Lana, ItemId::Lana,
@@ -119,6 +129,21 @@ inline const std::vector<RecetaCatalogoMesa>& recetasCatalogoMesa() {
             {ItemId::Ninguno, ItemId::BloquePiedra, ItemId::Ninguno,
              ItemId::Ninguno, ItemId::BloquePiedra, ItemId::Ninguno,
              ItemId::Ninguno, ItemId::PaloMadera, ItemId::Ninguno}),
+        recetaCatalogo("Lana compacta", "Reune lana suelta para usarla en cama.", 2,
+            ItemId::Lana, 1, {ingrediente(ItemId::LanaCruda, 4)},
+            {ItemId::LanaCruda, ItemId::LanaCruda, ItemId::Ninguno,
+             ItemId::LanaCruda, ItemId::LanaCruda, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
+        recetaCatalogo("Chuleta cocinada", "Comida preparada para recuperar mas hambre.", 3,
+            ItemId::ChuletaCerdoCocinada, 1, {ingrediente(ItemId::ChuletaCerdoCruda, 1), ingrediente(ItemId::Carbon, 1)},
+            {ItemId::Ninguno, ItemId::ChuletaCerdoCruda, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Carbon, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
+        recetaCatalogo("Racion vegetal", "Combina cultivos en una racion simple.", 3,
+            ItemId::Zanahoria, 1, {ingrediente(ItemId::Zanahoria, 1), ingrediente(ItemId::Patata, 1), ingrediente(ItemId::Remolacha, 1)},
+            {ItemId::Zanahoria, ItemId::Patata, ItemId::Remolacha,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno,
+             ItemId::Ninguno, ItemId::Ninguno, ItemId::Ninguno}),
     };
     return recetas;
 }
@@ -683,7 +708,9 @@ inline InventarioGrid::InventarioGrid()
       manteniendoItem(false),
       clicIzquierdoAnterior(false),
       clicDerechoAnterior(false),
-      enterCatalogoAnterior(false) {
+      enterCatalogoAnterior(false),
+      eventoFabricacionCatalogo(false),
+      eventoMovimientoItem(false) {
     slots.resize(TOTAL_SLOTS);
 }
 
@@ -758,7 +785,52 @@ inline bool InventarioGrid::consumirItemHotbar(int cantidad) {
 
     slots[indice].cantidad -= cantidad;
     limpiarSlotSiVacio(slots[indice]);
+    eventoMovimientoItem = true;
     return true;
+}
+
+inline SlotInventario InventarioGrid::extraerItemHotbar(int cantidad) {
+    int indice = INDICE_HOTBAR + slotSeleccionadoHotbar;
+    return extraerItemEnSlot(indice, cantidad);
+}
+
+inline SlotInventario InventarioGrid::extraerItemCursor(int cantidad) {
+    if (cantidad <= 0 || !manteniendoItem || esItemVacio(itemCursor.item)) {
+        return {};
+    }
+
+    int extraer = std::min(cantidad, itemCursor.cantidad);
+    SlotInventario resultado{itemCursor.item, extraer};
+    itemCursor.cantidad -= extraer;
+    limpiarSlotSiVacio(itemCursor);
+    manteniendoItem = !esItemVacio(itemCursor.item);
+    eventoMovimientoItem = true;
+    return resultado;
+}
+
+inline SlotInventario InventarioGrid::extraerItemEnSlot(int indice, int cantidad) {
+    if (indice < 0 || indice >= TOTAL_SLOTS || esSlotResultado(indice) || cantidad <= 0 || esItemVacio(slots[indice].item)) {
+        return {};
+    }
+
+    int extraer = std::min(cantidad, slots[indice].cantidad);
+    SlotInventario resultado{slots[indice].item, extraer};
+    slots[indice].cantidad -= extraer;
+    limpiarSlotSiVacio(slots[indice]);
+    actualizarResultadoCrafteo();
+    actualizarResultadoMesa();
+    eventoMovimientoItem = true;
+    return resultado;
+}
+
+inline int InventarioGrid::getSlotHover(sf::Vector2i posicionMouse) const {
+    return obtenerSlotEnPosicion(posicionMouse);
+}
+
+inline void InventarioGrid::intercambiarConSegundaMano() {
+    int indiceHotbar = INDICE_HOTBAR + slotSeleccionadoHotbar;
+    std::swap(slots[indiceHotbar], slots[INDICE_SEGUNDA_MANO]);
+    eventoMovimientoItem = true;
 }
 
 inline int InventarioGrid::maxStack(ItemId item) const {
@@ -817,6 +889,9 @@ inline void InventarioGrid::agregarItem(ItemId item, int cantidad) {
     apilarEnRango(0, SLOTS_INVENTARIO_PRINCIPAL);
     ocuparVaciosEnRango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR);
     ocuparVaciosEnRango(0, SLOTS_INVENTARIO_PRINCIPAL);
+    if (restante < cantidad) {
+        eventoMovimientoItem = true;
+    }
 }
 
 inline bool InventarioGrid::puedeAgregarItem(ItemId item, int cantidad) const {
@@ -1106,7 +1181,28 @@ inline bool InventarioGrid::fabricarRecetaCatalogo(int indiceReceta) {
 
     if (!consumirIngredientesCatalogo(receta.ingredientes)) return false;
     agregarItem(receta.resultado, receta.cantidadResultado);
+    eventoFabricacionCatalogo = true;
     return true;
+}
+
+inline int InventarioGrid::fabricarRecetaCatalogoMaximo(int indiceReceta) {
+    int fabricados = 0;
+    while (fabricados < 64 && fabricarRecetaCatalogo(indiceReceta)) {
+        ++fabricados;
+    }
+    return fabricados;
+}
+
+inline bool InventarioGrid::consumirEventoFabricacion() {
+    bool evento = eventoFabricacionCatalogo;
+    eventoFabricacionCatalogo = false;
+    return evento;
+}
+
+inline bool InventarioGrid::consumirEventoMovimientoItem() {
+    bool evento = eventoMovimientoItem;
+    eventoMovimientoItem = false;
+    return evento;
 }
 
 inline void InventarioGrid::manejarClickCatalogoMesa(sf::Vector2i posicionMouse) {
@@ -1122,13 +1218,18 @@ inline void InventarioGrid::manejarClickCatalogoMesa(sf::Vector2i posicionMouse)
     }
 
     const auto& recetas = recetasCatalogoMesa();
-    sf::FloatRect botonFabricar({570.0f, 506.0f}, {170.0f, 38.0f});
-    if (botonFabricar.contains(mouse)) {
+    sf::FloatRect botonFabricar({512.0f, 506.0f}, {108.0f, 38.0f});
+    sf::FloatRect botonMaximo({632.0f, 506.0f}, {108.0f, 38.0f});
+    if (botonFabricar.contains(mouse) || botonMaximo.contains(mouse)) {
         int visible = 0;
         for (int i = 0; i < static_cast<int>(recetas.size()); ++i) {
             if (recetas[i].categoria != categoriaMesa) continue;
             if (visible == recetaMesaSeleccionada) {
-                fabricarRecetaCatalogo(i);
+                if (botonMaximo.contains(mouse)) {
+                    fabricarRecetaCatalogoMaximo(i);
+                } else {
+                    fabricarRecetaCatalogo(i);
+                }
                 return;
             }
             ++visible;
@@ -1151,8 +1252,64 @@ inline void InventarioGrid::manejarClickCatalogoMesa(sf::Vector2i posicionMouse)
     }
 }
 
+inline void InventarioGrid::manejarShiftClick(int indice) {
+    if (indice < 0 || indice >= TOTAL_SLOTS || esSlotResultado(indice) || esItemVacio(slots[indice].item)) {
+        return;
+    }
+
+    SlotInventario& origen = slots[indice];
+    ItemId item = origen.item;
+    int restante = origen.cantidad;
+
+    auto moverARango = [&](int inicio, int fin) {
+        for (int i = inicio; i < fin && restante > 0; ++i) {
+            if (i == indice) continue;
+            if (slots[i].item == item && slots[i].cantidad < maxStack(item)) {
+                int mover = std::min(maxStack(item) - slots[i].cantidad, restante);
+                slots[i].cantidad += mover;
+                restante -= mover;
+            }
+        }
+        for (int i = inicio; i < fin && restante > 0; ++i) {
+            if (i == indice) continue;
+            if (esItemVacio(slots[i].item)) {
+                int mover = std::min(maxStack(item), restante);
+                slots[i] = {item, mover};
+                restante -= mover;
+            }
+        }
+    };
+
+    if (indice >= INDICE_HOTBAR && indice < INDICE_HOTBAR + SLOTS_HOTBAR) {
+        moverARango(0, SLOTS_INVENTARIO_PRINCIPAL);
+    } else if (indice >= 0 && indice < SLOTS_INVENTARIO_PRINCIPAL) {
+        moverARango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR);
+    } else if (indice >= INDICE_CRAFTEO && indice < INDICE_RESULTADO) {
+        moverARango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR);
+        moverARango(0, SLOTS_INVENTARIO_PRINCIPAL);
+    } else if (indice == INDICE_SEGUNDA_MANO || (indice >= INDICE_ARMADURA && indice < INDICE_ARMADURA + 4)) {
+        moverARango(INDICE_HOTBAR, INDICE_HOTBAR + SLOTS_HOTBAR);
+        moverARango(0, SLOTS_INVENTARIO_PRINCIPAL);
+    }
+
+    if (restante != origen.cantidad) {
+        origen.cantidad = restante;
+        limpiarSlotSiVacio(origen);
+        actualizarResultadoCrafteo();
+        actualizarResultadoMesa();
+        eventoMovimientoItem = true;
+    }
+}
+
 inline void InventarioGrid::manejarClickIzquierdo(int indice) {
     if (indice < 0 || indice >= TOTAL_SLOTS) return;
+
+    bool shiftPresionado = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) ||
+                           sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift);
+    if (shiftPresionado && !manteniendoItem) {
+        manejarShiftClick(indice);
+        return;
+    }
 
     if (esSlotResultado(indice)) {
         if (indice == INDICE_RESULTADO_MESA) {
@@ -1182,6 +1339,7 @@ inline void InventarioGrid::manejarClickIzquierdo(int indice) {
                 }
             }
         }
+        eventoMovimientoItem = true;
         return;
     }
 
@@ -1192,6 +1350,7 @@ inline void InventarioGrid::manejarClickIzquierdo(int indice) {
             itemCursor = slot;
             slot = {};
             manteniendoItem = true;
+            eventoMovimientoItem = true;
         }
         actualizarResultadoCrafteo();
         actualizarResultadoMesa();
@@ -1204,6 +1363,7 @@ inline void InventarioGrid::manejarClickIzquierdo(int indice) {
         slot = itemCursor;
         itemCursor = {};
         manteniendoItem = false;
+        eventoMovimientoItem = true;
     } else if (slot.item == itemCursor.item) {
         int espacio = maxStack(slot.item) - slot.cantidad;
         int mover = std::min(espacio, itemCursor.cantidad);
@@ -1211,8 +1371,10 @@ inline void InventarioGrid::manejarClickIzquierdo(int indice) {
         itemCursor.cantidad -= mover;
         limpiarSlotSiVacio(itemCursor);
         manteniendoItem = !esItemVacio(itemCursor.item);
+        if (mover > 0) eventoMovimientoItem = true;
     } else {
         std::swap(slot, itemCursor);
+        eventoMovimientoItem = true;
     }
 
     actualizarResultadoCrafteo();
@@ -1231,6 +1393,7 @@ inline void InventarioGrid::manejarClickDerecho(int indice) {
             slot.cantidad -= levantar;
             limpiarSlotSiVacio(slot);
             manteniendoItem = true;
+            eventoMovimientoItem = true;
         }
         actualizarResultadoCrafteo();
         actualizarResultadoMesa();
@@ -1242,9 +1405,11 @@ inline void InventarioGrid::manejarClickDerecho(int indice) {
     if (esItemVacio(slot.item)) {
         slot = {itemCursor.item, 1};
         itemCursor.cantidad -= 1;
+        eventoMovimientoItem = true;
     } else if (slot.item == itemCursor.item && slot.cantidad < maxStack(slot.item)) {
         slot.cantidad += 1;
         itemCursor.cantidad -= 1;
+        eventoMovimientoItem = true;
     }
 
     limpiarSlotSiVacio(itemCursor);
@@ -1458,24 +1623,29 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
                 ventana.draw(linea);
             }
 
-            sf::FloatRect botonRect({570.0f, 506.0f}, {170.0f, 38.0f});
-            sf::RectangleShape boton(botonRect.size);
-            boton.setPosition(botonRect.position);
-            boton.setFillColor(puedeFabricar ? sf::Color(172, 172, 172) : sf::Color(88, 88, 88));
-            boton.setOutlineColor(botonRect.contains(mouseF) && puedeFabricar ? sf::Color(255, 255, 120) : sf::Color(28, 28, 28));
-            boton.setOutlineThickness(3.0f);
-            ventana.draw(boton);
-            sf::Text fabricar(fuente, "Fabricar", 16);
-            fabricar.setFillColor(puedeFabricar ? sf::Color::White : sf::Color(160, 160, 160));
-            fabricar.setOutlineColor(sf::Color::Black);
-            fabricar.setOutlineThickness(2.0f);
-            sf::FloatRect b = fabricar.getLocalBounds();
-            fabricar.setOrigin({b.position.x + b.size.x * 0.5f, b.position.y + b.size.y * 0.5f});
-            fabricar.setPosition({655.0f, 525.0f});
-            ventana.draw(fabricar);
+            auto dibujarBotonFabricacion = [&](sf::FloatRect rect, const std::string& texto, unsigned int tamanoTexto) {
+                sf::RectangleShape boton(rect.size);
+                boton.setPosition(rect.position);
+                boton.setFillColor(puedeFabricar ? sf::Color(172, 172, 172) : sf::Color(88, 88, 88));
+                boton.setOutlineColor(rect.contains(mouseF) && puedeFabricar ? sf::Color(255, 255, 120) : sf::Color(28, 28, 28));
+                boton.setOutlineThickness(3.0f);
+                ventana.draw(boton);
+
+                sf::Text etiqueta(fuente, texto, tamanoTexto);
+                etiqueta.setFillColor(puedeFabricar ? sf::Color::White : sf::Color(160, 160, 160));
+                etiqueta.setOutlineColor(sf::Color::Black);
+                etiqueta.setOutlineThickness(2.0f);
+                sf::FloatRect bounds = etiqueta.getLocalBounds();
+                etiqueta.setOrigin({bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + bounds.size.y * 0.5f});
+                etiqueta.setPosition({rect.position.x + rect.size.x * 0.5f, rect.position.y + rect.size.y * 0.5f});
+                ventana.draw(etiqueta);
+            };
+
+            dibujarBotonFabricacion({{512.0f, 506.0f}, {108.0f, 38.0f}}, "Fabricar", 14);
+            dibujarBotonFabricacion({{632.0f, 506.0f}, {108.0f, 38.0f}}, "Max", 16);
         }
 
-        sf::Text ayuda(fuente, "Click: seleccionar   Fabricar: crear objeto   ESC/E: cerrar", 12);
+        sf::Text ayuda(fuente, "Click: seleccionar   Enter: fabricar   Max: repetir   ESC/E: cerrar", 12);
         ayuda.setFillColor(sf::Color(38, 38, 38));
         ayuda.setPosition({42.0f, 540.0f});
         ventana.draw(ayuda);
@@ -1561,6 +1731,38 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
             luz.setPosition(pos);
             luz.setFillColor(sf::Color(255, 255, 255, 70));
             ventana.draw(luz);
+        }
+
+        if (esItemVacio(slots[indice].item) && !mesaCrafteoAbierta) {
+            sf::Color guia(185, 185, 185, 72);
+            auto rectGuia = [&](float x, float y, float w, float h) {
+                sf::RectangleShape r({w, h});
+                r.setPosition({pos.x + x, pos.y + y});
+                r.setFillColor(guia);
+                ventana.draw(r);
+            };
+
+            if (indice >= INDICE_ARMADURA && indice < INDICE_ARMADURA + 4) {
+                int pieza = indice - INDICE_ARMADURA;
+                if (pieza == 0) {
+                    rectGuia(12.0f, 9.0f, 16.0f, 6.0f);
+                    rectGuia(9.0f, 15.0f, 22.0f, 10.0f);
+                } else if (pieza == 1) {
+                    rectGuia(10.0f, 9.0f, 20.0f, 22.0f);
+                    rectGuia(7.0f, 14.0f, 5.0f, 12.0f);
+                    rectGuia(28.0f, 14.0f, 5.0f, 12.0f);
+                } else if (pieza == 2) {
+                    rectGuia(10.0f, 8.0f, 20.0f, 10.0f);
+                    rectGuia(10.0f, 18.0f, 8.0f, 15.0f);
+                    rectGuia(22.0f, 18.0f, 8.0f, 15.0f);
+                } else {
+                    rectGuia(9.0f, 24.0f, 10.0f, 8.0f);
+                    rectGuia(21.0f, 24.0f, 10.0f, 8.0f);
+                }
+            } else if (indice == INDICE_SEGUNDA_MANO) {
+                rectGuia(12.0f, 8.0f, 16.0f, 24.0f);
+                rectGuia(8.0f, 13.0f, 24.0f, 13.0f);
+            }
         }
 
         if (!esItemVacio(slots[indice].item)) {
