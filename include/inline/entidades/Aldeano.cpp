@@ -64,7 +64,9 @@ inline Aldeano::Aldeano(float x, float y, ProfesionAldeano profesion)
       tiempoDecision(0.0f),
       tiempoAnimacion(0.0f),
       refugiandose(false),
-      direccionMirada(0) {
+      direccionMirada(0),
+      usosOferta{},
+      bloqueoOferta{} {
 }
 
 inline Aldeano::~Aldeano() {}
@@ -158,6 +160,12 @@ inline void Aldeano::elegirObjetivoDia(const Mundo& mundo) {
 }
 
 inline void Aldeano::actualizar(float dt, const Mundo& mundo, bool esNoche) {
+    for (float& bloqueo : bloqueoOferta) {
+        if (bloqueo > 0.0f) {
+            bloqueo = std::max(0.0f, bloqueo - dt);
+        }
+    }
+
     tiempoDecision -= dt;
     if (tiempoDecision <= 0.0f) {
         if (esNoche && buscarPuertaCercana(mundo, objetivo)) {
@@ -262,4 +270,28 @@ inline ProfesionAldeano Aldeano::getProfesion() const {
 
 inline sf::Vector2f Aldeano::getPosicion() const {
     return posicion;
+}
+
+inline bool Aldeano::contienePunto(sf::Vector2f punto) const {
+    return sf::FloatRect({posicion.x - 3.0f, posicion.y - 7.0f}, {24.0f, 31.0f}).contains(punto);
+}
+
+inline bool Aldeano::ofertaBloqueada(int indice) const {
+    if (indice < 0 || indice >= static_cast<int>(bloqueoOferta.size())) {
+        return true;
+    }
+    return bloqueoOferta[static_cast<std::size_t>(indice)] > 0.0f;
+}
+
+inline void Aldeano::registrarTrade(int indice) {
+    if (indice < 0 || indice >= static_cast<int>(usosOferta.size())) {
+        return;
+    }
+
+    std::size_t i = static_cast<std::size_t>(indice);
+    usosOferta[i]++;
+    if (usosOferta[i] >= 10) {
+        usosOferta[i] = 0;
+        bloqueoOferta[i] = 90.0f;
+    }
 }

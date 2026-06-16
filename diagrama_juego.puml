@@ -63,6 +63,12 @@ struct SlotInventario {
     + cantidad : int
 }
 
+struct OfertaTrade {
+    + costo : SlotInventario
+    + resultado : SlotInventario
+    + descripcion : string
+}
+
 struct Bloque {
     + tipo : TipoBloque
     + estaHidratado : bool
@@ -138,6 +144,8 @@ class Aldeano {
     + dibujar(ventana: sf::RenderWindow&)
     + getProfesion() : ProfesionAldeano
     + getPosicion() : sf::Vector2f
+    + ofertaBloqueada(indice: int) : bool
+    + registrarTrade(indice: int)
 }
 
 class Zombie {
@@ -190,6 +198,15 @@ class SistemaCofres {
     + dibujarUICofre()
 }
 
+class SistemaTradeo {
+    --
+    + ofertasDeAldeano(profesion: ProfesionAldeano) : vector<OfertaTrade>
+    + validarInventario(costo: SlotInventario) : bool
+    + consumirCosto(costo: SlotInventario)
+    + entregarResultado(resultado: SlotInventario)
+    + dibujarUITradeo()
+}
+
 Juego *-- Mundo
 Mundo *-- Bloque
 Juego *-- Jugador
@@ -200,6 +217,7 @@ Juego ..> InventarioGrid
 Juego ..> SistemaHerramientas
 Juego ..> SistemaIluminacion
 Juego ..> SistemaCofres
+Juego ..> SistemaTradeo
 Jugador ..> Mundo
 Animal ..> Mundo
 Aldeano ..> Mundo
@@ -207,5 +225,7 @@ Zombie ..> Mundo
 InventarioGrid ..> SlotInventario
 InventarioGrid ..> ItemId
 SistemaCofres ..> SlotInventario
+SistemaTradeo ..> OfertaTrade
+SistemaTradeo ..> SlotInventario
 
 @enduml

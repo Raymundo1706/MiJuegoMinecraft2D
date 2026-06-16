@@ -41,6 +41,12 @@ struct EstadoJuegoGuardado {
     unsigned int semillaCueva = 0;
 };
 
+struct OfertaTrade {
+    SlotInventario costo;
+    SlotInventario resultado;
+    std::string descripcion;
+};
+
 namespace {
 constexpr float TICKS_POR_SEGUNDO_MUNDO = 216.67f;
 constexpr float TICKS_DIA_COMPLETO = 24000.0f;
@@ -2055,6 +2061,73 @@ inline bool bloqueInteresAldeano(TipoBloque tipo) {
            tipo == TipoBloque::PuertaAbierta;
 }
 
+inline std::string nombreProfesionAldeano(ProfesionAldeano profesion) {
+    switch (profesion) {
+        case ProfesionAldeano::Granjero: return "Granjero";
+        case ProfesionAldeano::Herrero: return "Herrero";
+        case ProfesionAldeano::Bibliotecario: return "Bibliotecario";
+    }
+    return "Aldeano";
+}
+
+inline std::vector<OfertaTrade> ofertasDeAldeano(ProfesionAldeano profesion) {
+    if (profesion == ProfesionAldeano::Herrero) {
+        return {
+            {{ItemId::LingoteHierro, 4}, {ItemId::Esmeralda, 1}, "Compra lingotes de hierro"},
+            {{ItemId::Esmeralda, 3}, {ItemId::PicoPiedra, 1}, "Vende pico resistente"},
+            {{ItemId::Esmeralda, 2}, {ItemId::EspadaPiedra, 1}, "Vende espada de piedra"},
+            {{ItemId::Esmeralda, 1}, {ItemId::Antorcha, 6}, "Vende antorchas"}
+        };
+    }
+
+    if (profesion == ProfesionAldeano::Bibliotecario) {
+        return {
+            {{ItemId::Esmeralda, 1}, {ItemId::Cristal, 4}, "Cristal para ventanas"},
+            {{ItemId::Esmeralda, 2}, {ItemId::MapaInicial, 1}, "Mapa de exploracion"},
+            {{ItemId::Carbon, 5}, {ItemId::Esmeralda, 1}, "Compra carbon"},
+            {{ItemId::Esmeralda, 3}, {ItemId::BloqueTecho, 6}, "Bloques de techo"}
+        };
+    }
+
+    return {
+        {{ItemId::Trigo, 20}, {ItemId::Esmeralda, 1}, "Compra trigo maduro"},
+        {{ItemId::Zanahoria, 15}, {ItemId::Esmeralda, 1}, "Compra zanahorias"},
+        {{ItemId::Patata, 15}, {ItemId::Esmeralda, 1}, "Compra patatas"},
+        {{ItemId::Esmeralda, 1}, {ItemId::Pan, 3}, "Vende pan fresco"}
+    };
+}
+
+inline int contarItemSlots(const std::vector<SlotInventario>& slots, ItemId item) {
+    int total = 0;
+    for (const auto& slot : slots) {
+        if (slot.item == item && slot.cantidad > 0) {
+            total += slot.cantidad;
+        }
+    }
+    return total;
+}
+
+inline bool consumirItemSlots(std::vector<SlotInventario>& slots, ItemId item, int cantidad) {
+    if (contarItemSlots(slots, item) < cantidad) {
+        return false;
+    }
+
+    int restante = cantidad;
+    for (auto& slot : slots) {
+        if (slot.item != item || slot.cantidad <= 0) continue;
+        int quitar = std::min(restante, slot.cantidad);
+        slot.cantidad -= quitar;
+        restante -= quitar;
+        if (slot.cantidad <= 0) {
+            slot = {};
+        }
+        if (restante <= 0) {
+            return true;
+        }
+    }
+    return true;
+}
+
 inline std::string claveCofre(int x, int y) {
     return std::to_string(x) + "," + std::to_string(y);
 }
@@ -2305,6 +2378,119 @@ inline void dibujarUICofre(sf::RenderWindow& ventana, sf::Font& fuente, const st
     ventana.draw(ayuda);
 }
 
+inline sf::FloatRect rectTradeAnterior() {
+    return sf::FloatRect({194.0f, 272.0f}, {42.0f, 38.0f});
+}
+
+inline sf::FloatRect rectTradeSiguiente() {
+    return sf::FloatRect({564.0f, 272.0f}, {42.0f, 38.0f});
+}
+
+inline sf::FloatRect rectTradeBoton() {
+    return sf::FloatRect({310.0f, 392.0f}, {180.0f, 38.0f});
+}
+
+inline void dibujarUICambioAldeano(
+    sf::RenderWindow& ventana,
+    sf::Font& fuente,
+    const Aldeano& aldeano,
+    int indiceOferta,
+    const std::vector<SlotInventario>& jugadorSlots,
+    sf::Vector2i mouse
+) {
+    std::vector<OfertaTrade> ofertas = ofertasDeAldeano(aldeano.getProfesion());
+    if (ofertas.empty()) return;
+    indiceOferta = std::clamp(indiceOferta, 0, static_cast<int>(ofertas.size()) - 1);
+    const OfertaTrade& oferta = ofertas[static_cast<std::size_t>(indiceOferta)];
+    bool tieneMateriales = contarItemSlots(jugadorSlots, oferta.costo.item) >= oferta.costo.cantidad;
+    bool bloqueada = aldeano.ofertaBloqueada(indiceOferta);
+
+    sf::RectangleShape sombra({800.0f, 600.0f});
+    sombra.setFillColor(sf::Color(0, 0, 0, 118));
+    ventana.draw(sombra);
+
+    sf::RectangleShape panel({456.0f, 420.0f});
+    panel.setPosition({172.0f, 86.0f});
+    panel.setFillColor(sf::Color(190, 190, 184));
+    panel.setOutlineColor(sf::Color(28, 28, 28));
+    panel.setOutlineThickness(4.0f);
+    ventana.draw(panel);
+
+    sf::Text titulo(fuente, "Intercambio - " + nombreProfesionAldeano(aldeano.getProfesion()), 17);
+    titulo.setFillColor(sf::Color(54, 54, 54));
+    titulo.setPosition({210.0f, 112.0f});
+    ventana.draw(titulo);
+
+    sf::Text desc(fuente, oferta.descripcion, 13);
+    desc.setFillColor(sf::Color(72, 72, 72));
+    desc.setPosition({210.0f, 146.0f});
+    ventana.draw(desc);
+
+    sf::Vector2f posCosto(248.0f, 228.0f);
+    sf::Vector2f posResultado(508.0f, 228.0f);
+    dibujarSlotCofreUI(ventana, posCosto, false);
+    dibujarSlotCofreUI(ventana, posResultado, false);
+    dibujarItemPlanoUI(ventana, fuente, oferta.costo, posCosto);
+    dibujarItemPlanoUI(ventana, fuente, oferta.resultado, posResultado);
+
+    sf::Text flecha(fuente, "->", 32);
+    flecha.setFillColor(bloqueada ? sf::Color(150, 46, 46) : sf::Color(82, 82, 82));
+    flecha.setOutlineColor(sf::Color(20, 20, 20));
+    flecha.setOutlineThickness(1.0f);
+    flecha.setPosition({370.0f, 225.0f});
+    ventana.draw(flecha);
+
+    int disponibles = contarItemSlots(jugadorSlots, oferta.costo.item);
+    std::ostringstream costo;
+    costo << nombreItem(oferta.costo.item) << ": " << disponibles << " / " << oferta.costo.cantidad;
+    sf::Text costoTexto(fuente, costo.str(), 12);
+    costoTexto.setFillColor(tieneMateriales ? sf::Color(42, 92, 42) : sf::Color(142, 42, 42));
+    costoTexto.setPosition({248.0f, 274.0f});
+    ventana.draw(costoTexto);
+
+    auto dibujarFlechaBoton = [&](sf::FloatRect r, const char* texto) {
+        bool hover = r.contains(sf::Vector2f(mouse));
+        sf::RectangleShape b(r.size);
+        b.setPosition(r.position);
+        b.setFillColor(hover ? sf::Color(226, 226, 210) : sf::Color(144, 144, 138));
+        b.setOutlineColor(hover ? sf::Color(86, 180, 58) : sf::Color(34, 34, 34));
+        b.setOutlineThickness(2.0f);
+        ventana.draw(b);
+        sf::Text t(fuente, texto, 20);
+        t.setFillColor(sf::Color(34, 34, 34));
+        t.setPosition({r.position.x + 13.0f, r.position.y + 4.0f});
+        ventana.draw(t);
+    };
+    dibujarFlechaBoton(rectTradeAnterior(), "<");
+    dibujarFlechaBoton(rectTradeSiguiente(), ">");
+
+    bool botonActivo = tieneMateriales && !bloqueada;
+    bool hoverBoton = rectTradeBoton().contains(sf::Vector2f(mouse));
+    sf::RectangleShape boton(rectTradeBoton().size);
+    boton.setPosition(rectTradeBoton().position);
+    boton.setFillColor(!botonActivo ? sf::Color(92, 92, 92) : (hoverBoton ? sf::Color(218, 218, 202) : sf::Color(154, 154, 148)));
+    boton.setOutlineColor(hoverBoton && botonActivo ? sf::Color(86, 180, 58) : sf::Color(30, 30, 30));
+    boton.setOutlineThickness(2.0f);
+    ventana.draw(boton);
+
+    sf::Text botonTexto(fuente, bloqueada ? "Oferta bloqueada" : "Intercambiar", 15);
+    botonTexto.setFillColor(botonActivo ? sf::Color(34, 34, 34) : sf::Color(190, 190, 190));
+    botonTexto.setPosition({rectTradeBoton().position.x + 24.0f, rectTradeBoton().position.y + 9.0f});
+    ventana.draw(botonTexto);
+
+    std::ostringstream pagina;
+    pagina << "Oferta " << (indiceOferta + 1) << " / " << ofertas.size();
+    sf::Text paginaTexto(fuente, pagina.str(), 12);
+    paginaTexto.setFillColor(sf::Color(78, 78, 78));
+    paginaTexto.setPosition({358.0f, 318.0f});
+    ventana.draw(paginaTexto);
+
+    sf::Text ayuda(fuente, "Esc: cerrar  |  Click en flechas para cambiar oferta", 11);
+    ayuda.setFillColor(sf::Color(78, 78, 78));
+    ayuda.setPosition({224.0f, 472.0f});
+    ventana.draw(ayuda);
+}
+
 }
 
 inline Juego::Juego()
@@ -2520,6 +2706,9 @@ inline void Juego::ejecutar() {
     std::map<std::string, std::vector<SlotInventario>> cofresMundo;
     bool cofreAbierto = false;
     std::string cofreActivo;
+    bool tradeAbierto = false;
+    Aldeano* aldeanoTrade = nullptr;
+    int ofertaTradeSeleccionada = 0;
     int pantallaPausa = 0;
     int paginaPausaComoJugar = 0;
     bool invertirEjesPausa = false;
@@ -2849,6 +3038,9 @@ inline void Juego::ejecutar() {
         cofresMundo.clear();
         cofreAbierto = false;
         cofreActivo.clear();
+        tradeAbierto = false;
+        aldeanoTrade = nullptr;
+        ofertaTradeSeleccionada = 0;
         enSubsuelo = false;
         posicionEntradaSuperficie = {0.0f, 0.0f};
         EstadoJuegoGuardado estadoGuardado = cargarBloques ? leerEstadoJuego(mundo.carpeta) : EstadoJuegoGuardado{};
@@ -3448,6 +3640,12 @@ inline void Juego::ejecutar() {
                         cofreActivo.clear();
                         continue;
                     }
+                    if (tradeAbierto) {
+                        tradeAbierto = false;
+                        aldeanoTrade = nullptr;
+                        ofertaTradeSeleccionada = 0;
+                        continue;
+                    }
                     if (!menuPausaAbierto) {
                         menuPausaAbierto = true;
                         pantallaPausa = 0;
@@ -3482,7 +3680,11 @@ inline void Juego::ejecutar() {
                 if (botonTeclado->code == sf::Keyboard::Key::Num9) inventarioGrid.seleccionarSlotHotbar(8);
 
                 if (botonTeclado->code == sf::Keyboard::Key::I) {
-                    if (cofreAbierto) {
+                    if (tradeAbierto) {
+                        tradeAbierto = false;
+                        aldeanoTrade = nullptr;
+                        ofertaTradeSeleccionada = 0;
+                    } else if (cofreAbierto) {
                         cofreAbierto = false;
                         cofreActivo.clear();
                     } else if (inventarioGrid.esMesaCrafteoAbierta()) {
@@ -3496,6 +3698,7 @@ inline void Juego::ejecutar() {
                 if (botonTeclado->code == sf::Keyboard::Key::F &&
                     !menuPausaAbierto &&
                     !cofreAbierto &&
+                    !tradeAbierto &&
                     !inventarioGrid.esMesaCrafteoAbierta()) {
                     inventarioGrid.intercambiarConSegundaMano();
                     reproducirClickMenu();
@@ -3504,6 +3707,7 @@ inline void Juego::ejecutar() {
                 if (botonTeclado->code == sf::Keyboard::Key::Q &&
                     !menuPausaAbierto &&
                     !cofreAbierto &&
+                    !tradeAbierto &&
                     !inventarioGrid.esMesaCrafteoAbierta()) {
                     bool tirarStack = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
                                       sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl);
@@ -3522,6 +3726,7 @@ inline void Juego::ejecutar() {
                 if (botonTeclado->code == sf::Keyboard::Key::E &&
                     !menuPausaAbierto &&
                     !cofreAbierto &&
+                    !tradeAbierto &&
                     !inventarioGrid.esMenuAbierto() &&
                     !inventarioGrid.esMesaCrafteoAbierta()) {
                     if (enSubsuelo) {
@@ -3544,6 +3749,7 @@ inline void Juego::ejecutar() {
         sf::Vector2i mousePos = sf::Mouse::getPosition(ventana);
         bool clickIzquierdo = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         bool clickDerecho = sf::Mouse::isButtonPressed(sf::Mouse::Button::Right);
+        bool clickSobreAldeanoTrade = false;
 
         if (mostrandoMenuInicio) {
             auto mouseDentro = [&](sf::FloatRect rect) {
@@ -3877,7 +4083,35 @@ inline void Juego::ejecutar() {
             }
         }
 
-        if (!menuPausaAbierto && !cofreAbierto) {
+        if (tradeAbierto && aldeanoTrade && clickIzquierdo && !clickIzquierdoAnterior) {
+            std::vector<OfertaTrade> ofertas = ofertasDeAldeano(aldeanoTrade->getProfesion());
+            if (!ofertas.empty()) {
+                int total = static_cast<int>(ofertas.size());
+                if (rectTradeAnterior().contains(sf::Vector2f(mousePos))) {
+                    ofertaTradeSeleccionada = (ofertaTradeSeleccionada + total - 1) % total;
+                    reproducirClickMenu();
+                } else if (rectTradeSiguiente().contains(sf::Vector2f(mousePos))) {
+                    ofertaTradeSeleccionada = (ofertaTradeSeleccionada + 1) % total;
+                    reproducirClickMenu();
+                } else if (rectTradeBoton().contains(sf::Vector2f(mousePos))) {
+                    ofertaTradeSeleccionada = std::clamp(ofertaTradeSeleccionada, 0, total - 1);
+                    const OfertaTrade& oferta = ofertas[static_cast<std::size_t>(ofertaTradeSeleccionada)];
+                    auto& slots = inventarioGrid.getSlots();
+                    bool puedeTrade = !aldeanoTrade->ofertaBloqueada(ofertaTradeSeleccionada) &&
+                                      contarItemSlots(slots, oferta.costo.item) >= oferta.costo.cantidad &&
+                                      inventarioGrid.puedeAgregarItem(oferta.resultado.item, oferta.resultado.cantidad);
+                    if (puedeTrade && consumirItemSlots(slots, oferta.costo.item, oferta.costo.cantidad)) {
+                        inventarioGrid.agregarItem(oferta.resultado.item, oferta.resultado.cantidad);
+                        aldeanoTrade->registrarTrade(ofertaTradeSeleccionada);
+                        reproducirCrafteo();
+                    } else {
+                        reproducirClickMenu();
+                    }
+                }
+            }
+        }
+
+        if (!menuPausaAbierto && !cofreAbierto && !tradeAbierto) {
             inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
             if (inventarioGrid.consumirEventoFabricacion()) {
                 reproducirCrafteo();
@@ -3887,7 +4121,7 @@ inline void Juego::ejecutar() {
             }
         }
 
-        bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta() || menuPausaAbierto || cofreAbierto;
+        bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta() || menuPausaAbierto || cofreAbierto || tradeAbierto;
 
         if (jugador && !uiAbierta) {
             sf::Vector2f posAntesPaso = jugador->getPosicion();
@@ -4158,7 +4392,27 @@ inline void Juego::ejecutar() {
             }
         }
 
-        if (!uiAbierta && clickDerecho && !clickDerechoAnterior) {
+        if (!uiAbierta && clickDerecho && !clickDerechoAnterior && jugador && !enSubsuelo) {
+            sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+            for (auto* aldeano : aldeanos) {
+                if (!aldeano || !aldeano->contienePunto(posicionMundoMouse)) {
+                    continue;
+                }
+                sf::Vector2f centroAldeano = aldeano->getPosicion() + sf::Vector2f(8.0f, 12.0f);
+                sf::Vector2f delta = centroAldeano - centroJugador;
+                if (std::sqrt(delta.x * delta.x + delta.y * delta.y) > 82.0f) {
+                    continue;
+                }
+                tradeAbierto = true;
+                aldeanoTrade = aldeano;
+                ofertaTradeSeleccionada = 0;
+                clickSobreAldeanoTrade = true;
+                reproducirClickMenu();
+                break;
+            }
+        }
+
+        if (!uiAbierta && !clickSobreAldeanoTrade && clickDerecho && !clickDerechoAnterior) {
             ItemId itemEnMano = inventarioGrid.getItemEnHotbar();
             TipoBloque bloqueAColocar = bloqueDesdeItem(itemEnMano);
 
@@ -4719,6 +4973,10 @@ inline void Juego::ejecutar() {
                 if (itCofre != cofresMundo.end()) {
                     dibujarUICofre(ventana, fuente, itCofre->second, inventarioGrid.getSlots(), mousePos);
                 }
+            }
+
+            if (tradeAbierto && aldeanoTrade) {
+                dibujarUICambioAldeano(ventana, fuente, *aldeanoTrade, ofertaTradeSeleccionada, inventarioGrid.getSlots(), mousePos);
             }
 
             if (menuPausaAbierto) {
