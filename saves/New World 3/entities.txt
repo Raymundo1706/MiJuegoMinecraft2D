@@ -1,3 +1,0 @@
-animals 1
-2 16176 4824
-zombies 0

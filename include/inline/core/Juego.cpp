@@ -2713,13 +2713,13 @@ inline void Juego::ejecutar() {
     int paginaPausaComoJugar = 0;
     bool invertirEjesPausa = false;
     sf::Music musicaMenu;
-    bool musicaMenuLista = musicaMenu.openFromFile("assets/audio/menu_music.ogg");
+    bool musicaMenuLista = musicaMenu.openFromFile("assets/sounds/menu_music.ogg");
     if (musicaMenuLista) {
         musicaMenu.setLooping(true);
         musicaMenu.setVolume(static_cast<float>(volumenMusica));
         musicaMenu.play();
     } else {
-        std::cout << "[Audio] No se pudo cargar assets/audio/menu_music.ogg" << std::endl;
+        std::cout << "[Audio] No se pudo cargar assets/sounds/menu_music.ogg" << std::endl;
     }
     sf::SoundBuffer bufferClickMenu;
     std::vector<std::int16_t> muestrasClick(2205);

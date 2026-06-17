@@ -1,0 +1,27 @@
+# Partidas y datos locales generados por el juego
+saves/
+
+# Temporales de pruebas graficas
+tmp_*.png
+tmp_*.bmp
+tmp_*.jpg
+tmp_*.jpeg
+
+# Archivos temporales del sistema/editor
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+
+# Builds auxiliares locales
+*.o
+*.obj
+bin/*.exe
+!bin/JuegoProyecto.exe
+
+# Copias locales antiguas de assets ya reacomodadas en textures/sounds
+assets/audio/
+assets/items/
+assets/zombie/
+assets/animal_*.png
+assets/player_*.png

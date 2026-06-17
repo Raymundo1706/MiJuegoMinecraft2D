@@ -397,7 +397,7 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
 
     if (!texturaLista) {
         sf::Image imagen;
-        if (imagen.loadFromFile("assets/player_walk.png")) {
+        if (imagen.loadFromFile("assets/textures/player_walk.png")) {
             sf::Image espejo(imagen.getSize(), sf::Color::Transparent);
             sf::Vector2u tam = imagen.getSize();
             for (unsigned int y = 0; y < tam.y; ++y) {
@@ -413,7 +413,7 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     }
     if (!accionesLista) {
         sf::Image imagen;
-        if (imagen.loadFromFile("assets/player_actions.png")) {
+        if (imagen.loadFromFile("assets/textures/player_actions.png")) {
             sf::Image espejo(imagen.getSize(), sf::Color::Transparent);
             sf::Vector2u tam = imagen.getSize();
             for (unsigned int y = 0; y < tam.y; ++y) {

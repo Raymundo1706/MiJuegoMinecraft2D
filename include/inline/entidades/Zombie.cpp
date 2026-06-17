@@ -162,14 +162,14 @@ inline void prepararSpritesZombie() {
 
     banco.intentado = true;
     banco.listo =
-        cargarAnimacionZombie(banco.animaciones[0], "assets/zombie/down_idle.png", 6) &&
-        cargarAnimacionZombie(banco.animaciones[1], "assets/zombie/down_walk.png", 8) &&
-        cargarAnimacionZombie(banco.animaciones[2], "assets/zombie/right_idle.png", 6) &&
-        cargarAnimacionZombie(banco.animaciones[3], "assets/zombie/right_walk.png", 8) &&
-        cargarAnimacionZombie(banco.animaciones[4], "assets/zombie/up_idle.png", 6) &&
-        cargarAnimacionZombie(banco.animaciones[5], "assets/zombie/up_walk.png", 8) &&
-        cargarAnimacionZombie(banco.animaciones[6], "assets/zombie/left_idle.png", 6) &&
-        cargarAnimacionZombie(banco.animaciones[7], "assets/zombie/left_walk.png", 8);
+        cargarAnimacionZombie(banco.animaciones[0], "assets/textures/down_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[1], "assets/textures/down_walk.png", 8) &&
+        cargarAnimacionZombie(banco.animaciones[2], "assets/textures/right_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[3], "assets/textures/right_walk.png", 8) &&
+        cargarAnimacionZombie(banco.animaciones[4], "assets/textures/up_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[5], "assets/textures/up_walk.png", 8) &&
+        cargarAnimacionZombie(banco.animaciones[6], "assets/textures/left_idle.png", 6) &&
+        cargarAnimacionZombie(banco.animaciones[7], "assets/textures/left_walk.png", 8);
 }
 
 inline bool dibujarZombieDesdeSprites(sf::RenderWindow& ventana, sf::Vector2f posicion, bool bebe, int direccion, bool caminando, float tiempoSprite, float tiempoAnimacion, float golpe, float quemadura) {

@@ -24,12 +24,12 @@ inline int indiceAnimal(TipoAnimal tipo) {
 
 inline const char* rutaAnimal(TipoAnimal tipo) {
     switch (tipo) {
-        case TipoAnimal::Cerdo: return "assets/animal_pig.png";
-        case TipoAnimal::Vaca: return "assets/animal_cow.png";
-        case TipoAnimal::Oveja: return "assets/animal_sheep.png";
-        case TipoAnimal::Gallina: return "assets/animal_chicken.png";
+        case TipoAnimal::Cerdo: return "assets/textures/animal_pig.png";
+        case TipoAnimal::Vaca: return "assets/textures/animal_cow.png";
+        case TipoAnimal::Oveja: return "assets/textures/animal_sheep.png";
+        case TipoAnimal::Gallina: return "assets/textures/animal_chicken.png";
     }
-    return "assets/animal_pig.png";
+    return "assets/textures/animal_pig.png";
 }
 
 inline float vidaAnimal(TipoAnimal tipo) {
