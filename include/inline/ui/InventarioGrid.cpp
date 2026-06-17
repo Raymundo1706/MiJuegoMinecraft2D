@@ -405,6 +405,47 @@ inline bool dibujarTexturaItem(sf::RenderWindow& ventana, const char* ruta, sf::
     return true;
 }
 
+inline bool dibujarRetratoInventario(sf::RenderWindow& ventana) {
+    static sf::Texture texturaRetrato;
+    static bool intentoCarga = false;
+    static bool texturaLista = false;
+
+    if (!intentoCarga) {
+        intentoCarga = true;
+        texturaLista = texturaRetrato.loadFromFile("assets/textures/inventory_portrait.jpeg");
+        if (texturaLista) {
+            texturaRetrato.setSmooth(true);
+        }
+    }
+
+    if (!texturaLista) {
+        return false;
+    }
+
+    sf::Vector2u tam = texturaRetrato.getSize();
+    if (tam.x == 0 || tam.y == 0) {
+        return false;
+    }
+
+    constexpr float MARGEN_RETRATO = 6.0f;
+    float anchoDisponible = PLAYER_SIZE.x - MARGEN_RETRATO * 2.0f;
+    float altoDisponible = PLAYER_SIZE.y - MARGEN_RETRATO * 2.0f;
+    float escala = std::min(
+        anchoDisponible / static_cast<float>(tam.x),
+        altoDisponible / static_cast<float>(tam.y)
+    );
+
+    sf::Sprite sprite(texturaRetrato);
+    sprite.setOrigin({static_cast<float>(tam.x) * 0.5f, static_cast<float>(tam.y) * 0.5f});
+    sprite.setPosition({
+        PLAYER_POS.x + PLAYER_SIZE.x * 0.5f,
+        PLAYER_POS.y + PLAYER_SIZE.y * 0.5f
+    });
+    sprite.setScale({escala, escala});
+    ventana.draw(sprite);
+    return true;
+}
+
 inline void lineaPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x1, int y1, int x2, int y2, sf::Color color, float escala) {
     int dx = std::abs(x2 - x1);
     int dy = -std::abs(y2 - y1);
@@ -729,6 +770,48 @@ inline void dibujarItemSprite(sf::RenderWindow& ventana, ItemId item, sf::Vector
 inline bool contiene(sf::Vector2f pos, float tam, sf::Vector2i mouse) {
     return mouse.x >= pos.x && mouse.x <= pos.x + tam &&
            mouse.y >= pos.y && mouse.y <= pos.y + tam;
+}
+
+inline void dibujarTooltipInventario(
+    sf::RenderWindow& ventana,
+    sf::Font& fuente,
+    const std::string& texto,
+    sf::Vector2i mouse
+) {
+    if (texto.empty()) {
+        return;
+    }
+
+    constexpr float margenX = 8.0f;
+    constexpr float margenY = 5.0f;
+    sf::Text etiqueta(fuente, texto, 12);
+    etiqueta.setFillColor(sf::Color::White);
+    etiqueta.setOutlineColor(sf::Color::Black);
+    etiqueta.setOutlineThickness(1.0f);
+
+    sf::FloatRect bounds = etiqueta.getLocalBounds();
+    sf::Vector2f tamano(bounds.size.x + margenX * 2.0f, bounds.size.y + margenY * 2.0f);
+    sf::Vector2f pos(static_cast<float>(mouse.x + 14), static_cast<float>(mouse.y + 18));
+    sf::Vector2u ventanaTam = ventana.getSize();
+
+    if (pos.x + tamano.x > static_cast<float>(ventanaTam.x) - 4.0f) {
+        pos.x = static_cast<float>(mouse.x) - tamano.x - 12.0f;
+    }
+    if (pos.y + tamano.y > static_cast<float>(ventanaTam.y) - 4.0f) {
+        pos.y = static_cast<float>(mouse.y) - tamano.y - 12.0f;
+    }
+    pos.x = std::max(4.0f, pos.x);
+    pos.y = std::max(4.0f, pos.y);
+
+    sf::RectangleShape fondo(tamano);
+    fondo.setPosition(pos);
+    fondo.setFillColor(sf::Color(22, 22, 22, 230));
+    fondo.setOutlineColor(sf::Color(235, 235, 235, 210));
+    fondo.setOutlineThickness(1.0f);
+    ventana.draw(fondo);
+
+    etiqueta.setPosition({pos.x + margenX - bounds.position.x, pos.y + margenY - bounds.position.y});
+    ventana.draw(etiqueta);
 }
 }
 
@@ -1707,10 +1790,12 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
         jugador.setOutlineThickness(2.0f);
         ventana.draw(jugador);
 
-        sf::RectangleShape cabeza({34.0f, 34.0f});
-        cabeza.setPosition({PLAYER_POS.x + 68.0f, PLAYER_POS.y + 34.0f});
-        cabeza.setFillColor(sf::Color(185, 55, 55));
-        ventana.draw(cabeza);
+        if (!dibujarRetratoInventario(ventana)) {
+            sf::RectangleShape cabeza({34.0f, 34.0f});
+            cabeza.setPosition({PLAYER_POS.x + 68.0f, PLAYER_POS.y + 34.0f});
+            cabeza.setFillColor(sf::Color(185, 55, 55));
+            ventana.draw(cabeza);
+        }
 
         sf::Text titulo(fuente, "Crafting", 24);
         titulo.setPosition({474.0f, 70.0f});
@@ -1847,6 +1932,17 @@ inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente)
             cantidad.setFillColor(sf::Color::White);
             ventana.draw(cantidad);
         }
+    }
+
+    if (!manteniendoItem &&
+        hover >= 0 &&
+        hover < static_cast<int>(slots.size()) &&
+        !esItemVacio(slots[hover].item)) {
+        std::string textoTooltip = nombreItem(slots[hover].item);
+        if (slots[hover].cantidad > 1) {
+            textoTooltip += " x" + std::to_string(slots[hover].cantidad);
+        }
+        dibujarTooltipInventario(ventana, fuente, textoTooltip, mouse);
     }
 }
 

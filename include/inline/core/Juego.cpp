@@ -778,6 +778,48 @@ inline sf::Color colorBloqueItem(ItemId item) {
     }
 }
 
+inline void dibujarTooltipJuego(
+    sf::RenderWindow& ventana,
+    sf::Font& fuente,
+    const std::string& texto,
+    sf::Vector2i mouse
+) {
+    if (texto.empty()) {
+        return;
+    }
+
+    constexpr float margenX = 8.0f;
+    constexpr float margenY = 5.0f;
+    sf::Text etiqueta(fuente, texto, 12);
+    etiqueta.setFillColor(sf::Color::White);
+    etiqueta.setOutlineColor(sf::Color::Black);
+    etiqueta.setOutlineThickness(1.0f);
+
+    sf::FloatRect bounds = etiqueta.getLocalBounds();
+    sf::Vector2f tamano(bounds.size.x + margenX * 2.0f, bounds.size.y + margenY * 2.0f);
+    sf::Vector2f pos(static_cast<float>(mouse.x + 14), static_cast<float>(mouse.y + 18));
+    sf::Vector2u ventanaTam = ventana.getSize();
+
+    if (pos.x + tamano.x > static_cast<float>(ventanaTam.x) - 4.0f) {
+        pos.x = static_cast<float>(mouse.x) - tamano.x - 12.0f;
+    }
+    if (pos.y + tamano.y > static_cast<float>(ventanaTam.y) - 4.0f) {
+        pos.y = static_cast<float>(mouse.y) - tamano.y - 12.0f;
+    }
+    pos.x = std::max(4.0f, pos.x);
+    pos.y = std::max(4.0f, pos.y);
+
+    sf::RectangleShape fondo(tamano);
+    fondo.setPosition(pos);
+    fondo.setFillColor(sf::Color(22, 22, 22, 230));
+    fondo.setOutlineColor(sf::Color(235, 235, 235, 210));
+    fondo.setOutlineThickness(1.0f);
+    ventana.draw(fondo);
+
+    etiqueta.setPosition({pos.x + margenX - bounds.position.x, pos.y + margenY - bounds.position.y});
+    ventana.draw(etiqueta);
+}
+
 inline void dibujarBloqueItemSuelo(sf::RenderWindow& ventana, sf::Vector2f origen, ItemId item, float escala, float giroY) {
     sf::Color base = colorBloqueItem(item);
     sf::Color luz(std::min(255, base.r + 36), std::min(255, base.g + 36), std::min(255, base.b + 36), base.a);
@@ -2070,6 +2112,46 @@ inline std::string nombreProfesionAldeano(ProfesionAldeano profesion) {
     return "Aldeano";
 }
 
+inline std::string nombreAnimalTooltip(TipoAnimal tipo) {
+    switch (tipo) {
+        case TipoAnimal::Cerdo: return "Cerdo";
+        case TipoAnimal::Oveja: return "Oveja";
+        case TipoAnimal::Vaca: return "Vaca";
+        case TipoAnimal::Gallina: return "Gallina";
+    }
+    return "Animal";
+}
+
+inline std::string nombreBloqueEspecialTooltip(TipoBloque tipo) {
+    switch (tipo) {
+        case TipoBloque::Madera: return "Arbol";
+        case TipoBloque::Piedra: return "Piedra";
+        case TipoBloque::MineralCarbon: return "Carbon";
+        case TipoBloque::MineralHierro: return "Mineral de hierro";
+        case TipoBloque::MineralPlata: return "Mineral de plata";
+        case TipoBloque::MineralOro: return "Mineral de oro";
+        case TipoBloque::MineralDiamante: return "Mineral de diamante";
+        case TipoBloque::Redstone: return "Redstone";
+        case TipoBloque::MesaCrafteo: return "Mesa de Crafteo";
+        case TipoBloque::Horno: return "Horno";
+        case TipoBloque::Cristal: return "Cristal";
+        case TipoBloque::TierraArada: return "Tierra arada";
+        case TipoBloque::CuevaEntrada: return "Entrada de mina";
+        case TipoBloque::Antorcha: return "Antorcha";
+        case TipoBloque::Techo: return "Techo";
+        case TipoBloque::PuertaCerrada: return "Puerta cerrada";
+        case TipoBloque::PuertaAbierta: return "Puerta abierta";
+        case TipoBloque::CaminoAldea: return "Camino de aldea";
+        case TipoBloque::CultivoTrigo: return "Cultivo de trigo";
+        case TipoBloque::CultivoZanahoria: return "Cultivo de zanahoria";
+        case TipoBloque::CultivoPatata: return "Cultivo de patata";
+        case TipoBloque::Lava: return "Lava";
+        case TipoBloque::Cofre: return "Cofre";
+        case TipoBloque::Yunque: return "Yunque";
+        default: return "";
+    }
+}
+
 inline std::vector<OfertaTrade> ofertasDeAldeano(ProfesionAldeano profesion) {
     if (profesion == ProfesionAldeano::Herrero) {
         return {
@@ -2372,10 +2454,36 @@ inline void dibujarUICofre(sf::RenderWindow& ventana, sf::Font& fuente, const st
         dibujarItemPlanoUI(ventana, fuente, jugadorSlots[i], pos);
     }
 
+    std::string textoTooltip;
+    int slotHoverCofre = slotCofreEnMouse(mouse);
+    if (slotHoverCofre >= 0 &&
+        slotHoverCofre < static_cast<int>(cofre.size()) &&
+        !esItemVacio(cofre[slotHoverCofre].item)) {
+        textoTooltip = nombreItem(cofre[slotHoverCofre].item);
+        if (cofre[slotHoverCofre].cantidad > 1) {
+            textoTooltip += " x" + std::to_string(cofre[slotHoverCofre].cantidad);
+        }
+    }
+
+    int slotHoverJugador = slotJugadorCofreEnMouse(mouse);
+    if (textoTooltip.empty() &&
+        slotHoverJugador >= 0 &&
+        slotHoverJugador < static_cast<int>(jugadorSlots.size()) &&
+        !esItemVacio(jugadorSlots[slotHoverJugador].item)) {
+        textoTooltip = nombreItem(jugadorSlots[slotHoverJugador].item);
+        if (jugadorSlots[slotHoverJugador].cantidad > 1) {
+            textoTooltip += " x" + std::to_string(jugadorSlots[slotHoverJugador].cantidad);
+        }
+    }
+
     sf::Text ayuda(fuente, "Click: mover stack  |  Esc: cerrar", 11);
     ayuda.setFillColor(sf::Color(78, 78, 78));
     ayuda.setPosition({228.0f, 504.0f});
     ventana.draw(ayuda);
+
+    if (!textoTooltip.empty()) {
+        dibujarTooltipJuego(ventana, fuente, textoTooltip, mouse);
+    }
 }
 
 inline sf::FloatRect rectTradeAnterior() {
@@ -2433,6 +2541,19 @@ inline void dibujarUICambioAldeano(
     dibujarItemPlanoUI(ventana, fuente, oferta.costo, posCosto);
     dibujarItemPlanoUI(ventana, fuente, oferta.resultado, posResultado);
 
+    std::string textoTooltip;
+    if (contieneSlotUI(posCosto, mouse) && !esItemVacio(oferta.costo.item)) {
+        textoTooltip = nombreItem(oferta.costo.item);
+        if (oferta.costo.cantidad > 1) {
+            textoTooltip += " x" + std::to_string(oferta.costo.cantidad);
+        }
+    } else if (contieneSlotUI(posResultado, mouse) && !esItemVacio(oferta.resultado.item)) {
+        textoTooltip = nombreItem(oferta.resultado.item);
+        if (oferta.resultado.cantidad > 1) {
+            textoTooltip += " x" + std::to_string(oferta.resultado.cantidad);
+        }
+    }
+
     sf::Text flecha(fuente, "->", 32);
     flecha.setFillColor(bloqueada ? sf::Color(150, 46, 46) : sf::Color(82, 82, 82));
     flecha.setOutlineColor(sf::Color(20, 20, 20));
@@ -2489,6 +2610,10 @@ inline void dibujarUICambioAldeano(
     ayuda.setFillColor(sf::Color(78, 78, 78));
     ayuda.setPosition({224.0f, 472.0f});
     ventana.draw(ayuda);
+
+    if (!textoTooltip.empty()) {
+        dibujarTooltipJuego(ventana, fuente, textoTooltip, mouse);
+    }
 }
 
 }
@@ -4299,6 +4424,23 @@ inline void Juego::ejecutar() {
         bool selectorBloqueEnRango = false;
         bool selectorModoColocacion = false;
         bool selectorColocacionValida = false;
+        ItemId itemSueloHover = ItemId::Ninguno;
+        int cantidadItemSueloHover = 0;
+
+        if (!uiAbierta) {
+            for (auto it = itemsSuelo.rbegin(); it != itemsSuelo.rend(); ++it) {
+                float escalaItem = std::clamp(it->escala, 0.05f, 1.0f);
+                float giroItem = std::clamp(it->giroY, 0.24f, 1.0f);
+                float medioAncho = 13.0f * escalaItem * giroItem + 5.0f;
+                float medioAlto = 14.0f * escalaItem + 6.0f;
+                if (std::fabs(posicionMundoMouse.x - it->posicion.x) <= medioAncho &&
+                    std::fabs(posicionMundoMouse.y - it->posicion.y) <= medioAlto) {
+                    itemSueloHover = it->item;
+                    cantidadItemSueloHover = it->cantidad;
+                    break;
+                }
+            }
+        }
 
         if (mapaEnSegundaMano && !mapaInicialGenerado) {
             generarMapaInicial();
@@ -4964,6 +5106,58 @@ inline void Juego::ejecutar() {
                 textoArbol.setOutlineColor(sf::Color::Black);
                 textoArbol.setOutlineThickness(2.0f);
                 ventana.draw(textoArbol);
+            }
+
+            if (!uiAbierta) {
+                std::string textoTooltip;
+
+                if (!esItemVacio(itemSueloHover)) {
+                    textoTooltip = nombreItem(itemSueloHover);
+                    if (cantidadItemSueloHover > 1) {
+                        textoTooltip += " x" + std::to_string(cantidadItemSueloHover);
+                    }
+                }
+
+                if (textoTooltip.empty()) {
+                    for (auto* zombie : zombis) {
+                        if (zombie && zombie->contienePunto(posicionMundoMouse)) {
+                            textoTooltip = zombie->esBebe() ? "Zombie bebe" : "Zombie";
+                            break;
+                        }
+                    }
+                }
+
+                if (textoTooltip.empty() && !enSubsuelo) {
+                    for (auto* animal : animales) {
+                        if (animal && animal->contienePunto(posicionMundoMouse)) {
+                            textoTooltip = nombreAnimalTooltip(animal->getTipo());
+                            break;
+                        }
+                    }
+                }
+
+                if (textoTooltip.empty() && !enSubsuelo) {
+                    for (auto* aldeano : aldeanos) {
+                        if (aldeano && aldeano->contienePunto(posicionMundoMouse)) {
+                            textoTooltip = "Aldeano " + nombreProfesionAldeano(aldeano->getProfesion());
+                            break;
+                        }
+                    }
+                }
+
+                if (textoTooltip.empty() &&
+                    mapaSuperficie &&
+                    selectorBloqueEnRango &&
+                    bloqueMouseX >= 0 &&
+                    bloqueMouseY >= 0 &&
+                    bloqueMouseX < mapaSuperficie->getAncho() &&
+                    bloqueMouseY < mapaSuperficie->getAlto()) {
+                    textoTooltip = nombreBloqueEspecialTooltip(mapaSuperficie->getTipoBloque(bloqueMouseX, bloqueMouseY));
+                }
+
+                if (!textoTooltip.empty()) {
+                    dibujarTooltipJuego(ventana, fuente, textoTooltip, mousePos);
+                }
             }
 
             inventarioGrid.dibujar(ventana, fuente);

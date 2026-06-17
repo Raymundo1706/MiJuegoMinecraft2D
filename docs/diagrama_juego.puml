@@ -1,6 +1,10 @@
-@startuml MiJuegoMinecraft2D
+@startuml Maincra2D_Arquitectura
 
+left to right direction
 skinparam backgroundColor #2D2D2D
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
 skinparam class {
     BackgroundColor #454545
     ArrowColor White
@@ -8,224 +12,662 @@ skinparam class {
     FontColor White
     FontName "Courier New"
 }
-
-title Estructura actual - MiJuegoMinecraft2D
-
-enum TipoBloque {
-    Aire
-    Pasto
-    Tierra
-    Madera
-    Piedra
-    Agua
-    Cristal
-    Techo
-    PuertaCerrada
-    PuertaAbierta
-    CaminoAldea
-    CultivoTrigo
-    CultivoZanahoria
-    CultivoPatata
-    Lava
-    Cofre
-    Yunque
+skinparam package {
+    BackgroundColor #363636
+    BorderColor #888888
+    FontColor White
+    FontName "Courier New"
+}
+skinparam note {
+    BackgroundColor #3D4F3D
+    BorderColor #A0C080
+    FontColor White
 }
 
-enum ItemId {
-    Ninguno
-    BloqueTronco
-    Tierra
-    Piedra
-    Palo
-    PicoMadera
-    PicoPiedra
-    Antorcha
-    BloqueTecho
-    Cristal
-    PuertaMadera
-    Esmeralda
-    Trigo
-    Pan
-    LingoteHierro
-    SemillasTrigo
-    Cofre
-    Yunque
+title Maincra 2-D - Arquitectura general conectada
+
+package "Tipos base y datos" {
+    enum TipoBloque {
+        Aire
+        Pasto
+        Tierra
+        Piedra
+        Agua
+        AguaProfunda
+        Madera
+        MesaCrafteo
+        Horno
+        Cristal
+        MineralHierro
+        MineralPlata
+        MineralOro
+        MineralDiamante
+        Redstone
+        TierraArada
+        CuevaEntrada
+        MineralCarbon
+        Antorcha
+        CuevaSuelo
+        Techo
+        PuertaCerrada
+        PuertaAbierta
+        CaminoAldea
+        CultivoTrigo
+        CultivoZanahoria
+        CultivoPatata
+        Lava
+        Cofre
+        Yunque
+    }
+
+    enum TipoBioma {
+        Pradera
+        Bosque
+        Seco
+        Montana
+    }
+
+    enum ItemId {
+        Ninguno
+        BloquePasto
+        BloqueTierra
+        BloquePiedra
+        BloqueTronco
+        TablonMadera
+        MineralHierro
+        MineralPlata
+        MineralOro
+        MineralDiamante
+        Redstone
+        Cristal
+        Lana
+        PaloMadera
+        MesaCrafteo
+        Horno
+        Cama
+        BloqueTecho
+        SemillaArbol
+        MapaInicial
+        Zanahoria
+        Patata
+        Remolacha
+        ChuletaCerdoCruda
+        ChuletaCerdoCocinada
+        CarneResCruda
+        LanaCruda
+        PolloCrudo
+        Pluma
+        CarnePodrida
+        Barreta
+        PicoMadera
+        PicoPiedra
+        PicoDiamante
+        PalaMadera
+        PalaPiedra
+        HachaMadera
+        HachaPiedra
+        EspadaMadera
+        EspadaPiedra
+        Carbon
+        Antorcha
+        PuertaMadera
+        CaminoAldea
+        CultivoTrigo
+        CultivoZanahoria
+        CultivoPatata
+        Lava
+        Cofre
+        Yunque
+        Esmeralda
+        Trigo
+        Pan
+        LingoteHierro
+        SemillasTrigo
+    }
+
+    enum TipoHerramienta {
+        Ninguna
+        Pico
+        Pala
+        Hacha
+    }
+
+    enum TipoAnimal {
+        Cerdo
+        Oveja
+        Vaca
+        Gallina
+    }
+
+    enum ProfesionAldeano {
+        Granjero
+        Herrero
+        Bibliotecario
+    }
+
+    class Bloque <<struct>> {
+        + tipo : TipoBloque
+        + esSolido : bool
+        + vida : float
+        + vidaMaxima : float
+        + estaHidratado : bool
+        + tiempoMinaRestante : float
+        + minaAbierta : bool
+        + troncosAlTalar : int
+        + bioma : TipoBioma
+        + varianteArbol : int
+        + faseCultivo : int
+        + tiempoCrecimiento : float
+    }
+
+    class SlotInventario <<struct>> {
+        + item : ItemId
+        + cantidad : int
+    }
+
+    class ItemSuelo <<struct>> {
+        + item : ItemId
+        + cantidad : int
+        + posicion : sf::Vector2f
+        + posicionBase : sf::Vector2f
+        + velocidad : sf::Vector2f
+        + altura : float
+        + escala : float
+        + absorbiendo : bool
+    }
+
+    class OfertaTrade <<struct>> {
+        + costo : SlotInventario
+        + resultado : SlotInventario
+        + descripcion : string
+    }
+
+    class MundoGuardado <<struct>> {
+        + nombre : string
+        + carpeta : string
+        + ultimaVez : string
+        + semillaTexto : string
+        + semilla : unsigned int
+        + dificultad : int
+    }
+
+    class EstadoJuegoGuardado <<struct>> {
+        + existe : bool
+        + enSubsuelo : bool
+        + worldTime : float
+        + posicionSuperficie : sf::Vector2f
+        + posicionJugador : sf::Vector2f
+        + semillaCueva : unsigned int
+    }
+
+    class ParticulaBloque <<struct>> {
+        + posicion : sf::Vector2f
+        + velocidad : sf::Vector2f
+        + color : sf::Color
+        + vida : float
+        + vidaMaxima : float
+        + tamano : float
+    }
+
+    class RecetaCatalogoMesa <<struct>> {
+        + nombre : string
+        + descripcion : string
+        + categoria : int
+        + resultado : ItemId
+        + cantidadResultado : int
+        + ingredientes : vector<SlotInventario>
+        + matriz[9] : ItemId
+    }
 }
 
-enum ProfesionAldeano {
-    Granjero
-    Herrero
-    Bibliotecario
+package "Nucleo del juego" {
+    class Juego {
+        - ventana : sf::RenderWindow
+        - camara : sf::View
+        - estaCorriendo : bool
+        - mapaSuperficie : unique_ptr<Mundo>
+        - mapaExterior : unique_ptr<Mundo>
+        - mapaSubsuelo : unique_ptr<Mundo>
+        - jugador : unique_ptr<Jugador>
+        - animales : vector<Animal*>
+        - zombis : vector<Zombie*>
+        - aldeanos : vector<Aldeano*>
+        - itemsSuelo : vector<ItemSuelo>
+        - worldTime : float
+        - skyLight : int
+        - spawnHostilesHabilitado : bool
+        - enSubsuelo : bool
+        - posicionEntradaSuperficie : sf::Vector2f
+        + Juego()
+        + ejecutar()
+        - actualizarTiempo(dt: float)
+        - puedeDormir() : bool
+        - saltarAlAmanecer()
+    }
+
+    class Mundo {
+        - ancho : int
+        - alto : int
+        - semillaBase : unsigned int
+        - cuadricula : vector<vector<Bloque>>
+        - acumuladorCultivos : float
+        - filaActualizacionCultivos : int
+        + Mundo(ancho: int, alto: int)
+        + Mundo(ancho: int, alto: int, semilla: unsigned int)
+        + generarMundo(esSubterraneo: bool)
+        + actualizarCultivos(dt: float)
+        + dibujar(ventana: sf::RenderWindow&)
+        + dibujarCapaSuperior(ventana: sf::RenderWindow&, posicionJugador: sf::Vector2f)
+        + esBloqueSolido(x: int, y: int) : bool
+        + puedeColocarBloque(x: int, y: int) : bool
+        + colocarBloque(x: int, y: int, tipo: TipoBloque) : bool
+        + alternarPuerta(x: int, y: int) : bool
+        + esInteriorTechadoEn(x: int, y: int) : bool
+        + ararTierra(x: int, y: int) : bool
+        + sembrarCultivo(x: int, y: int, cultivo: TipoBloque) : bool
+        + estaCultivoMaduro(x: int, y: int) : bool
+        + crearEntradaMina(x: int, y: int) : bool
+        + crearZonaEntradaSubterranea(x: int, y: int)
+        + talarArbol(x: int, y: int, segundosTrabajo: float, troncosObtenidos: int&, soltoSemilla: bool&) : bool
+        + picarEntradaMina(x: int, y: int, segundosTrabajo: float) : bool
+        + esMinaAbierta(x: int, y: int) : bool
+        + daniarBloque(x: int, y: int, cantidadDanio: float) : bool
+        + romperBloque(x: int, y: int)
+        + getTipoBloque(x: int, y: int) : TipoBloque
+        + getColorMapa(x: int, y: int) : sf::Color
+        + guardarEstado(ruta: string) : bool
+        + cargarEstado(ruta: string) : bool
+    }
 }
 
-struct SlotInventario {
-    + item : ItemId
-    + cantidad : int
+package "Entidades" {
+    class Jugador {
+        - posicion : sf::Vector2f
+        - velocidad : float
+        - direccionMirada : DireccionMirada
+        - caminando : bool
+        - accionando : bool
+        - itemAccion : ItemId
+        - enAgua : bool
+        - hundido : bool
+        - vidaHP : int
+        - vidaMaximaHP : int
+        - hambre : int
+        - saturacion : float
+        - nivelExperiencia : int
+        - progresoExperiencia : float
+        + controlar(dt: float, mundo: Mundo const&)
+        + dibujar(ventana: sf::RenderWindow&)
+        + iniciarAccion(item: ItemId)
+        + getPosicion() : sf::Vector2f
+        + setPosicion(pos: sf::Vector2f)
+        + recibirDanio(danioHP: int)
+        + aplicarEmpuje(direccion: sf::Vector2f, fuerza: float, mundo: Mundo const&)
+        + curar(puntosHP: int)
+        + agregarExperiencia(puntos: float)
+        + consumirComida(item: ItemId) : bool
+        + getMultiplicadorAtaque(item: ItemId) : float
+    }
+
+    class Animal {
+        - posicion : sf::Vector2f
+        - velocidad : sf::Vector2f
+        - tipo : TipoAnimal
+        - vida : float
+        - tiempoPanico : float
+        - tieneAmenaza : bool
+        - posicionAmenaza : sf::Vector2f
+        - muriendo : bool
+        - enAgua : bool
+        + actualizar(dt: float, mundo: Mundo const&)
+        + actualizar(dt: float, mundo: Mundo const&, posicionJugador: sf::Vector2f, itemJugador: ItemId)
+        + dibujar(ventana: sf::RenderWindow&)
+        + recibirDanio(danio: float, origenDanio: sf::Vector2f)
+        + estaVivo() : bool
+        + muerteFinalizada() : bool
+        + contienePunto(punto: sf::Vector2f) : bool
+        + getTipo() : TipoAnimal
+    }
+
+    class Zombie {
+        - posicion : sf::Vector2f
+        - velocidad : sf::Vector2f
+        - vida : float
+        - velocidadBase : float
+        - tiempoAtaque : float
+        - tiempoQuemadura : float
+        - empuje : sf::Vector2f
+        - bebe : bool
+        - vivo : bool
+        - eventoAtaque : bool
+        - soltarDrop : bool
+        + actualizar(dt: float, mundo: Mundo const&, jugador: Jugador&, skyLight: int)
+        + dibujar(ventana: sf::RenderWindow&)
+        + recibirDanio(danio: float, origenDanio: sf::Vector2f)
+        + debeEliminarse() : bool
+        + debeSoltarDrop() : bool
+        + consumirEventoAtaque() : bool
+        + contienePunto(punto: sf::Vector2f) : bool
+    }
+
+    class Aldeano {
+        - posicion : sf::Vector2f
+        - velocidad : sf::Vector2f
+        - objetivo : sf::Vector2f
+        - profesion : ProfesionAldeano
+        - refugiandose : bool
+        - usosOferta : array<int, 6>
+        - bloqueoOferta : array<float, 6>
+        + actualizar(dt: float, mundo: Mundo const&, esNoche: bool)
+        + dibujar(ventana: sf::RenderWindow&) const
+        + getProfesion() : ProfesionAldeano
+        + getPosicion() : sf::Vector2f
+        + contienePunto(punto: sf::Vector2f) : bool
+        + ofertaBloqueada(indice: int) : bool
+        + registrarTrade(indice: int)
+    }
 }
 
-struct OfertaTrade {
-    + costo : SlotInventario
-    + resultado : SlotInventario
-    + descripcion : string
+package "Inventario, crafteo y herramientas" {
+    class InventarioGrid {
+        - slots : vector<SlotInventario>
+        - menuAbierto : bool
+        - mesaCrafteoAbierta : bool
+        - categoriaMesa : int
+        - recetaMesaSeleccionada : int
+        - slotSeleccionadoHotbar : int
+        - itemCursor : SlotInventario
+        - eventoFabricacionCatalogo : bool
+        - eventoMovimientoItem : bool
+        + alternarMenu()
+        + abrirMesaCrafteo()
+        + cerrarMesaCrafteo()
+        + agregarItem(item: ItemId, cantidad: int)
+        + agregarItem(bloque: TipoBloque, cantidad: int)
+        + puedeAgregarItem(item: ItemId, cantidad: int) : bool
+        + manejarClicks(mouse: sf::Vector2i, izquierdo: bool, derecho: bool)
+        + dibujar(ventana: sf::RenderWindow&, fuente: sf::Font&)
+        + getItemEnHotbar() : ItemId
+        + getItemSegundaMano() : ItemId
+        + getTipoEnHotbar() : TipoBloque
+        + seleccionarSlotHotbar(slot: int)
+        + consumirItemHotbar(cantidad: int) : bool
+        + extraerItemHotbar(cantidad: int) : SlotInventario
+        + extraerItemEnSlot(indice: int, cantidad: int) : SlotInventario
+        + intercambiarConSegundaMano()
+        + getSlots() : vector<SlotInventario>&
+    }
+
+    class SistemaHerramientas {
+        - herramientaActiva : int
+        - inventario : map<TipoBloque, int>
+        + cambiarHerramienta(slot: int)
+        + calcularDanio(tipo: TipoBloque, itemEnMano: ItemId) : float
+        + calcularTiempoMinado(tipo: TipoBloque, itemEnMano: ItemId) : float
+        + puedeRecolectar(tipo: TipoBloque, itemEnMano: ItemId) : bool
+    }
+
+    class ItemRegistry <<utility>> {
+        + esItemVacio(item: ItemId) : bool
+        + esHerramienta(item: ItemId) : bool
+        + tipoHerramienta(item: ItemId) : TipoHerramienta
+        + maxStackItem(item: ItemId) : int
+        + itemDesdeBloque(bloque: TipoBloque) : ItemId
+        + bloqueDesdeItem(item: ItemId) : TipoBloque
+        + esItemColocable(item: ItemId) : bool
+        + nombreItem(item: ItemId) : string
+    }
 }
 
-struct Bloque {
-    + tipo : TipoBloque
-    + estaHidratado : bool
-    + faseCultivo : int
-    + tiempoCrecimiento : float
+package "Subsistemas coordinados por Juego.cpp" as PSubsistemas {
+    class SistemaMenu <<subsystem>> {
+        + menuInicio()
+        + jugar()
+        + crearMundo()
+        + ayudaOpciones()
+        + menuPausa()
+        + confirmarSalida()
+    }
+
+    class SistemaGuardado <<subsystem>> {
+        + escanearMundosGuardados() : vector<MundoGuardado>
+        + guardarMetaMundo(mundo: MundoGuardado)
+        + leerMetaMundo(ruta) : MundoGuardado
+        + guardarMundoActivo()
+        + leerEstadoJuego(carpeta) : EstadoJuegoGuardado
+        + guardarInventario()
+        + guardarEntidadesCercanas()
+        + guardarCofres()
+    }
+
+    class GeneradorMundo <<subsystem>> {
+        + semillaDesdeTexto(texto: string) : unsigned int
+        + generarSuperficie()
+        + generarSubsuelo()
+        + generarAldeas()
+        + generarSpawnSeguro()
+    }
+
+    class SistemaConstruccionInteraccion <<subsystem>> {
+        + seleccionarBloqueMouse()
+        + validarRangoJugador()
+        + colocarBloque()
+        + minarBloque()
+        + ararTierra()
+        + sembrarCultivo()
+        + alternarPuerta()
+        + abrirCofre()
+        + abrirMesaCrafteo()
+        + transicionarCueva()
+    }
+
+    class SistemaItemsSuelo <<subsystem>> {
+        + crearDrop(item: ItemId, cantidad: int, posicion: sf::Vector2f)
+        + actualizarFisicaYFlotacion()
+        + atraerAlJugador()
+        + recolectarEnInventario()
+    }
+
+    class SistemaCofres <<subsystem>> {
+        + claveCofre(x: int, y: int) : string
+        + generarLootCofreHerreria(slots, semilla, x, y)
+        + dibujarUICofre()
+        + moverItemCofreInventario()
+        + persistirContenido()
+    }
+
+    class SistemaTradeo <<subsystem>> {
+        + ofertasDeAldeano(profesion: ProfesionAldeano) : vector<OfertaTrade>
+        + validarCosto(inventario) : bool
+        + consumirCosto()
+        + entregarResultado()
+        + bloquearOfertaTemporal()
+        + dibujarUITradeo()
+    }
+
+    class SistemaIluminacion <<subsystem>> {
+        + calcularSkyLight(worldTime: float) : int
+        + dibujarOscuridadSuperficie()
+        + dibujarOscuridadSubsuelo()
+        + luzDeAntorchas()
+        + bloquearVisionPorPared()
+    }
+
+    class SistemaSpawnHostil <<subsystem>> {
+        + habilitarConSkyLight()
+        + buscarCeldaOscuraLibre()
+        + crearZombie()
+        + quemarZombiesDeDia()
+    }
+
+    class SistemaCombate <<subsystem>> {
+        + atacarAnimal()
+        + atacarZombie()
+        + calcularDanioArma()
+        + aplicarKnockback()
+        + recibirDanioJugador()
+        + generarDropsMuerte()
+    }
+
+    class SistemaAudio <<subsystem>> {
+        + musicaMenu()
+        + clickMenu()
+        + popItem()
+        + sonidoBloque()
+        + ambienteNocheOCueva()
+    }
+
+    class SistemaHUD <<subsystem>> {
+        + dibujarVida()
+        + dibujarHambre()
+        + dibujarExperiencia()
+        + dibujarOxigeno()
+        + dibujarMiniMapa()
+        + dibujarSelectorBloque()
+    }
 }
 
-class Juego {
-    - ventana : sf::RenderWindow
-    - camara : sf::View
-    - fuente : sf::Font
-    - mapaSuperficie : unique_ptr<Mundo>
-    - mapaSubsuelo : unique_ptr<Mundo>
-    - mapaExterior : unique_ptr<Mundo>
-    - jugador : unique_ptr<Jugador>
-    - animales : vector<Animal>
-    - zombies : vector<Zombie>
-    - cofresMundo : map<string, vector<SlotInventario>>
-    --
-    + Juego()
-    + ejecutar()
-}
+' Composicion principal
+Juego *-- "1 superficie" Mundo : mapaSuperficie
+Juego *-- "0..1 exterior" Mundo : mapaExterior
+Juego *-- "0..1 subsuelo" Mundo : mapaSubsuelo
+Juego *-- "1" Jugador
+Juego *-- "0..*" Animal
+Juego *-- "0..*" Zombie
+Juego *-- "0..*" Aldeano
+Juego *-- "0..*" ItemSuelo
+Juego *-- "1" InventarioGrid : inventario de sesion
+Mundo *-- "ancho x alto" Bloque
+InventarioGrid *-- "56" SlotInventario
+InventarioGrid *-- "0..*" RecetaCatalogoMesa
+RecetaCatalogoMesa *-- "1..*" SlotInventario : ingredientes
+SistemaTradeo *-- "1..*" OfertaTrade
 
-class Mundo {
-    - ancho : int
-    - alto : int
-    - bloques : vector<vector<TipoBloque>>
-    --
-    + Mundo(ancho: int, alto: int, semilla: unsigned int)
-    + generarMundo(esSubterraneo: bool)
-    + actualizarCultivos(dt: float)
-    + getTipoBloque(x: int, y: int) : TipoBloque
-    + setBloque(x: int, y: int, tipo: TipoBloque)
-    + esBloqueSolido(x: int, y: int) : bool
-    + alternarPuerta(x: int, y: int) : bool
-    + sembrarCultivo(x: int, y: int, cultivo: TipoBloque) : bool
-    + estaCultivoMaduro(x: int, y: int) : bool
-    + esInteriorTechadoEn(x: int, y: int) : bool
-    + dibujarCapaSuperior(ventana: sf::RenderWindow&, jugador: sf::Vector2f)
-    + dibujar(ventana: sf::RenderWindow&)
-}
+' Dependencias de tipos
+Bloque --> TipoBloque
+Bloque --> TipoBioma
+SlotInventario --> ItemId
+ItemSuelo --> ItemId
+OfertaTrade --> SlotInventario
+RecetaCatalogoMesa --> ItemId
+Animal --> TipoAnimal
+Aldeano --> ProfesionAldeano
+ItemRegistry ..> ItemId
+ItemRegistry ..> TipoBloque
+ItemRegistry ..> TipoHerramienta
+SistemaHerramientas ..> TipoBloque
+SistemaHerramientas ..> ItemId
+SistemaHerramientas ..> TipoHerramienta
 
-class Jugador {
-    - posicion : sf::Vector2f
-    - direccionMirada : DireccionJugador
-    - salud : int
-    - hambre : int
-    --
-    + controlar(dt: float, mundo: Mundo&)
-    + recibirDanio(cantidad: int)
-    + dibujar(ventana: sf::RenderWindow&)
-    + getPosicion() : sf::Vector2f
-}
+' Comunicacion en gameplay
+Jugador ..> Mundo : movimiento / colision / agua
+Jugador ..> ItemId : accion y arma en mano
+Animal ..> Mundo : movimiento, agua y colision
+Animal ..> ItemId : tentacion por comida
+Animal ..> Jugador : panico por amenaza
+Zombie ..> Mundo : navegacion y luz local
+Zombie ..> Jugador : persecucion, ataque y knockback
+Aldeano ..> Mundo : puertas, casas y refugio
+Aldeano ..> ProfesionAldeano
+InventarioGrid ..> ItemRegistry : stacks, nombres y colocables
+InventarioGrid ..> ItemId : hotbar, cursor y segunda mano
+InventarioGrid ..> TipoBloque : item colocable a bloque
 
-class Animal {
-    - posicion : sf::Vector2f
-    - tipo : TipoAnimal
-    - salud : int
-    - estado : EstadoAnimal
-    --
-    + actualizar(dt: float, mundo: Mundo&, jugador: Jugador&)
-    + recibirDanio(cantidad: int, origen: sf::Vector2f)
-    + dibujar(ventana: sf::RenderWindow&)
-}
+' Orquestacion de subsistemas
+Juego ..> SistemaMenu : estados de menu
+Juego ..> SistemaGuardado : crear, cargar, guardar mundo
+Juego ..> GeneradorMundo : semilla, aldeas, cuevas, spawn
+Juego ..> SistemaConstruccionInteraccion : mouse, rango e interaccion
+Juego ..> SistemaItemsSuelo : drops, fisica y recoleccion
+Juego ..> SistemaCofres : cofre activo y loot
+Juego ..> SistemaTradeo : aldeano activo y ofertas
+Juego ..> SistemaIluminacion : worldTime, skyLight y antorchas
+Juego ..> SistemaSpawnHostil : zombies por oscuridad
+Juego ..> SistemaCombate : dano, drops y empuje
+Juego ..> SistemaAudio : musica y efectos
+Juego ..> SistemaHUD : vida, hambre, selector y minimapa
 
-class Aldeano {
-    - posicion : sf::Vector2f
-    - objetivo : sf::Vector2f
-    - profesion : ProfesionAldeano
-    - refugiandose : bool
-    --
-    + actualizar(dt: float, mundo: Mundo&, esNoche: bool)
-    + dibujar(ventana: sf::RenderWindow&)
-    + getProfesion() : ProfesionAldeano
-    + getPosicion() : sf::Vector2f
-    + ofertaBloqueada(indice: int) : bool
-    + registrarTrade(indice: int)
-}
+' Flujo entre subsistemas
+SistemaMenu ..> SistemaGuardado : lista mundos / crear mundo
+SistemaMenu ..> GeneradorMundo : nueva partida con semilla
+SistemaGuardado ..> MundoGuardado
+SistemaGuardado ..> EstadoJuegoGuardado
+SistemaGuardado ..> Mundo : blocks.bin / cave_blocks.bin
+SistemaGuardado ..> InventarioGrid : inventory.txt
+SistemaGuardado ..> Jugador : player.txt
+SistemaGuardado ..> Zombie : entities.txt
+SistemaGuardado ..> Aldeano : entities.txt
+SistemaGuardado ..> SistemaCofres : chests.txt
 
-class Zombie {
-    - posicion : sf::Vector2f
-    - salud : int
-    - tiempoAtaque : float
-    --
-    + actualizar(dt: float, mundo: Mundo&, jugador: Jugador&)
-    + recibirDanio(cantidad: int)
-    + dibujar(ventana: sf::RenderWindow&)
-}
+GeneradorMundo ..> Mundo : generarMundo()
+GeneradorMundo ..> TipoBioma
+GeneradorMundo ..> TipoBloque
+GeneradorMundo ..> Aldeano : poblacion inicial de aldeas
 
-class InventarioGrid {
-    - slots : vector<SlotInventario>
-    - itemCursor : SlotInventario
-    - menuAbierto : bool
-    - mesaCrafteoAbierta : bool
-    - categoriaMesa : int
-    - recetaMesaSeleccionada : int
-    --
-    + agregarItem(item: ItemId, cantidad: int)
-    + puedeAgregarItem(item: ItemId, cantidad: int) : bool
-    + manejarClicks(mouse: sf::Vector2i, izquierdo: bool, derecho: bool)
-    + abrirMesaCrafteo()
-    + cerrarMesaCrafteo()
-    + dibujar(ventana: sf::RenderWindow&, fuente: sf::Font&)
-}
+SistemaConstruccionInteraccion ..> Jugador : posicion y rango
+SistemaConstruccionInteraccion ..> Mundo : colocar, minar, arar, sembrar
+SistemaConstruccionInteraccion ..> InventarioGrid : item en hotbar / consumir
+SistemaConstruccionInteraccion ..> SistemaHerramientas : tiempo y drop valido
+SistemaConstruccionInteraccion ..> SistemaItemsSuelo : drops por bloque
+SistemaConstruccionInteraccion *-- "0..*" ParticulaBloque : grietas y particulas
+SistemaConstruccionInteraccion ..> SistemaCofres : abrir cofre
+SistemaConstruccionInteraccion ..> SistemaAudio : feedback
 
-class SistemaHerramientas {
-    --
-    + tiempoMinado(bloque: TipoBloque, herramienta: ItemId) : float
-    + puedeSoltarItem(bloque: TipoBloque, herramienta: ItemId) : bool
-}
+SistemaItemsSuelo ..> ItemSuelo
+SistemaItemsSuelo ..> Jugador : atraccion al pecho
+SistemaItemsSuelo ..> InventarioGrid : agregarItem()
+SistemaItemsSuelo ..> SistemaAudio : pop de recoleccion
 
-class SistemaIluminacion {
-    --
-    + calcularSkyLight(worldTime: float) : int
-    + luzAntorchasCercanas(mundo: Mundo, x: int, y: int) : float
-    + lineaLuzBloqueada(mundo: Mundo, origen: sf::Vector2i, destino: sf::Vector2i) : bool
-    + dibujarOscuridadSubsuelo()
-    + dibujarOscuridadSuperficie()
-}
+SistemaCofres ..> Mundo : bloque Cofre
+SistemaCofres ..> SlotInventario : contenido
+SistemaCofres ..> InventarioGrid : transferir items
+SistemaCofres ..> SistemaGuardado : persistencia
 
-class SistemaCofres {
-    --
-    + abrirCofre(x: int, y: int)
-    + generarLootHerreria(seed: unsigned int, x: int, y: int)
-    + guardarCofres(carpeta: string)
-    + cargarCofres(carpeta: string)
-    + dibujarUICofre()
-}
-
-class SistemaTradeo {
-    --
-    + ofertasDeAldeano(profesion: ProfesionAldeano) : vector<OfertaTrade>
-    + validarInventario(costo: SlotInventario) : bool
-    + consumirCosto(costo: SlotInventario)
-    + entregarResultado(resultado: SlotInventario)
-    + dibujarUITradeo()
-}
-
-Juego *-- Mundo
-Mundo *-- Bloque
-Juego *-- Jugador
-Juego *-- Animal
-Juego *-- Aldeano
-Juego *-- Zombie
-Juego ..> InventarioGrid
-Juego ..> SistemaHerramientas
-Juego ..> SistemaIluminacion
-Juego ..> SistemaCofres
-Juego ..> SistemaTradeo
-Jugador ..> Mundo
-Animal ..> Mundo
-Aldeano ..> Mundo
-Zombie ..> Mundo
-InventarioGrid ..> SlotInventario
-InventarioGrid ..> ItemId
-SistemaCofres ..> SlotInventario
+SistemaTradeo ..> Aldeano : profesion y bloqueo
+SistemaTradeo ..> InventarioGrid : validar, consumir y entregar
 SistemaTradeo ..> OfertaTrade
-SistemaTradeo ..> SlotInventario
+SistemaTradeo ..> SistemaAudio : click de trade
+
+SistemaIluminacion ..> Mundo : antorchas y bloqueos de luz
+SistemaIluminacion ..> Jugador : luz por item en mano
+SistemaIluminacion ..> InventarioGrid : antorcha / mapa en segunda mano
+SistemaIluminacion ..> SistemaSpawnHostil : umbral de oscuridad
+SistemaIluminacion ..> SistemaHUD : oscurecer pantalla
+
+SistemaSpawnHostil ..> Mundo : celda libre y luz baja
+SistemaSpawnHostil ..> Jugador : distancia segura
+SistemaSpawnHostil ..> Zombie : crear / actualizar ciclo
+SistemaSpawnHostil ..> SistemaIluminacion : skyLight
+
+SistemaCombate ..> Jugador : vida, invulnerabilidad y experiencia
+SistemaCombate ..> Animal : dano, panico y muerte
+SistemaCombate ..> Zombie : dano y muerte
+SistemaCombate ..> InventarioGrid : arma en hotbar
+SistemaCombate ..> SistemaItemsSuelo : drops
+SistemaCombate ..> SistemaAudio : golpe / muerte
+
+SistemaHUD ..> Jugador : vida, hambre, XP, oxigeno
+SistemaHUD ..> InventarioGrid : hotbar, segunda mano y minimapa
+SistemaHUD ..> Mundo : colores del mapa y selector
+SistemaHUD ..> SistemaIluminacion : brillo final
+
+SistemaAudio ..> SistemaMenu : click y musica
+SistemaAudio ..> SistemaConstruccionInteraccion : romper / colocar
+SistemaAudio ..> SistemaItemsSuelo : pop
+SistemaAudio ..> SistemaCombate : dano y ataque
+
+note right of Juego
+Juego es el orquestador principal:
+- decide si se actualiza gameplay o UI
+- alterna superficie/subsuelo
+- actualiza tiempo, luz y spawns
+- comunica mundo, entidades, inventario y guardado
+end note
+
+note bottom of PSubsistemas
+Estos subsistemas son responsabilidades ya coordinadas desde Juego.cpp.
+Se muestran separados para que el diagrama sea escalable y no deje
+funciones importantes escondidas o sin conexion.
+end note
 
 @enduml
