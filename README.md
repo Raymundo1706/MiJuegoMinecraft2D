@@ -4,64 +4,6 @@ Proyecto desarrollado por **toñoñongos.ing** para la materia **Proyecto 252**.
 
 **Maincra 2-D** es un juego sandbox de supervivencia en 2D inspirado en **Minecraft Xbox 360 Edition**, adaptado a una perspectiva cenital. El juego incluye exploración, recolección, crafteo, minería, aldeas, animales, enemigos, inventario, día/noche, cuevas, iluminación, cofres, trading y guardado del mundo.
 
-## Estructura Requerida
-
-```text
-proyecto-252/
-|-- .github/
-|   `-- workflows/
-|       `-- publish.yml
-|-- video/
-|   `-- demo.mp4
-|-- gallery/
-|   `-- cover.png
-|-- screenshots/
-|   |-- screenshot1.png
-|   |-- screenshot2.png
-|   `-- screenshot3.png
-|-- bin/
-|   `-- JuegoProyecto.exe
-|-- assets/
-|   |-- textures/
-|   |-- sounds/
-|   `-- ...
-|-- include/
-|-- src/
-|-- README.md
-|-- makefile
-`-- .gitignore
-```
-
-## Como Ejecutar el Juego
-
-### Ejecutar con Make
-
-Para compilar y ejecutar el juego:
-
-```bash
-make run maincra2
-```
-
-### Compilar solamente
-
-```bash
-make juego
-```
-
-Esto genera el ejecutable principal en:
-
-```text
-bin/JuegoProyecto.exe
-```
-
-### Ejecutar directamente
-
-Tambien puedes abrir manualmente:
-
-```text
-bin/JuegoProyecto.exe
-```
-
 ## Descripcion del Proyecto
 
 **Maincra 2-D** es un juego de supervivencia, exploracion y construccion inspirado en la experiencia clasica de Minecraft, pero adaptado a un mundo 2D con vista cenital.
@@ -387,11 +329,3 @@ git push origin main
 
 Cada push a la rama `main` ejecuta automaticamente el GitHub Action de publicacion.
 
-## Notas Importantes
-
-- El archivo principal ejecutable debe estar en `bin/JuegoProyecto.exe`.
-- El video debe estar en `video/demo.mp4`.
-- La portada debe estar en `gallery/cover.png`.
-- Deben existir minimo 3 capturas en `screenshots/`.
-- Los recursos necesarios deben estar dentro de `assets/`.
-- El repositorio debe mantenerse publico para que CETUS pueda leerlo.

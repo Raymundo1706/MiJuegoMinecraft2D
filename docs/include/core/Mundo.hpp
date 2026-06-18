@@ -37,7 +37,8 @@ enum class TipoBloque {
     CultivoPatata,
     Lava,
     Cofre,
-    Yunque
+    Yunque,
+    Cama
 };
 
 enum class TipoBioma {

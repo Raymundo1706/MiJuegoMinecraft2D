@@ -89,6 +89,7 @@ public:
     SlotInventario extraerItemHotbar(int cantidad = 1);
     SlotInventario extraerItemCursor(int cantidad = 1);
     SlotInventario extraerItemEnSlot(int indice, int cantidad = 1);
+    std::vector<SlotInventario> extraerTodosItemsParaMuerte();
     int getSlotHover(sf::Vector2i posicionMouse) const;
     void intercambiarConSegundaMano();
 

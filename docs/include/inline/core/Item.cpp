@@ -69,6 +69,7 @@ inline ItemId itemDesdeBloque(TipoBloque bloque) {
         case TipoBloque::Lava: return ItemId::Lava;
         case TipoBloque::Cofre: return ItemId::Cofre;
         case TipoBloque::Yunque: return ItemId::Yunque;
+        case TipoBloque::Cama: return ItemId::Cama;
         default: return ItemId::Ninguno;
     }
 }
@@ -101,6 +102,7 @@ inline TipoBloque bloqueDesdeItem(ItemId item) {
         case ItemId::Lava: return TipoBloque::Lava;
         case ItemId::Cofre: return TipoBloque::Cofre;
         case ItemId::Yunque: return TipoBloque::Yunque;
+        case ItemId::Cama: return TipoBloque::Cama;
         default: return TipoBloque::Aire;
     }
 }

@@ -36,6 +36,7 @@ inline Jugador::Jugador(float x, float y) {
     progresoExperiencia = 0.0f;
     corriendo = false;
     agachado = false;
+    tiempoMuerteAnimacion = 0.0f;
 
     // Tamaño del personaje: 24x24 píxeles (cabe perfectamente dentro de un bloque de 32x32)
     forma.setSize({24.0f, 24.0f});
@@ -189,6 +190,15 @@ inline void Jugador::actualizarNutricion(float dt) {
 
 // Método para mover al personaje detectando colisiones sólidas con el terreno
 inline void Jugador::controlar(float dt, const Mundo& mundo) {
+    if (vidaHP <= 0) {
+        caminando = false;
+        corriendo = false;
+        agachado = false;
+        accionando = false;
+        forma.setPosition(posicion);
+        return;
+    }
+
     tiempoDesdeAtaque = std::min(10.0f, tiempoDesdeAtaque + dt);
     actualizarNutricion(dt);
 
@@ -361,6 +371,16 @@ inline void Jugador::controlar(float dt, const Mundo& mundo) {
     }
 }
 
+inline void Jugador::actualizarMuerte(float dt) {
+    if (vidaHP <= 0) {
+        tiempoMuerteAnimacion = std::min(3.0f, tiempoMuerteAnimacion + dt);
+        caminando = false;
+        corriendo = false;
+        agachado = false;
+        accionando = false;
+    }
+}
+
 // Método para pintar al jugador encima del mundo
 inline void Jugador::dibujar(sf::RenderWindow& ventana) {
     dibujarSpriteJugador(ventana);
@@ -443,6 +463,42 @@ inline void Jugador::dibujarSpriteJugador(sf::RenderWindow& ventana) {
     if (!texturaLista) {
         forma.setPosition({posicion.x, posicion.y + hundimientoVisual});
         ventana.draw(forma);
+        return;
+    }
+
+    if (vidaHP <= 0) {
+        int filaMuerte = 0;
+        bool espejarMuerte = false;
+        switch (direccionMirada) {
+            case DireccionMirada::Arriba:
+                filaMuerte = 2;
+                break;
+            case DireccionMirada::Derecha:
+                filaMuerte = 4;
+                break;
+            case DireccionMirada::Izquierda:
+                filaMuerte = 4;
+                espejarMuerte = true;
+                break;
+            case DireccionMirada::Abajo:
+            default:
+                filaMuerte = 0;
+                break;
+        }
+
+        float progresoMuerte = std::clamp(tiempoMuerteAnimacion / 0.85f, 0.0f, 1.0f);
+        float angulo = (espejarMuerte ? -88.0f : 88.0f) * progresoMuerte;
+        float hundimiento = 6.0f * progresoMuerte;
+
+        sf::Sprite cuerpo(espejarMuerte ? texturaJugadorEspejada : texturaJugador);
+        int columnaMuerte = espejarMuerte ? 0 : 5;
+        cuerpo.setTextureRect(sf::IntRect({columnaMuerte * 32, filaMuerte * 32}, {32, 32}));
+        cuerpo.setOrigin({16.0f, 26.0f});
+        cuerpo.setPosition({posicion.x + 12.0f, posicion.y + 26.0f + hundimiento});
+        cuerpo.setScale({1.2f, 1.2f});
+        cuerpo.setRotation(sf::degrees(angulo));
+        cuerpo.setColor(sf::Color(255, 82, 82, 235));
+        ventana.draw(cuerpo);
         return;
     }
 
@@ -646,6 +702,10 @@ inline float Jugador::getMultiplicadorAtaque(ItemId item) const {
     return 0.2f + 0.8f * carga;
 }
 
+inline float Jugador::getTiempoMuerte() const {
+    return tiempoMuerteAnimacion;
+}
+
 inline bool Jugador::estaMuerto() const {
     return vidaHP <= 0;
 }
@@ -664,9 +724,41 @@ inline void Jugador::recibirDanio(int danioHP) {
     }
 
     vidaHP = std::max(0, vidaHP - danioAplicado);
+    if (vidaHP <= 0) {
+        tiempoMuerteAnimacion = 0.0f;
+        caminando = false;
+        corriendo = false;
+        agachado = false;
+        accionando = false;
+    }
     agregarAgotamiento(0.1f);
     ultimoDanioHP = std::max(ultimoDanioHP, danioHP);
     tiempoInvulnerable = 0.5f;
+}
+
+inline void Jugador::revivir(sf::Vector2f nuevaPosicion) {
+    posicion = nuevaPosicion;
+    forma.setPosition(posicion);
+    vidaHP = vidaMaximaHP;
+    hambre = 20;
+    saturacion = 5.0f;
+    agotamiento = 0.0f;
+    tiempoRegeneracion = 0.0f;
+    tiempoInanicion = 0.0f;
+    tiempoInvulnerable = 1.0f;
+    ultimoDanioHP = 0;
+    tiempoMuerteAnimacion = 0.0f;
+    tiempoDesdeAtaque = 999.0f;
+    enAgua = false;
+    hundido = false;
+    tiempoEnAgua = 0.0f;
+    tiempoHundimiento = 0.0f;
+    tiempoMojado = 0.0f;
+    caminando = false;
+    corriendo = false;
+    agachado = false;
+    accionando = false;
+    itemAccion = ItemId::Ninguno;
 }
 
 inline void Jugador::aplicarEmpuje(sf::Vector2f direccion, float fuerza, const Mundo& mundo) {

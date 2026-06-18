@@ -939,6 +939,32 @@ inline SlotInventario InventarioGrid::extraerItemEnSlot(int indice, int cantidad
     return resultado;
 }
 
+inline std::vector<SlotInventario> InventarioGrid::extraerTodosItemsParaMuerte() {
+    std::vector<SlotInventario> items;
+
+    auto extraerSlot = [&](SlotInventario& slot) {
+        if (!esItemVacio(slot.item) && slot.cantidad > 0) {
+            items.push_back(slot);
+            slot = {};
+        }
+    };
+
+    for (int i = 0; i < TOTAL_SLOTS; ++i) {
+        if (esSlotResultado(i)) {
+            slots[i] = {};
+            continue;
+        }
+        extraerSlot(slots[i]);
+    }
+
+    extraerSlot(itemCursor);
+    manteniendoItem = false;
+    actualizarResultadoCrafteo();
+    actualizarResultadoMesa();
+    eventoMovimientoItem = true;
+    return items;
+}
+
 inline int InventarioGrid::getSlotHover(sf::Vector2i posicionMouse) const {
     return obtenerSlotEnPosicion(posicionMouse);
 }
@@ -1579,12 +1605,14 @@ inline void InventarioGrid::manejarClicks(sf::Vector2i posicionMouse, bool clicI
 }
 
 inline void InventarioGrid::dibujar(sf::RenderWindow& ventana, sf::Font& fuente) {
-    sf::Vector2i mouse = sf::Mouse::getPosition(ventana);
+    sf::Vector2f mouseVista = ventana.mapPixelToCoords(sf::Mouse::getPosition(ventana));
+    sf::Vector2i mouse(
+        static_cast<int>(std::round(mouseVista.x)),
+        static_cast<int>(std::round(mouseVista.y))
+    );
     int hover = obtenerSlotEnPosicion(mouse);
 
     if (mesaCrafteoAbierta) {
-        ventana.setView(ventana.getDefaultView());
-
         sf::RectangleShape fondo({800.0f, 600.0f});
         fondo.setFillColor(sf::Color(116, 116, 116, 246));
         ventana.draw(fondo);

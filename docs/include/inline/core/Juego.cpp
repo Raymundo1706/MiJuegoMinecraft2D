@@ -35,10 +35,15 @@ struct ParticulaBloque {
 struct EstadoJuegoGuardado {
     bool existe = false;
     bool enSubsuelo = false;
+    bool tieneRespawn = false;
+    bool camaRespawnActiva = false;
     float worldTime = 0.0f;
     sf::Vector2f posicionSuperficie{0.0f, 0.0f};
     sf::Vector2f posicionJugador{0.0f, 0.0f};
+    sf::Vector2f posicionSpawnInicial{0.0f, 0.0f};
+    sf::Vector2f posicionSpawnCama{0.0f, 0.0f};
     unsigned int semillaCueva = 0;
+    int muertesDesdeDormirEnCama = 0;
 };
 
 struct OfertaTrade {
@@ -55,6 +60,47 @@ constexpr float TICK_INICIO_NOCHE = 13000.0f;
 constexpr float TICK_FIN_NOCHE = 22000.0f;
 constexpr float TICK_PUEDE_DORMIR = 12542.0f;
 constexpr float RANGO_INTERACCION_BLOQUES = 115.0f;
+constexpr float ANCHO_VIRTUAL = 800.0f;
+constexpr float ALTO_VIRTUAL = 600.0f;
+
+sf::View vistaUIVirtual({ANCHO_VIRTUAL * 0.5f, ALTO_VIRTUAL * 0.5f}, {ANCHO_VIRTUAL, ALTO_VIRTUAL});
+
+inline sf::FloatRect calcularViewportVirtual(sf::Vector2u tamanoVentana) {
+    float anchoVentana = static_cast<float>(std::max(1u, tamanoVentana.x));
+    float altoVentana = static_cast<float>(std::max(1u, tamanoVentana.y));
+    float proporcionVentana = anchoVentana / altoVentana;
+    float proporcionVirtual = ANCHO_VIRTUAL / ALTO_VIRTUAL;
+
+    if (proporcionVentana > proporcionVirtual) {
+        float anchoViewport = proporcionVirtual / proporcionVentana;
+        float margenX = (1.0f - anchoViewport) * 0.5f;
+        return sf::FloatRect({margenX, 0.0f}, {anchoViewport, 1.0f});
+    }
+
+    float altoViewport = proporcionVentana / proporcionVirtual;
+    float margenY = (1.0f - altoViewport) * 0.5f;
+    return sf::FloatRect({0.0f, margenY}, {1.0f, altoViewport});
+}
+
+inline void actualizarVistasVirtuales(sf::RenderWindow& ventana, sf::View& camara) {
+    sf::FloatRect viewport = calcularViewportVirtual(ventana.getSize());
+    camara.setViewport(viewport);
+    vistaUIVirtual.setCenter({ANCHO_VIRTUAL * 0.5f, ALTO_VIRTUAL * 0.5f});
+    vistaUIVirtual.setSize({ANCHO_VIRTUAL, ALTO_VIRTUAL});
+    vistaUIVirtual.setViewport(viewport);
+}
+
+inline void usarVistaUI(sf::RenderWindow& ventana) {
+    ventana.setView(vistaUIVirtual);
+}
+
+inline sf::Vector2i mouseEnVistaUI(sf::RenderWindow& ventana) {
+    sf::Vector2f pos = ventana.mapPixelToCoords(sf::Mouse::getPosition(ventana), vistaUIVirtual);
+    return {
+        static_cast<int>(std::round(pos.x)),
+        static_cast<int>(std::round(pos.y))
+    };
+}
 
 inline std::string dificultadTexto(int dificultad) {
     static const char* nombres[4] = {"Pacifico", "Facil", "Normal", "Dificil"};
@@ -179,6 +225,15 @@ inline EstadoJuegoGuardado leerEstadoJuego(const std::string& carpeta) {
     in >> estado.posicionSuperficie.x >> estado.posicionSuperficie.y;
     in >> estado.posicionJugador.x >> estado.posicionJugador.y;
     in >> estado.semillaCueva;
+    int camaActiva = 0;
+    if (in >> estado.posicionSpawnInicial.x >> estado.posicionSpawnInicial.y) {
+        estado.tieneRespawn = true;
+        if (in >> camaActiva) {
+            estado.camaRespawnActiva = camaActiva != 0;
+        }
+        in >> estado.posicionSpawnCama.x >> estado.posicionSpawnCama.y;
+        in >> estado.muertesDesdeDormirEnCama;
+    }
     estado.enSubsuelo = subsuelo != 0;
     return estado;
 }
@@ -1312,7 +1367,7 @@ inline void dibujarBotonMenu(sf::RenderWindow& ventana, sf::Font& fuente, int in
 }
 
 inline void dibujarMenuInicio(sf::RenderWindow& ventana, sf::Font& fuente, bool fuenteCargada, float tiempo, int opcionSeleccionada, sf::Vector2i mouse) {
-    ventana.setView(ventana.getDefaultView());
+    usarVistaUI(ventana);
     dibujarPanoramaMenu(ventana, tiempo);
 
     int hover = indiceBotonMenu(mouse);
@@ -1441,6 +1496,272 @@ inline void dibujarAyudaOpciones(sf::RenderWindow& ventana, sf::Font& fuente, fl
     for (int i = 0; i < 5; ++i) {
         dibujarBotonRect(ventana, fuente, rectBotonLista(190.0f + static_cast<float>(i) * 48.0f), opciones[i], opcion == i);
     }
+}
+
+inline sf::FloatRect rectPestanaClasificacion(int indice) {
+    return sf::FloatRect({150.0f + static_cast<float>(indice) * 250.0f, 118.0f}, {236.0f, 36.0f});
+}
+
+inline sf::FloatRect rectAtrasClasificacion() {
+    return sf::FloatRect({626.0f, 532.0f}, {130.0f, 34.0f});
+}
+
+inline int indicePestanaClasificacion(sf::Vector2i mouse) {
+    sf::Vector2f pos(static_cast<float>(mouse.x), static_cast<float>(mouse.y));
+    for (int i = 0; i < 2; ++i) {
+        if (rectPestanaClasificacion(i).contains(pos)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+inline void dibujarGuiaControlesMenu(sf::RenderWindow& ventana, sf::Font& fuente);
+
+inline void dibujarIconoLogroMenu(sf::RenderWindow& ventana, sf::Vector2f pos, sf::Color base, bool desbloqueado, int variante) {
+    sf::RectangleShape fondo({34.0f, 34.0f});
+    fondo.setPosition(pos);
+    fondo.setFillColor(desbloqueado ? sf::Color(48, 48, 48, 245) : sf::Color(34, 34, 34, 245));
+    fondo.setOutlineColor(desbloqueado ? sf::Color(214, 214, 214) : sf::Color(92, 92, 92));
+    fondo.setOutlineThickness(2.0f);
+    ventana.draw(fondo);
+
+    sf::RectangleShape brillo({26.0f, 4.0f});
+    brillo.setPosition({pos.x + 4.0f, pos.y + 4.0f});
+    brillo.setFillColor(desbloqueado ? sf::Color(255, 255, 255, 74) : sf::Color(255, 255, 255, 28));
+    ventana.draw(brillo);
+
+    sf::Color color = desbloqueado ? base : sf::Color(94, 94, 94);
+    if (variante % 4 == 0) {
+        sf::RectangleShape bloque({18.0f, 18.0f});
+        bloque.setPosition({pos.x + 8.0f, pos.y + 10.0f});
+        bloque.setFillColor(color);
+        bloque.setOutlineColor(sf::Color(18, 18, 18));
+        bloque.setOutlineThickness(2.0f);
+        ventana.draw(bloque);
+        sf::RectangleShape tapa({18.0f, 5.0f});
+        tapa.setPosition({pos.x + 8.0f, pos.y + 10.0f});
+        tapa.setFillColor(desbloqueado ? sf::Color(96, 178, 84) : sf::Color(112, 112, 112));
+        ventana.draw(tapa);
+    } else if (variante % 4 == 1) {
+        sf::RectangleShape mango({5.0f, 22.0f});
+        mango.setPosition({pos.x + 15.0f, pos.y + 8.0f});
+        mango.setFillColor(desbloqueado ? sf::Color(134, 86, 44) : sf::Color(96, 96, 96));
+        ventana.draw(mango);
+        sf::RectangleShape cabeza({18.0f, 7.0f});
+        cabeza.setPosition({pos.x + 8.0f, pos.y + 6.0f});
+        cabeza.setFillColor(color);
+        ventana.draw(cabeza);
+    } else if (variante % 4 == 2) {
+        sf::CircleShape gema(9.0f, 4);
+        gema.setPosition({pos.x + 8.0f, pos.y + 8.0f});
+        gema.setRotation(sf::degrees(45.0f));
+        gema.setFillColor(color);
+        gema.setOutlineColor(sf::Color(18, 18, 18));
+        gema.setOutlineThickness(2.0f);
+        ventana.draw(gema);
+    } else {
+        sf::RectangleShape libro({20.0f, 18.0f});
+        libro.setPosition({pos.x + 7.0f, pos.y + 9.0f});
+        libro.setFillColor(color);
+        libro.setOutlineColor(sf::Color(18, 18, 18));
+        libro.setOutlineThickness(2.0f);
+        ventana.draw(libro);
+        sf::RectangleShape linea({2.0f, 18.0f});
+        linea.setPosition({pos.x + 16.0f, pos.y + 9.0f});
+        linea.setFillColor(sf::Color(236, 220, 150, desbloqueado ? 220 : 90));
+        ventana.draw(linea);
+    }
+}
+
+inline void dibujarClasificacionLogros(sf::RenderWindow& ventana, sf::Font& fuente, float tiempo, int pestana, sf::Vector2i mouse) {
+    dibujarPanoramaMenu(ventana, tiempo);
+    dibujarTituloSubmenu(ventana, fuente, "Tabla de Clasificacion / Logros");
+
+    sf::Vector2f mouseF(static_cast<float>(mouse.x), static_cast<float>(mouse.y));
+    sf::RectangleShape panel({700.0f, 398.0f});
+    panel.setPosition({50.0f, 156.0f});
+    panel.setFillColor(sf::Color(30, 30, 30, 236));
+    panel.setOutlineColor(sf::Color(142, 142, 142));
+    panel.setOutlineThickness(3.0f);
+    ventana.draw(panel);
+
+    const char* pestanas[2] = {"Clasificacion", "Logros"};
+    int hoverPestana = indicePestanaClasificacion(mouse);
+    for (int i = 0; i < 2; ++i) {
+        bool activa = pestana == i;
+        bool hover = hoverPestana == i;
+        sf::FloatRect r = rectPestanaClasificacion(i);
+        sf::RectangleShape sombra(r.size);
+        sombra.setPosition({r.position.x + 3.0f, r.position.y + 3.0f});
+        sombra.setFillColor(sf::Color(0, 0, 0, 120));
+        ventana.draw(sombra);
+
+        sf::RectangleShape tab(r.size);
+        tab.setPosition(r.position);
+        tab.setFillColor(activa ? sf::Color(94, 124, 78, 238) : sf::Color(76, 76, 76, 226));
+        tab.setOutlineColor((activa || hover) ? sf::Color(180, 255, 116) : sf::Color(34, 34, 34));
+        tab.setOutlineThickness((activa || hover) ? 3.0f : 2.0f);
+        ventana.draw(tab);
+
+        sf::Text texto(fuente, pestanas[i], 17);
+        texto.setFillColor(sf::Color::White);
+        texto.setOutlineColor(sf::Color::Black);
+        texto.setOutlineThickness(2.0f);
+        centrarTexto(texto, {r.position.x + r.size.x * 0.5f, r.position.y + r.size.y * 0.48f});
+        ventana.draw(texto);
+    }
+
+    if (pestana == 0) {
+        struct EntradaRanking {
+            const char* gamer;
+            int puntos;
+            int dias;
+            int diamantes;
+        };
+
+        const EntradaRanking ranking[10] = {
+            {"CAZAPVTAZZ17", 99990, 84, 128},
+            {"FAKETAKITO", 87220, 67, 96},
+            {"LAURA BOSO", 76010, 59, 83},
+            {"MINERO_LUNAR", 64130, 42, 52},
+            {"REDSTONE_KING", 58840, 38, 49},
+            {"CREEPERHUGGER", 51760, 31, 41},
+            {"ENDERMAN_404", 47900, 29, 35},
+            {"PICO_DE_ORO", 42080, 25, 28},
+            {"OBSIDIANO_7", 38120, 21, 22},
+            {"TORCHMASTER", 33450, 18, 16}
+        };
+
+        sf::RectangleShape encabezado({638.0f, 28.0f});
+        encabezado.setPosition({82.0f, 176.0f});
+        encabezado.setFillColor(sf::Color(18, 18, 18, 190));
+        encabezado.setOutlineColor(sf::Color(70, 70, 70));
+        encabezado.setOutlineThickness(2.0f);
+        ventana.draw(encabezado);
+
+        const char* headers[5] = {"#", "Gamer", "Puntos", "Dias", "Diamantes"};
+        float hx[5] = {100.0f, 158.0f, 430.0f, 540.0f, 608.0f};
+        for (int i = 0; i < 5; ++i) {
+            sf::Text h(fuente, headers[i], 13);
+            h.setFillColor(sf::Color(255, 236, 120));
+            h.setOutlineColor(sf::Color::Black);
+            h.setOutlineThickness(1.0f);
+            h.setPosition({hx[i], 183.0f});
+            ventana.draw(h);
+        }
+
+        for (int i = 0; i < 10; ++i) {
+            float y = 210.0f + static_cast<float>(i) * 30.0f;
+            sf::RectangleShape fila({638.0f, 26.0f});
+            fila.setPosition({82.0f, y});
+            fila.setFillColor(i % 2 == 0 ? sf::Color(52, 52, 52, 210) : sf::Color(42, 42, 42, 210));
+            fila.setOutlineColor(i < 3 ? sf::Color(174, 150, 72) : sf::Color(24, 24, 24));
+            fila.setOutlineThickness(i < 3 ? 2.0f : 1.0f);
+            ventana.draw(fila);
+
+            sf::Color medalla = sf::Color(158, 158, 158);
+            if (i == 0) medalla = sf::Color(244, 198, 54);
+            if (i == 1) medalla = sf::Color(202, 206, 212);
+            if (i == 2) medalla = sf::Color(194, 116, 54);
+
+            sf::RectangleShape placa({24.0f, 20.0f});
+            placa.setPosition({96.0f, y + 3.0f});
+            placa.setFillColor(medalla);
+            placa.setOutlineColor(sf::Color::Black);
+            placa.setOutlineThickness(2.0f);
+            ventana.draw(placa);
+
+            sf::Text rank(fuente, std::to_string(i + 1), 12);
+            rank.setFillColor(sf::Color::Black);
+            centrarTexto(rank, {108.0f, y + 13.0f});
+            ventana.draw(rank);
+
+            sf::Text gamer(fuente, ranking[i].gamer, 14);
+            gamer.setFillColor(i < 3 ? sf::Color(255, 250, 204) : sf::Color::White);
+            gamer.setOutlineColor(sf::Color::Black);
+            gamer.setOutlineThickness(1.0f);
+            gamer.setPosition({150.0f, y + 4.0f});
+            ventana.draw(gamer);
+
+            sf::Text puntos(fuente, std::to_string(ranking[i].puntos), 13);
+            puntos.setFillColor(sf::Color(210, 255, 174));
+            puntos.setOutlineColor(sf::Color::Black);
+            puntos.setOutlineThickness(1.0f);
+            puntos.setPosition({428.0f, y + 5.0f});
+            ventana.draw(puntos);
+
+            sf::Text dias(fuente, std::to_string(ranking[i].dias), 13);
+            dias.setFillColor(sf::Color(214, 214, 214));
+            dias.setOutlineColor(sf::Color::Black);
+            dias.setOutlineThickness(1.0f);
+            dias.setPosition({548.0f, y + 5.0f});
+            ventana.draw(dias);
+
+            sf::Text diamantes(fuente, std::to_string(ranking[i].diamantes), 13);
+            diamantes.setFillColor(sf::Color(92, 236, 255));
+            diamantes.setOutlineColor(sf::Color::Black);
+            diamantes.setOutlineThickness(1.0f);
+            diamantes.setPosition({632.0f, y + 5.0f});
+            ventana.draw(diamantes);
+        }
+    } else {
+        struct LogroMenu {
+            const char* nombre;
+            const char* descripcion;
+            bool desbloqueado;
+            sf::Color color;
+        };
+
+        const LogroMenu logros[12] = {
+            {"Sobrevivir un dia", "Pasa un ciclo completo con vida.", true, sf::Color(86, 178, 82)},
+            {"Picar primer diamante", "Encuentra y rompe mena de diamante.", false, sf::Color(74, 226, 246)},
+            {"Graduarte del CETI", "Construye, aprende y entrega tu mundo.", true, sf::Color(250, 214, 82)},
+            {"Pasar electromagnetismo", "Sobrevive al jefe mas dificil.", false, sf::Color(156, 116, 255)},
+            {"Consigue madera", "Tala tu primer arbol.", true, sf::Color(126, 82, 42)},
+            {"Hora de minar", "Craftea tu primer pico.", true, sf::Color(168, 168, 168)},
+            {"Mejorando herramienta", "Fabrica una herramienta de piedra.", false, sf::Color(122, 122, 122)},
+            {"Casa segura", "Coloca muros y techo para refugiarte.", false, sf::Color(170, 112, 64)},
+            {"Dulces suenos", "Usa una cama como punto de respawn.", false, sf::Color(220, 64, 64)},
+            {"Al trato, aldeano", "Completa un intercambio.", false, sf::Color(48, 210, 112)},
+            {"Cazador nocturno", "Derrota un zombie de noche.", false, sf::Color(98, 98, 138)},
+            {"Luz en la cueva", "Coloca una antorcha bajo tierra.", false, sf::Color(255, 178, 54)}
+        };
+
+        for (int i = 0; i < 12; ++i) {
+            int columna = i % 2;
+            int filaIndice = i / 2;
+            sf::FloatRect r({82.0f + static_cast<float>(columna) * 330.0f, 172.0f + static_cast<float>(filaIndice) * 56.0f}, {306.0f, 48.0f});
+            bool hover = r.contains(mouseF);
+
+            sf::RectangleShape fila(r.size);
+            fila.setPosition(r.position);
+            fila.setFillColor(logros[i].desbloqueado ? sf::Color(56, 56, 56, 228) : sf::Color(34, 34, 34, 228));
+            fila.setOutlineColor(hover ? sf::Color(180, 255, 116) : (logros[i].desbloqueado ? sf::Color(118, 118, 118) : sf::Color(62, 62, 62)));
+            fila.setOutlineThickness(hover ? 3.0f : 2.0f);
+            ventana.draw(fila);
+
+            dibujarIconoLogroMenu(ventana, {r.position.x + 8.0f, r.position.y + 7.0f}, logros[i].color, logros[i].desbloqueado, i);
+
+            sf::Text nombre(fuente, logros[i].nombre, 13);
+            nombre.setFillColor(logros[i].desbloqueado ? sf::Color(255, 250, 204) : sf::Color(156, 156, 156));
+            nombre.setOutlineColor(sf::Color::Black);
+            nombre.setOutlineThickness(1.0f);
+            nombre.setPosition({r.position.x + 52.0f, r.position.y + 7.0f});
+            ventana.draw(nombre);
+
+            sf::Text desc(fuente, logros[i].descripcion, 10);
+            desc.setFillColor(logros[i].desbloqueado ? sf::Color(214, 214, 214) : sf::Color(118, 118, 118));
+            desc.setOutlineColor(sf::Color::Black);
+            desc.setOutlineThickness(1.0f);
+            desc.setPosition({r.position.x + 52.0f, r.position.y + 26.0f});
+            ventana.draw(desc);
+        }
+    }
+
+    dibujarBotonRect(ventana, fuente, rectAtrasClasificacion(), "Atras",
+                     rectAtrasClasificacion().contains(mouseF), 15);
+    dibujarGuiaControlesMenu(ventana, fuente);
 }
 
 inline void dibujarGuiaControlesMenu(sf::RenderWindow& ventana, sf::Font& fuente) {
@@ -1823,7 +2144,7 @@ inline void dibujarControles(sf::RenderWindow& ventana, sf::Font& fuente, float 
         "Ctrl+Q: Tirar stack\n"
         "F: Segunda mano\n"
         "F3: Depuracion\n"
-        "B: Dormir si es posible", 16);
+        "Click der en cama: Dormir / guardar spawn", 16);
     esquema.setFillColor(sf::Color::White);
     esquema.setOutlineColor(sf::Color::Black);
     esquema.setOutlineThickness(2.0f);
@@ -1908,7 +2229,7 @@ inline void dibujarCreditos(sf::RenderWindow& ventana, sf::Font& fuente, float t
 }
 
 inline void dibujarFondoPausa(sf::RenderWindow& ventana, sf::Font& fuente, const char* titulo) {
-    ventana.setView(ventana.getDefaultView());
+    usarVistaUI(ventana);
 
     sf::RectangleShape velo({800.0f, 600.0f});
     velo.setFillColor(sf::Color(0, 0, 0, 118));
@@ -2083,6 +2404,71 @@ inline void dibujarPausaConfirmarSalida(sf::RenderWindow& ventana, sf::Font& fue
     }
 }
 
+inline sf::FloatRect rectMuerteRespawn() {
+    return sf::FloatRect({250.0f, 350.0f}, {300.0f, 38.0f});
+}
+
+inline sf::FloatRect rectMuerteMenu() {
+    return sf::FloatRect({250.0f, 402.0f}, {300.0f, 38.0f});
+}
+
+inline void dibujarPantallaMuerte(
+    sf::RenderWindow& ventana,
+    sf::Font& fuente,
+    sf::Vector2i mouse,
+    float tiempo,
+    bool respawnCamaActivo,
+    int muertesDesdeCama
+) {
+    float alpha = std::clamp(tiempo / 0.75f, 0.0f, 1.0f);
+    sf::RectangleShape velo({800.0f, 600.0f});
+    velo.setFillColor(sf::Color(120, 18, 18, static_cast<std::uint8_t>(145.0f * alpha)));
+    ventana.draw(velo);
+
+    sf::RectangleShape sombra({470.0f, 310.0f});
+    sombra.setPosition({168.0f, 148.0f});
+    sombra.setFillColor(sf::Color(0, 0, 0, 150));
+    ventana.draw(sombra);
+
+    sf::RectangleShape panel({470.0f, 310.0f});
+    panel.setPosition({164.0f, 144.0f});
+    panel.setFillColor(sf::Color(38, 38, 38, 232));
+    panel.setOutlineColor(sf::Color(12, 12, 12));
+    panel.setOutlineThickness(4.0f);
+    ventana.draw(panel);
+
+    sf::Text titulo(fuente, "Has muerto!", 34);
+    titulo.setFillColor(sf::Color(255, 82, 82));
+    titulo.setOutlineColor(sf::Color::Black);
+    titulo.setOutlineThickness(3.0f);
+    centrarTexto(titulo, {400.0f, 196.0f});
+    ventana.draw(titulo);
+
+    std::string detalle = respawnCamaActivo
+        ? "Reapareceras en tu cama guardada."
+        : "Reapareceras en el punto inicial del mundo.";
+    sf::Text info(fuente, detalle, 15);
+    info.setFillColor(sf::Color(230, 230, 230));
+    info.setOutlineColor(sf::Color::Black);
+    info.setOutlineThickness(2.0f);
+    centrarTexto(info, {400.0f, 246.0f});
+    ventana.draw(info);
+
+    if (respawnCamaActivo) {
+        std::string usos = "Muertes desde dormir: " + std::to_string(muertesDesdeCama) + " / 3";
+        sf::Text contador(fuente, usos, 13);
+        contador.setFillColor(sf::Color(210, 210, 210));
+        contador.setOutlineColor(sf::Color::Black);
+        contador.setOutlineThickness(1.0f);
+        centrarTexto(contador, {400.0f, 276.0f});
+        ventana.draw(contador);
+    }
+
+    sf::Vector2f mouseF(static_cast<float>(mouse.x), static_cast<float>(mouse.y));
+    dibujarBotonRect(ventana, fuente, rectMuerteRespawn(), "Reaparecer", rectMuerteRespawn().contains(mouseF), 17);
+    dibujarBotonRect(ventana, fuente, rectMuerteMenu(), "Salir al menu", rectMuerteMenu().contains(mouseF), 17);
+}
+
 inline bool bloqueAptoAldeano(const Mundo& mundo, int x, int y) {
     TipoBloque tipo = mundo.getTipoBloque(x, y);
     return !mundo.esBloqueSolido(x, y) &&
@@ -2148,6 +2534,7 @@ inline std::string nombreBloqueEspecialTooltip(TipoBloque tipo) {
         case TipoBloque::Lava: return "Lava";
         case TipoBloque::Cofre: return "Cofre";
         case TipoBloque::Yunque: return "Yunque";
+        case TipoBloque::Cama: return "Cama";
         default: return "";
     }
 }
@@ -2619,7 +3006,7 @@ inline void dibujarUICambioAldeano(
 }
 
 inline Juego::Juego()
-    : ventana(sf::VideoMode({800, 600}), "TEST DE CAMBIOS REALES"),
+    : ventana(sf::VideoMode::getDesktopMode(), "Maincra 2-D", sf::State::Fullscreen),
       estaCorriendo(true),
       fuenteCargada(false),
       worldTime(0.0f),
@@ -2680,6 +3067,8 @@ inline Juego::Juego()
 
     jugador = std::make_unique<Jugador>(posX, posY);
     camara.setSize({560.0f, 420.0f});
+    actualizarVistasVirtuales(ventana, camara);
+    ventana.setVerticalSyncEnabled(true);
 
     std::uniform_int_distribution<> animalBloqueX(30, mapaSuperficie->getAncho() - 31);
     std::uniform_int_distribution<> animalBloqueY(30, mapaSuperficie->getAlto() - 31);
@@ -2810,6 +3199,7 @@ inline void Juego::ejecutar() {
     bool clickMenuAnterior = false;
     float tiempoMenuInicio = 0.0f;
     int paginaComoJugar = 0;
+    int pestanaClasificacionLogros = 0;
     bool invertirEjeY = false;
     int sensibilidadMirada = 50;
     int brilloMenu = 75;
@@ -3026,6 +3416,13 @@ inline void Juego::ejecutar() {
     float temporizadorSonidoBloque = 0.0f;
     float distanciaPasos = 0.0f;
     float temporizadorAmbiente = 4.0f;
+    sf::Vector2f spawnInicialJugador = jugador ? jugador->getPosicion() : sf::Vector2f(0.0f, 0.0f);
+    sf::Vector2f spawnCamaJugador = spawnInicialJugador;
+    bool camaRespawnActiva = false;
+    int muertesDesdeDormirEnCama = 0;
+    bool pantallaMuerteActiva = false;
+    bool inventarioMuerteSoltado = false;
+    float tiempoPantallaMuerte = 0.0f;
 
     auto crearParticulasBloque = [&](TipoBloque tipo, sf::Vector2f centro, int cantidad, float fuerza) {
         std::uniform_real_distribution<float> angulo(0.0f, 6.2831853f);
@@ -3071,6 +3468,42 @@ inline void Juego::ejecutar() {
         reproducirRecolectar();
     };
 
+    auto tirarInventarioPorMuerte = [&]() {
+        if (!jugador || inventarioMuerteSoltado) {
+            return;
+        }
+
+        std::vector<SlotInventario> drops = inventarioGrid.extraerTodosItemsParaMuerte();
+        if (drops.empty()) {
+            inventarioMuerteSoltado = true;
+            return;
+        }
+
+        sf::Vector2f centroJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 12.0f);
+        std::uniform_real_distribution<float> angulo(0.0f, 6.2831853f);
+        std::uniform_real_distribution<float> fuerza(76.0f, 132.0f);
+        std::uniform_real_distribution<float> salto(42.0f, 72.0f);
+        std::uniform_real_distribution<float> offset(-8.0f, 8.0f);
+
+        for (const SlotInventario& drop : drops) {
+            if (esItemVacio(drop.item) || drop.cantidad <= 0) {
+                continue;
+            }
+
+            float a = angulo(genLoot);
+            float f = fuerza(genLoot);
+            ItemSuelo item(drop.item, drop.cantidad, centroJugador + sf::Vector2f(offset(genLoot), offset(genLoot)));
+            item.velocidad = {std::cos(a) * f, std::sin(a) * f};
+            item.velocidadAltura = salto(genLoot);
+            item.rebotesRestantes = 2;
+            item.fisicaInicializada = true;
+            itemsSuelo.push_back(item);
+        }
+
+        inventarioMuerteSoltado = true;
+        reproducirRecolectar();
+    };
+
     auto guardarMundoActivo = [&]() {
         if (!hayMundoActivo || !mapaSuperficie) {
             return;
@@ -3102,6 +3535,10 @@ inline void Juego::ejecutar() {
             st << posicionEntradaSuperficie.x << ' ' << posicionEntradaSuperficie.y << '\n';
             st << pos.x << ' ' << pos.y << '\n';
             st << (enSubsuelo ? mapaSuperficie->getSemilla() : 0u) << '\n';
+            st << spawnInicialJugador.x << ' ' << spawnInicialJugador.y << '\n';
+            st << (camaRespawnActiva ? 1 : 0) << '\n';
+            st << spawnCamaJugador.x << ' ' << spawnCamaJugador.y << '\n';
+            st << muertesDesdeDormirEnCama << '\n';
 
             sf::Vector2f referencia = enSubsuelo ? posicionEntradaSuperficie : pos;
             constexpr float RADIO_GUARDADO_ENTIDADES = 42.0f * TAMANIO_BLOQUE_JUEGO;
@@ -3166,6 +3603,9 @@ inline void Juego::ejecutar() {
         tradeAbierto = false;
         aldeanoTrade = nullptr;
         ofertaTradeSeleccionada = 0;
+        pantallaMuerteActiva = false;
+        inventarioMuerteSoltado = false;
+        tiempoPantallaMuerte = 0.0f;
         enSubsuelo = false;
         posicionEntradaSuperficie = {0.0f, 0.0f};
         EstadoJuegoGuardado estadoGuardado = cargarBloques ? leerEstadoJuego(mundo.carpeta) : EstadoJuegoGuardado{};
@@ -3216,6 +3656,10 @@ inline void Juego::ejecutar() {
 
         float jugadorX = static_cast<float>(bloqueSpawnX) * TAMANIO_BLOQUE_JUEGO;
         float jugadorY = static_cast<float>(bloqueSpawnY) * TAMANIO_BLOQUE_JUEGO;
+        spawnInicialJugador = {jugadorX, jugadorY};
+        spawnCamaJugador = spawnInicialJugador;
+        camaRespawnActiva = false;
+        muertesDesdeDormirEnCama = 0;
         if (cargarBloques) {
             std::ifstream pj(rutaJugadorMundo(mundo.carpeta));
             if (pj) {
@@ -3229,6 +3673,12 @@ inline void Juego::ejecutar() {
             jugadorX = estadoGuardado.posicionJugador.x;
             jugadorY = estadoGuardado.posicionJugador.y;
             posicionEntradaSuperficie = estadoGuardado.posicionSuperficie;
+            if (estadoGuardado.tieneRespawn) {
+                spawnInicialJugador = estadoGuardado.posicionSpawnInicial;
+                spawnCamaJugador = estadoGuardado.posicionSpawnCama;
+                camaRespawnActiva = estadoGuardado.camaRespawnActiva;
+                muertesDesdeDormirEnCama = std::max(0, estadoGuardado.muertesDesdeDormirEnCama);
+            }
         } else if (!cargarBloques) {
             worldTime = 0.0f;
             skyLight = 15;
@@ -3250,6 +3700,7 @@ inline void Juego::ejecutar() {
         }
         jugador = std::make_unique<Jugador>(jugadorX, jugadorY);
         camara.setSize({560.0f, 420.0f});
+        actualizarVistasVirtuales(ventana, camara);
 
         std::uniform_int_distribution<> animalBloqueX(30, mapaSuperficie->getAncho() - 31);
         std::uniform_int_distribution<> animalBloqueY(30, mapaSuperficie->getAlto() - 31);
@@ -3587,13 +4038,91 @@ inline void Juego::ejecutar() {
         enSubsuelo = false;
     };
 
+    auto posicionSeguraCercaDeBloque = [&](int bx, int by) {
+        if (!mapaSuperficie) {
+            return spawnInicialJugador;
+        }
+
+        const sf::Vector2i candidatos[9] = {
+            {bx, by + 1}, {bx + 1, by}, {bx - 1, by}, {bx, by - 1},
+            {bx + 1, by + 1}, {bx - 1, by + 1}, {bx + 1, by - 1}, {bx - 1, by - 1},
+            {bx, by}
+        };
+
+        for (const sf::Vector2i& c : candidatos) {
+            TipoBloque tipo = mapaSuperficie->getTipoBloque(c.x, c.y);
+            if (!mapaSuperficie->esBloqueSolido(c.x, c.y) &&
+                tipo != TipoBloque::Agua &&
+                tipo != TipoBloque::AguaProfunda &&
+                tipo != TipoBloque::Lava) {
+                return sf::Vector2f(
+                    static_cast<float>(c.x) * TAMANIO_BLOQUE_JUEGO,
+                    static_cast<float>(c.y) * TAMANIO_BLOQUE_JUEGO
+                );
+            }
+        }
+
+        return sf::Vector2f(
+            static_cast<float>(bx) * TAMANIO_BLOQUE_JUEGO,
+            static_cast<float>(by + 1) * TAMANIO_BLOQUE_JUEGO
+        );
+    };
+
+    auto respawnearJugador = [&]() {
+        if (!jugador) {
+            return;
+        }
+
+        if (enSubsuelo && mapaExterior) {
+            mapaSubsuelo = std::move(mapaSuperficie);
+            mapaSuperficie = std::move(mapaExterior);
+            enSubsuelo = false;
+            itemsSuelo.clear();
+            for (auto* zombie : zombis) delete zombie;
+            zombis.clear();
+        }
+
+        sf::Vector2f destino = spawnInicialJugador;
+        if (camaRespawnActiva) {
+            ++muertesDesdeDormirEnCama;
+            if (muertesDesdeDormirEnCama < 3) {
+                destino = spawnCamaJugador;
+            } else {
+                camaRespawnActiva = false;
+                muertesDesdeDormirEnCama = 0;
+                destino = spawnInicialJugador;
+            }
+        }
+
+        jugador->revivir(destino);
+        camara.setCenter(destino);
+        pantallaMuerteActiva = false;
+        inventarioMuerteSoltado = false;
+        tiempoPantallaMuerte = 0.0f;
+        cofreAbierto = false;
+        tradeAbierto = false;
+        aldeanoTrade = nullptr;
+        menuPausaAbierto = false;
+    };
+
+    auto salirMenuDesdeMuerte = [&]() {
+        respawnearJugador();
+        guardarMundoActivo();
+        mostrandoMenuInicio = true;
+        pantallaMenuInicio = 0;
+        opcionMenuInicio = 0;
+        if (musicaMenuLista) {
+            musicaMenu.play();
+        }
+    };
+
     while (ventana.isOpen() && estaCorriendo) {
         float dt = reloj.restart().asSeconds();
         if (dt > 0.05f) {
             dt = 0.05f;
         }
         tiempoMenuInicio += dt;
-        if (!mostrandoMenuInicio && !menuPausaAbierto) {
+        if (!mostrandoMenuInicio && !menuPausaAbierto && !pantallaMuerteActiva) {
             actualizarTiempo(dt);
             if (mapaSuperficie && !cofreAbierto &&
                 !inventarioGrid.esMenuAbierto() &&
@@ -3634,7 +4163,7 @@ inline void Juego::ejecutar() {
         if (particulasBloque.size() > 420) {
             particulasBloque.erase(particulasBloque.begin(), particulasBloque.begin() + static_cast<std::ptrdiff_t>(particulasBloque.size() - 420));
         }
-        if (!mostrandoMenuInicio && !menuPausaAbierto && jugador) {
+        if (!mostrandoMenuInicio && !menuPausaAbierto && !pantallaMuerteActiva && jugador) {
             bool ambienteCueva = enSubsuelo;
             bool ambienteNoche = !enSubsuelo && skyLight < 7;
             if (ambienteCueva || ambienteNoche) {
@@ -3649,10 +4178,36 @@ inline void Juego::ejecutar() {
             }
         }
 
+        if (!mostrandoMenuInicio && jugador && jugador->estaMuerto()) {
+            if (!pantallaMuerteActiva) {
+                pantallaMuerteActiva = true;
+                tiempoPantallaMuerte = 0.0f;
+                cofreAbierto = false;
+                cofreActivo.clear();
+                tradeAbierto = false;
+                aldeanoTrade = nullptr;
+                menuPausaAbierto = false;
+                if (inventarioGrid.esMesaCrafteoAbierta()) {
+                    inventarioGrid.cerrarMesaCrafteo();
+                }
+                if (inventarioGrid.esMenuAbierto()) {
+                    inventarioGrid.alternarMenu();
+                }
+                tirarInventarioPorMuerte();
+            }
+
+            tiempoPantallaMuerte += dt;
+            jugador->actualizarMuerte(dt);
+        }
+
         while (const std::optional<sf::Event> evento = ventana.pollEvent()) {
             if (evento->is<sf::Event::Closed>()) {
                 guardarMundoActivo();
                 ventana.close();
+            }
+
+            if (evento->is<sf::Event::Resized>()) {
+                actualizarVistasVirtuales(ventana, camara);
             }
 
             if (const auto* texto = evento->getIf<sf::Event::TextEntered>()) {
@@ -3680,6 +4235,9 @@ inline void Juego::ejecutar() {
                         } else if (pantallaMenuInicio == 6) {
                             pantallaMenuInicio = 0;
                             opcionMenuInicio = 0;
+                        } else if (pantallaMenuInicio == 9) {
+                            pantallaMenuInicio = 0;
+                            opcionMenuInicio = 1;
                         } else if (pantallaMenuInicio == 7 || pantallaMenuInicio == 8) {
                             pantallaMenuInicio = 6;
                             opcionMenuInicio = 0;
@@ -3694,19 +4252,33 @@ inline void Juego::ejecutar() {
                         continue;
                     }
 
+                    if (pantallaMenuInicio == 9 &&
+                        (botonTeclado->code == sf::Keyboard::Key::Left ||
+                         botonTeclado->code == sf::Keyboard::Key::A ||
+                         botonTeclado->code == sf::Keyboard::Key::Right ||
+                         botonTeclado->code == sf::Keyboard::Key::D)) {
+                        pestanaClasificacionLogros = 1 - pestanaClasificacionLogros;
+                        reproducirClickMenu();
+                        continue;
+                    }
+
                     if (botonTeclado->code == sf::Keyboard::Key::Up ||
                         botonTeclado->code == sf::Keyboard::Key::W) {
-                        int total = pantallaMenuInicio == 1 ? 5 : 4;
-                        if (pantallaMenuInicio == 6) total = 4;
-                        opcionMenuInicio = (opcionMenuInicio + total - 1) % total;
-                        reproducirClickMenu();
+                        if (pantallaMenuInicio != 9) {
+                            int total = pantallaMenuInicio == 1 ? 5 : 4;
+                            if (pantallaMenuInicio == 6) total = 4;
+                            opcionMenuInicio = (opcionMenuInicio + total - 1) % total;
+                            reproducirClickMenu();
+                        }
                     }
                     if (botonTeclado->code == sf::Keyboard::Key::Down ||
                         botonTeclado->code == sf::Keyboard::Key::S) {
-                        int total = pantallaMenuInicio == 1 ? 5 : 4;
-                        if (pantallaMenuInicio == 6) total = 4;
-                        opcionMenuInicio = (opcionMenuInicio + 1) % total;
-                        reproducirClickMenu();
+                        if (pantallaMenuInicio != 9) {
+                            int total = pantallaMenuInicio == 1 ? 5 : 4;
+                            if (pantallaMenuInicio == 6) total = 4;
+                            opcionMenuInicio = (opcionMenuInicio + 1) % total;
+                            reproducirClickMenu();
+                        }
                     }
                     if (pantallaMenuInicio == 7 && botonTeclado->code == sf::Keyboard::Key::Backspace) {
                         std::string& destino = inputCrearMundoActivo == 1 ? nombreMundoNuevo : semillaMundoNuevo;
@@ -3721,6 +4293,9 @@ inline void Juego::ejecutar() {
                             if (opcionMenuInicio == 0) {
                                 pantallaMenuInicio = 6;
                                 opcionMenuInicio = 0;
+                            } else if (opcionMenuInicio == 1) {
+                                pantallaMenuInicio = 9;
+                                pestanaClasificacionLogros = 0;
                             } else if (opcionMenuInicio == 2) {
                                 pantallaMenuInicio = 1;
                                 opcionMenuInicio = 0;
@@ -3753,7 +4328,21 @@ inline void Juego::ejecutar() {
                             }
                         } else if (pantallaMenuInicio == 8) {
                             pantallaMenuInicio = 6;
+                        } else if (pantallaMenuInicio == 9) {
+                            pestanaClasificacionLogros = 1 - pestanaClasificacionLogros;
                         }
+                    }
+                    continue;
+                }
+
+                if (pantallaMuerteActiva) {
+                    if (botonTeclado->code == sf::Keyboard::Key::Enter ||
+                        botonTeclado->code == sf::Keyboard::Key::Space) {
+                        reproducirClickMenu();
+                        respawnearJugador();
+                    } else if (botonTeclado->code == sf::Keyboard::Key::Escape) {
+                        reproducirClickMenu();
+                        salirMenuDesdeMuerte();
                     }
                     continue;
                 }
@@ -3840,7 +4429,7 @@ inline void Juego::ejecutar() {
                     if (inventarioGrid.tieneItemEnMano()) {
                         tirado = inventarioGrid.extraerItemCursor(tirarStack ? 64 : 1);
                     } else if (inventarioGrid.esMenuAbierto()) {
-                        int hoverSlot = inventarioGrid.getSlotHover(sf::Mouse::getPosition(ventana));
+                        int hoverSlot = inventarioGrid.getSlotHover(mouseEnVistaUI(ventana));
                         tirado = inventarioGrid.extraerItemEnSlot(hoverSlot, tirarStack ? 64 : 1);
                     } else {
                         tirado = inventarioGrid.extraerItemHotbar(tirarStack ? 64 : 1);
@@ -3865,16 +4454,25 @@ inline void Juego::ejecutar() {
                     mostrarDebug = !mostrarDebug;
                 }
 
-                if (botonTeclado->code == sf::Keyboard::Key::B && puedeDormir()) {
-                    saltarAlAmanecer();
-                }
             }
         }
 
-        sf::Vector2i mousePos = sf::Mouse::getPosition(ventana);
+        sf::Vector2i mousePixel = sf::Mouse::getPosition(ventana);
+        sf::Vector2i mousePos = mouseEnVistaUI(ventana);
         bool clickIzquierdo = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         bool clickDerecho = sf::Mouse::isButtonPressed(sf::Mouse::Button::Right);
         bool clickSobreAldeanoTrade = false;
+
+        if (pantallaMuerteActiva && clickIzquierdo && !clickMenuAnterior) {
+            sf::Vector2f mouseF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+            if (rectMuerteRespawn().contains(mouseF)) {
+                reproducirClickMenu();
+                respawnearJugador();
+            } else if (rectMuerteMenu().contains(mouseF)) {
+                reproducirClickMenu();
+                salirMenuDesdeMuerte();
+            }
+        }
 
         if (mostrandoMenuInicio) {
             auto mouseDentro = [&](sf::FloatRect rect) {
@@ -3895,6 +4493,9 @@ inline void Juego::ejecutar() {
                     if (hover == 0) {
                         pantallaMenuInicio = 6;
                         opcionMenuInicio = 0;
+                    } else if (hover == 1) {
+                        pantallaMenuInicio = 9;
+                        pestanaClasificacionLogros = 0;
                     } else if (hover == 2) {
                         pantallaMenuInicio = 1;
                         opcionMenuInicio = 0;
@@ -4050,10 +4651,23 @@ inline void Juego::ejecutar() {
                     pantallaMenuInicio = 6;
                     opcionMenuInicio = 0;
                 }
+            } else if (pantallaMenuInicio == 9) {
+                if (clickIzquierdo && !clickMenuAnterior) {
+                    int pestanaHover = indicePestanaClasificacion(mousePos);
+                    if (pestanaHover >= 0) {
+                        reproducirClickMenu();
+                        pestanaClasificacionLogros = pestanaHover;
+                    } else if (mouseDentro(rectAtrasClasificacion())) {
+                        reproducirClickMenu();
+                        pantallaMenuInicio = 0;
+                        opcionMenuInicio = 1;
+                    }
+                }
             }
             clickMenuAnterior = clickIzquierdo;
 
             ventana.clear(sf::Color(18, 18, 22));
+            usarVistaUI(ventana);
             if (pantallaMenuInicio == 0) {
                 dibujarMenuInicio(ventana, fuente, fuenteCargada, tiempoMenuInicio, opcionMenuInicio, mousePos);
             } else if (fuenteCargada && pantallaMenuInicio == 1) {
@@ -4083,6 +4697,8 @@ inline void Juego::ejecutar() {
                 );
             } else if (fuenteCargada && pantallaMenuInicio == 8) {
                 dibujarUnirsePartida(ventana, fuente, tiempoMenuInicio, mousePos);
+            } else if (fuenteCargada && pantallaMenuInicio == 9) {
+                dibujarClasificacionLogros(ventana, fuente, tiempoMenuInicio, pestanaClasificacionLogros, mousePos);
             }
             aplicarBrilloPantalla(ventana, brilloMenu);
             ventana.display();
@@ -4236,7 +4852,7 @@ inline void Juego::ejecutar() {
             }
         }
 
-        if (!menuPausaAbierto && !cofreAbierto && !tradeAbierto) {
+        if (!pantallaMuerteActiva && !menuPausaAbierto && !cofreAbierto && !tradeAbierto) {
             inventarioGrid.manejarClicks(mousePos, clickIzquierdo, clickDerecho);
             if (inventarioGrid.consumirEventoFabricacion()) {
                 reproducirCrafteo();
@@ -4246,7 +4862,7 @@ inline void Juego::ejecutar() {
             }
         }
 
-        bool uiAbierta = inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta() || menuPausaAbierto || cofreAbierto || tradeAbierto;
+        bool uiAbierta = pantallaMuerteActiva || inventarioGrid.esMenuAbierto() || inventarioGrid.esMesaCrafteoAbierta() || menuPausaAbierto || cofreAbierto || tradeAbierto;
 
         if (jugador && !uiAbierta) {
             sf::Vector2f posAntesPaso = jugador->getPosicion();
@@ -4277,7 +4893,7 @@ inline void Juego::ejecutar() {
         float activoArriba = centroCamara.y - tamanoCamara.y / 2.0f - margenActivo;
         float activoAbajo = centroCamara.y + tamanoCamara.y / 2.0f + margenActivo;
 
-        if (!enSubsuelo) {
+        if (!enSubsuelo && !pantallaMuerteActiva) {
             for (auto* animal : animales) {
                 if (!animal) continue;
                 sf::Vector2f posAnimal = animal->getPosicion();
@@ -4314,7 +4930,7 @@ inline void Juego::ejecutar() {
             acumuladorSpawnZombies = 0.0f;
         }
 
-        if (jugador && mapaSuperficie) {
+        if (jugador && mapaSuperficie && !pantallaMuerteActiva) {
             for (auto* zombie : zombis) {
                 if (zombie) {
                     zombie->actualizar(dt, *mapaSuperficie, *jugador, enSubsuelo ? 0 : skyLight);
@@ -4327,6 +4943,7 @@ inline void Juego::ejecutar() {
 
         if (jugador) {
             sf::Vector2f pechoJugador = jugador->getPosicion() + sf::Vector2f(12.0f, 10.0f);
+            bool jugadorPuedeRecogerItems = !pantallaMuerteActiva && !jugador->estaMuerto();
             for (auto it = itemsSuelo.begin(); it != itemsSuelo.end();) {
                 if (!it->fisicaInicializada) {
                     std::uniform_real_distribution<float> angulo(0.0f, 6.2831853f);
@@ -4347,9 +4964,15 @@ inline void Juego::ejecutar() {
                 constexpr float RADIO_ABSORCION = 48.0f;
 
                 if (!it->absorbiendo &&
+                    jugadorPuedeRecogerItems &&
                     distanciaBase <= RADIO_ABSORCION &&
                     inventarioGrid.puedeAgregarItem(it->item, it->cantidad)) {
                     it->absorbiendo = true;
+                }
+
+                if (it->absorbiendo && !jugadorPuedeRecogerItems) {
+                    it->absorbiendo = false;
+                    it->escala = 1.0f;
                 }
 
                 if (it->absorbiendo) {
@@ -4408,7 +5031,7 @@ inline void Juego::ejecutar() {
         }
 
         ventana.setView(camara);
-        sf::Vector2f posicionMundoMouse = ventana.mapPixelToCoords(mousePos);
+        sf::Vector2f posicionMundoMouse = ventana.mapPixelToCoords(mousePixel, camara);
         int bloqueMouseX = static_cast<int>(std::floor(posicionMundoMouse.x / TAMANIO_BLOQUE_JUEGO));
         int bloqueMouseY = static_cast<int>(std::floor(posicionMundoMouse.y / TAMANIO_BLOQUE_JUEGO));
 
@@ -4572,8 +5195,22 @@ inline void Juego::ejecutar() {
                     abrioCofre = true;
                     reproducirClickMenu();
                 }
+
+                bool usoCama = false;
+                if (selectorBloqueEnRango && !abrioCofre && tipoObjetivo == TipoBloque::Cama) {
+                    spawnCamaJugador = posicionSeguraCercaDeBloque(bloqueMouseX, bloqueMouseY);
+                    camaRespawnActiva = true;
+                    muertesDesdeDormirEnCama = 0;
+                    if (puedeDormir()) {
+                        saltarAlAmanecer();
+                    }
+                    usoCama = true;
+                    reproducirCrafteo();
+                }
+
                 bool alternoPuerta = selectorBloqueEnRango &&
                                      !abrioCofre &&
+                                     !usoCama &&
                                      (tipoObjetivo == TipoBloque::PuertaCerrada ||
                                       tipoObjetivo == TipoBloque::PuertaAbierta) &&
                                      mapaSuperficie->alternarPuerta(bloqueMouseX, bloqueMouseY);
@@ -4582,7 +5219,7 @@ inline void Juego::ejecutar() {
                 }
 
                 bool aroTierra = false;
-                if (!abrioCofre && !alternoPuerta && selectorBloqueEnRango &&
+                if (!abrioCofre && !usoCama && !alternoPuerta && selectorBloqueEnRango &&
                     (itemEnMano == ItemId::PalaMadera || itemEnMano == ItemId::PalaPiedra) &&
                     (tipoObjetivo == TipoBloque::Pasto || tipoObjetivo == TipoBloque::Tierra)) {
                     aroTierra = mapaSuperficie->ararTierra(bloqueMouseX, bloqueMouseY);
@@ -4592,7 +5229,7 @@ inline void Juego::ejecutar() {
                 }
 
                 bool sembroCultivo = false;
-                if (!aroTierra && !abrioCofre && !alternoPuerta && selectorBloqueEnRango &&
+                if (!aroTierra && !abrioCofre && !usoCama && !alternoPuerta && selectorBloqueEnRango &&
                     tipoObjetivo == TipoBloque::TierraArada &&
                     (bloqueAColocar == TipoBloque::CultivoTrigo ||
                      bloqueAColocar == TipoBloque::CultivoZanahoria ||
@@ -4604,12 +5241,12 @@ inline void Juego::ejecutar() {
                     }
                 }
 
-                bool consumioComida = !aroTierra && !sembroCultivo && !abrioCofre && !alternoPuerta && jugador->consumirComida(itemEnMano);
+                bool consumioComida = !aroTierra && !sembroCultivo && !abrioCofre && !usoCama && !alternoPuerta && jugador->consumirComida(itemEnMano);
                 if (consumioComida) {
                     inventarioGrid.consumirItemHotbar(1);
                 }
 
-                if (!aroTierra && !sembroCultivo && !abrioCofre && !consumioComida && !alternoPuerta) {
+                if (!aroTierra && !sembroCultivo && !abrioCofre && !usoCama && !consumioComida && !alternoPuerta) {
                     if (selectorColocacionValida &&
                         mapaSuperficie->colocarBloque(bloqueMouseX, bloqueMouseY, bloqueAColocar)) {
                         inventarioGrid.consumirItemHotbar(1);
@@ -4970,7 +5607,7 @@ inline void Juego::ejecutar() {
             }
         }
 
-        ventana.setView(ventana.getDefaultView());
+        usarVistaUI(ventana);
 
         if (jugador) {
             dibujarBarraVida(ventana, *jugador, tiempoMenuInicio);
@@ -5006,7 +5643,7 @@ inline void Juego::ejecutar() {
                << " Sat: " << static_cast<int>(jugador->getSaturacion() * 10.0f) / 10.0f
                << " Agot: " << static_cast<int>(jugador->getAgotamiento() * 10.0f) / 10.0f
                << "\nCarga ataque: " << static_cast<int>(jugador->getMultiplicadorAtaque(inventarioGrid.getItemEnHotbar()) * 100.0f) << "%"
-               << "\nDormir: " << (puedeDormir() ? "Disponible (B)" : "No");
+               << "\nDormir: " << (puedeDormir() ? "Disponible en cama" : "Solo respawn en cama");
 
             if (jugadorSobreEntradaMina) {
                 int segundosRestantes = static_cast<int>(std::ceil(minaRestante));
@@ -5199,6 +5836,17 @@ inline void Juego::ejecutar() {
                 } else if (pantallaPausa == 11) {
                     dibujarCreditos(ventana, fuente, tiempoMenuInicio, scrollCreditos);
                 }
+            }
+
+            if (pantallaMuerteActiva) {
+                dibujarPantallaMuerte(
+                    ventana,
+                    fuente,
+                    mousePos,
+                    tiempoPantallaMuerte,
+                    camaRespawnActiva && muertesDesdeDormirEnCama < 2,
+                    muertesDesdeDormirEnCama
+                );
             }
         }
 

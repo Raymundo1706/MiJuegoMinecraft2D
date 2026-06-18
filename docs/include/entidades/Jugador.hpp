@@ -42,6 +42,7 @@ private:
     float progresoExperiencia;
     bool corriendo;
     bool agachado;
+    float tiempoMuerteAnimacion;
 
     void dibujarPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, sf::Color color, float escala);
     void dibujarRectPixel(sf::RenderWindow& ventana, sf::Vector2f origen, int x, int y, int ancho, int alto, sf::Color color, float escala);
@@ -53,6 +54,7 @@ public:
     ~Jugador();
 
     void controlar(float dt, const Mundo& mundo);
+    void actualizarMuerte(float dt);
     void dibujar(sf::RenderWindow& ventana);
     void iniciarAccion(ItemId item);
 
@@ -71,8 +73,10 @@ public:
     int getNivelExperiencia() const;
     float getProgresoExperiencia() const;
     float getMultiplicadorAtaque(ItemId item) const;
+    float getTiempoMuerte() const;
     bool estaMuerto() const;
     void recibirDanio(int danioHP);
+    void revivir(sf::Vector2f nuevaPosicion);
     void aplicarEmpuje(sf::Vector2f direccion, float fuerza, const Mundo& mundo);
     void curar(int puntosHP);
     void agregarAgotamiento(float puntos);

@@ -871,6 +871,38 @@ inline void dibujarYunque(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
     rect(18.0f, 7.0f, 4.0f, 3.0f, sf::Color(128, 132, 136));
 }
 
+inline void dibujarCama(sf::RenderWindow& ventana, int bloqueX, int bloqueY) {
+    const float x = bloqueX * TAMANIO_BLOQUE_JUEGO;
+    const float y = bloqueY * TAMANIO_BLOQUE_JUEGO;
+
+    sf::RectangleShape sombra({22.0f, 5.0f});
+    sombra.setPosition({x + 2.0f, y + 19.0f});
+    sombra.setFillColor(sf::Color(18, 10, 10, 80));
+    ventana.draw(sombra);
+
+    sf::RectangleShape base({20.0f, 16.0f});
+    base.setPosition({x + 2.0f, y + 5.0f});
+    base.setFillColor(sf::Color(138, 66, 32));
+    base.setOutlineColor(sf::Color(55, 30, 20));
+    base.setOutlineThickness(1.0f);
+    ventana.draw(base);
+
+    sf::RectangleShape sabana({15.0f, 14.0f});
+    sabana.setPosition({x + 6.0f, y + 6.0f});
+    sabana.setFillColor(sf::Color(188, 36, 42));
+    ventana.draw(sabana);
+
+    sf::RectangleShape brillo({15.0f, 2.0f});
+    brillo.setPosition({x + 6.0f, y + 6.0f});
+    brillo.setFillColor(sf::Color(232, 82, 82, 150));
+    ventana.draw(brillo);
+
+    sf::RectangleShape almohada({5.0f, 14.0f});
+    almohada.setPosition({x + 2.0f, y + 6.0f});
+    almohada.setFillColor(sf::Color(226, 226, 214));
+    ventana.draw(almohada);
+}
+
 inline TipoBloque revelarSueloRaro() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -1503,6 +1535,9 @@ inline void Mundo::dibujar(sf::RenderWindow& ventana) {
             } else if (cuadricula[y][x].tipo == TipoBloque::Yunque) {
                 dibujarYunque(ventana, x, y);
                 continue;
+            } else if (cuadricula[y][x].tipo == TipoBloque::Cama) {
+                dibujarCama(ventana, x, y);
+                continue;
             } else if (cuadricula[y][x].tipo == TipoBloque::Cristal) {
                 formaBlq.setFillColor(sf::Color(180, 235, 255, 180));
                 bloqueConAltura = true;
@@ -1760,6 +1795,7 @@ inline int Mundo::getVidaMaximaBloque(TipoBloque tipo) const {
         case TipoBloque::Lava: return 9999;
         case TipoBloque::Cofre: return 80;
         case TipoBloque::Yunque: return 320;
+        case TipoBloque::Cama: return 60;
         case TipoBloque::PuertaCerrada:
         case TipoBloque::PuertaAbierta:
             return 80;
@@ -1807,7 +1843,8 @@ inline bool Mundo::colocarBloque(int x, int y, TipoBloque tipo) {
                   tipo != TipoBloque::CaminoAldea &&
                   tipo != TipoBloque::CultivoTrigo &&
                   tipo != TipoBloque::CultivoZanahoria &&
-                  tipo != TipoBloque::CultivoPatata;
+                  tipo != TipoBloque::CultivoPatata &&
+                  tipo != TipoBloque::Cama;
     float vida = static_cast<float>(getVidaMaximaBloque(tipo));
     TipoBioma bioma = cuadricula[y][x].bioma;
     cuadricula[y][x] = {tipo, solido, vida, false, 0.0f, false, 1, vida, bioma, 0};
@@ -2274,7 +2311,8 @@ inline bool Mundo::daniarBloque(int x, int y, float cantidadDanio) {
                    tipoOriginal == TipoBloque::PuertaCerrada ||
                    tipoOriginal == TipoBloque::PuertaAbierta ||
                    tipoOriginal == TipoBloque::Cofre ||
-                   tipoOriginal == TipoBloque::Yunque) {
+                   tipoOriginal == TipoBloque::Yunque ||
+                   tipoOriginal == TipoBloque::Cama) {
             cuadricula[y][x] = {TipoBloque::Pasto, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
         } else if (tipoOriginal == TipoBloque::CaminoAldea) {
             cuadricula[y][x] = {TipoBloque::Tierra, false, 30.0f, false, 0.0f, false, 1, 30.0f, bioma, 0};
