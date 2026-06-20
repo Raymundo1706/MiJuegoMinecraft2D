@@ -40,11 +40,12 @@ jobs:
 
           # Crear ZIP
           cd release-package
-          zip -r ../Maincra_2-d.zip . || echo "⚠️ Error al crear ZIP"
+          zip -r ../Maincra_2_d.zip . || echo "⚠️ Error al crear ZIP"
           cd ..
+          cp Maincra_2_d.zip Maincra_2-d.zip
 
           # Mostrar tamaño
-          SIZE=$(du -h Maincra_2-d.zip | cut -f1)
+          SIZE=$(du -h Maincra_2_d.zip | cut -f1)
           echo "✅ ZIP creado: $SIZE"
 
       - name: 🚀 Crear Release
@@ -70,10 +71,11 @@ jobs:
             - Assets necesarios
 
             ### ⬇️ Descarga
-            Descarga `Maincra_2-d.zip` para jugar.
+            Descarga `Maincra_2_d.zip` para jugar.
           draft: false
           prerelease: false
           files: |
+            Maincra_2_d.zip
             Maincra_2-d.zip
 
       - name: 📡 Notificar a CETUS
@@ -96,9 +98,9 @@ jobs:
               "target_commitish": "${{ github.sha }}",
               "assets": [
                 {
-                  "name": "Maincra_2-d.zip",
-                  "browser_download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Maincra_2-d.zip",
-                  "size": $(stat -c%s Maincra_2-d.zip)
+                  "name": "Maincra_2_d.zip",
+                  "browser_download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Maincra_2_d.zip",
+                  "size": $(stat -c%s Maincra_2_d.zip)
                 }
               ]
             }
@@ -122,6 +124,6 @@ jobs:
           echo "- **Versión:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Release:** [Ver en GitHub](${{ steps.create_release.outputs.url }})" >> $GITHUB_STEP_SUMMARY
-          echo "- **Descarga:** [Maincra_2-d.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Maincra_2-d.zip)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Descarga:** [Maincra_2_d.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Maincra_2_d.zip)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Tu proyecto se actualizará en la galería CETUS en unos momentos." >> $GITHUB_STEP_SUMMARY
